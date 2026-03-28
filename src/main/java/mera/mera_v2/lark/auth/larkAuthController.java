@@ -10,11 +10,13 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 @Slf4j
 @Controller
+@RequestMapping("/lark")
 @RequiredArgsConstructor
 public class larkAuthController {
   @Value("${lark.app-id}")
@@ -50,8 +52,8 @@ public class larkAuthController {
   @Autowired(required = false)
   private mera.mera_v2.lark.webhook.service.TenantTokenService tenantTokenService;
 
-  // Trang home: show nÃºt Login
-  @GetMapping("/")
+  // Trang /lark: show nút Login Lark
+  @GetMapping("")
   public String index(Model model) {
     // build URL login Lark
     String baseUrl = "https://open.larksuite.com/open-apis/authen/v1/index";

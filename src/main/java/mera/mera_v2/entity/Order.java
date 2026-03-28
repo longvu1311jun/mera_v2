@@ -75,7 +75,7 @@ public class Order {
     @Column(name = "bill_full_name", length = 255)
     private String billFullName;
 
-    @Column(name = "bill_phone_number", length = 20)
+    @Column(name = "bill_phone_number", length = 50)
     private String billPhoneNumber;
 
     @Column(name = "bill_email", length = 255)
