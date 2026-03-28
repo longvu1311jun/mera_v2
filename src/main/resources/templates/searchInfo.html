@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Search Info</title>
+  <style>
+    body{font-family:Arial,Helvetica,sans-serif;background:#f6f7fb;color:#222;margin:0;padding:0;}
+    .container{max-width:1100px;margin:24px auto;background:#fff;padding:20px;border-radius:10px;box-shadow:0 4px 12px rgba(0,0,0,0.06);}
+    h1{margin:0 0 12px;font-size:20px;}
+    .search{display:flex;gap:10px;margin-bottom:12px;}
+    .search input{flex:1;padding:10px 12px;font-size:14px;border:1px solid #ddd;border-radius:6px;}
+    .search button{padding:10px 14px;font-size:14px;border:none;border-radius:6px;background:#2563eb;color:#fff;cursor:pointer;}
+    .search button:hover{background:#1e4fd8;}
+    .card{border:1px solid #eee;border-radius:8px;padding:12px;margin-bottom:12px;}
+    .card h2{margin:0 0 8px;font-size:16px;}
+    table{width:100%;border-collapse:collapse;}
+    th,td{border:1px solid #eee;padding:8px;text-align:left;font-size:13px;}
+    thead th{background:#fafafa;}
+    .muted{color:#666;font-size:13px;}
+    .loading-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.35);display:none;align-items:center;justify-content:center;z-index:9999;}
+    .loading-box{background:#fff;padding:20px 28px;border-radius:10px;box-shadow:0 6px 16px rgba(0,0,0,0.15);display:flex;align-items:center;gap:12px;}
+    .spinner{width:24px;height:24px;border:3px solid #e5e7eb;border-top-color:#2563eb;border-radius:50%;animation:spin 1s linear infinite;}
+    @keyframes spin{to{transform:rotate(360deg)}}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Tra cứu khách hàng (SearchInfo)</h1>
+    <div class="search">
+      <input id="phoneInput" type="tel" placeholder="Nhập số điện thoại" />
+      <button id="searchBtn">Tìm</button>
+    </div>
+    <p class="muted">API: /api/search-info?phone=...</p>
+
+    <div id="customerCard" class="card" style="display:none;">
+      <h2>Thông tin khách hàng</h2>
+      <div id="customerInfo"></div>
+    </div>
+
+    <div class="card">
+      <h2>Đơn hàng (Status = 3)</h2>
+      <div id="ordersWrap" class="muted">Chưa có dữ liệu</div>
+    </div>
+
+    <div class="card">
+      <h2>Ghi chú khách hàng</h2>
+      <div id="notesWrap" class="muted">Chưa có dữ liệu</div>
+    </div>
+  </div>
+
+  <div id="loadingOverlay" class="loading-overlay">
+    <div class="loading-box">
+      <div class="spinner"></div>
+      <div>Đang tìm, vui lòng chờ...</div>
+    </div>
+  </div>
+
+  <script src="/js/search-info.js"></script>
+</body>
+</html>
+<!-- <!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clinic Dashboard - Full Width</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
+        .timeline-line::before {
+            content: '';
+            position: absolute;
+            top: 15px; bottom: 0; left: 15px; width: 2px; background: #e5e7eb; z-index: 0;
+        }
+        /* Ẩn thanh cuộn nhưng vẫn cuộn được */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: { 50: '#f0fdfa', 100: '#ccfbf1', 500: '#14b8a6', 600: '#0d9488', 700: '#0f766e' }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="text-slate-600 h-screen flex flex-col overflow-hidden bg-slate-50">
+
+    <header class="bg-white shadow-sm border-b border-slate-200 flex-none z-50">
+        <div class="w-full px-4 h-14 flex items-center justify-between"> <div class="flex items-center gap-2 w-[340px]"> <div class="w-8 h-8 bg-brand-600 rounded-lg flex items-center justify-center text-white font-bold">
+                    <i class="fa-solid fa-hospital"></i>
+                </div>
+                <h1 class="font-bold text-lg text-slate-800 tracking-tight">Clinic<span class="text-brand-600">Admin</span></h1>
+            </div>
+
+            <div class="flex-1 px-4">
+                <div class="relative group max-w-3xl mx-auto">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <i class="fa-solid fa-magnifying-glass text-slate-400"></i>
+                    </div>
+                    <input type="text" class="block w-full pl-10 pr-3 py-2 border border-slate-200 rounded-full bg-slate-100 focus:bg-white focus:ring-2 focus:ring-brand-500 focus:outline-none transition text-sm" placeholder="Tìm kiếm SĐT, Tên..." value="0984859009">
+                </div>
+            </div>
+
+            <div class="flex items-center gap-3 w-[100px] justify-end">
+                <div class="w-8 h-8 rounded-full bg-slate-200 overflow-hidden border border-slate-300">
+                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Admin" alt="Admin">
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-1 w-full h-full p-3 overflow-hidden">
+        
+        <div class="grid grid-cols-1 lg:grid-cols-[350px_1fr_1fr] gap-4 h-full">
+            
+            <div class="flex flex-col gap-4 overflow-y-auto no-scrollbar pb-10">
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex-none">
+                    <div class="h-20 bg-gradient-to-r from-brand-600 to-teal-400"></div>
+                    <div class="px-5 pb-5 text-center relative">
+                        <div class="w-20 h-20 mx-auto -mt-10 bg-white rounded-full p-1 shadow-md">
+                            <img src="https://api.dicebear.com/7.x/initials/svg?seed=DoanVanTruong&backgroundColor=e5e7eb&textColor=374151" alt="Avatar" class="w-full h-full rounded-full">
+                        </div>
+                        <h2 class="mt-2 text-xl font-bold text-slate-800">Đoàn Văn Trường</h2>
+                        <div class="flex justify-center items-center gap-2 text-slate-500 mt-1 mb-4">
+                            <span class="font-bold text-slate-700 text-lg">0984.859.009</span>
+                            <button class="text-brand-600 bg-brand-50 px-2 py-0.5 rounded text-xs hover:bg-brand-100"><i class="fa-regular fa-copy"></i></button>
+                        </div>
+                        
+                        <div class="grid grid-cols-2 gap-3 mb-4">
+                            <div class="bg-slate-50 p-2 rounded border border-slate-100">
+                                <span class="block text-[10px] text-slate-400 uppercase font-bold">Thành công</span>
+                                <span class="block text-xl font-bold text-emerald-600">3</span>
+                            </div>
+                            <div class="bg-slate-50 p-2 rounded border border-slate-100">
+                                <span class="block text-[10px] text-slate-400 uppercase font-bold">Hạng</span>
+                                <span class="block text-base font-bold text-slate-700 mt-0.5">Thân thiết</span>
+                            </div>
+                        </div>
+
+                        <div class="text-left space-y-3 border-t border-slate-100 pt-3">
+                            <div>
+                                <span class="text-[10px] text-slate-400 font-bold uppercase">Customer ID</span>
+                                <div class="bg-slate-100 text-slate-600 text-[11px] p-1.5 rounded font-mono truncate mt-1">8d43a732-b171...5b4dda</div>
+                            </div>
+                            <div>
+                                <span class="text-[10px] text-slate-400 font-bold uppercase">Địa chỉ</span>
+                                <p class="text-sm text-slate-500 italic mt-0.5">Chưa cập nhật</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 flex flex-col flex-1 min-h-[200px]">
+                    <h3 class="font-bold text-slate-700 text-sm mb-2">Ghi chú nhanh</h3>
+                    <textarea class="w-full border border-slate-200 rounded-lg p-3 text-sm focus:ring-1 focus:ring-brand-500 focus:outline-none flex-1 resize-none bg-slate-50" placeholder="Nhập tình trạng khách hàng..."></textarea>
+                    <button class="mt-3 w-full bg-slate-800 text-white py-2.5 rounded-lg text-sm font-bold hover:bg-slate-700 transition shadow-sm">Lưu lại</button>
+                </div>
+            </div>
+
+            <div class="flex flex-col bg-white rounded-xl shadow-sm border border-slate-200 h-full overflow-hidden">
+                <div class="px-5 py-3 border-b border-slate-100 bg-white sticky top-0 z-10 flex justify-between items-center">
+                    <h3 class="font-bold text-lg text-slate-800"><i class="fa-solid fa-box-open text-brand-500 mr-2"></i>Lịch sử mua hàng</h3>
+                    <span class="text-sm text-slate-400 font-medium">3 đơn hàng</span>
+                </div>
+
+                <div class="p-3 space-y-3 overflow-y-auto custom-scrollbar flex-1 bg-slate-50/30">
+                    <div class="bg-white border border-slate-200 rounded-lg p-3 hover:border-brand-300 hover:shadow-md transition relative group">
+                        <div class="flex justify-between items-start mb-2">
+                            <div>
+                                <div class="text-xs font-bold text-slate-400 uppercase">#90084995452196</div>
+                                <h4 class="font-bold text-slate-800 text-base">26/12/2025 <span class="font-normal text-slate-400 ml-1">14:05</span></h4>
+                            </div>
+                            <span class="text-xs bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded border border-emerald-100 font-bold">Hoàn thành</span>
+                        </div>
+                        <div class="flex flex-wrap gap-1.5 mb-2">
+                            <span class="bg-blue-50 text-blue-700 text-sm font-medium px-2 py-0.5 rounded border border-blue-100">ERECAMAN (2)</span>
+                            <span class="bg-purple-50 text-purple-700 text-sm font-medium px-2 py-0.5 rounded border border-purple-100">BETA ZINC MAX (1)</span>
+                            <span class="bg-orange-50 text-orange-700 text-sm font-medium px-2 py-0.5 rounded border border-orange-100">Tadakick 20 (4)</span>
+                        </div>
+                        <div class="text-sm text-slate-400 pt-2 border-t border-slate-50 flex justify-between">
+                            <span>Sale: Nguyễn Ngọc Quỳnh Anh</span>
+                        </div>
+                    </div>
+
+                    <div class="bg-white border border-slate-200 rounded-lg p-3 hover:border-brand-300 hover:shadow-md transition opacity-90">
+                        <div class="flex justify-between items-start mb-2">
+                            <div>
+                                <div class="text-xs font-bold text-slate-400 uppercase">#180156976514491</div>
+                                <h4 class="font-bold text-slate-800 text-base">05/12/2025 <span class="font-normal text-slate-400 ml-1">04:05</span></h4>
+                            </div>
+                            <span class="text-xs bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded border border-emerald-100 font-bold">Hoàn thành</span>
+                        </div>
+                        <div class="flex flex-wrap gap-1.5">
+                            <span class="bg-indigo-50 text-indigo-700 text-sm font-medium px-2 py-0.5 rounded border border-indigo-100">TESTOFE PRO (2)</span>
+                            <span class="bg-purple-50 text-purple-700 text-sm font-medium px-2 py-0.5 rounded border border-purple-100">BETA ZINC MAX (1)</span>
+                        </div>
+                    </div>
+
+                     <div class="bg-white border border-slate-200 rounded-lg p-3 hover:border-brand-300 hover:shadow-md transition opacity-90">
+                        <div class="flex justify-between items-start mb-2">
+                            <div>
+                                <div class="text-xs font-bold text-slate-400 uppercase">#360298846613526</div>
+                                <h4 class="font-bold text-slate-800 text-base">26/10/2025 <span class="font-normal text-slate-400 ml-1">02:54</span></h4>
+                            </div>
+                            <span class="text-xs bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded border border-emerald-100 font-bold">Hoàn thành</span>
+                        </div>
+                        <div class="flex flex-wrap gap-1.5">
+                            <span class="bg-indigo-50 text-indigo-700 text-sm font-medium px-2 py-0.5 rounded border border-indigo-100">TESTOFE PRO (2)</span>
+                            <span class="bg-slate-100 text-slate-600 text-sm font-medium px-2 py-0.5 rounded">Ciatic 20 (8)</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex flex-col bg-white rounded-xl shadow-sm border border-slate-200 h-full overflow-hidden">
+                <div class="px-5 py-3 border-b border-slate-100 bg-white sticky top-0 z-10">
+                    <h3 class="font-bold text-lg text-slate-800"><i class="fa-regular fa-comments text-brand-500 mr-2"></i>Nhật ký chăm sóc</h3>
+                </div>
+                
+                <div class="p-4 overflow-y-auto custom-scrollbar flex-1 bg-slate-50/30">
+                    <div class="relative timeline-line space-y-6 pl-2">
+                        
+                        <div class="relative pl-8">
+                            <div class="absolute left-0 top-1 w-7 h-7 bg-white border-2 border-brand-500 rounded-full flex items-center justify-center z-10 shadow-sm">
+                                <i class="fa-solid fa-check text-brand-500 text-xs"></i>
+                            </div>
+                            <div>
+                                <span class="text-xs text-slate-400 font-bold uppercase tracking-wider">Hôm nay</span>
+                                <div class="bg-white p-3 rounded-lg border border-slate-200 shadow-sm mt-1 group hover:border-brand-200 transition">
+                                    <p class="text-slate-800 text-base font-medium">Khách qua PK lấy thuốc</p>
+                                    <p class="text-xs text-slate-400 mt-1">#90084995452196</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="relative pl-8">
+                            <div class="absolute left-0 top-1 w-7 h-7 bg-white border-2 border-slate-300 rounded-full flex items-center justify-center z-10">
+                                <i class="fa-regular fa-clipboard text-slate-400 text-xs"></i>
+                            </div>
+                            <div>
+                                <span class="text-xs text-slate-400 font-bold uppercase tracking-wider">26/11/2025</span>
+                                <div class="bg-white p-3 rounded-lg border border-slate-200 shadow-sm mt-1">
+                                    <p class="text-slate-700 text-base">Khách qua PK lấy thuốc từ 26/11</p>
+                                    <div class="mt-2 bg-slate-50 p-2 rounded border border-slate-100 text-sm text-slate-500 italic">
+                                        Note: "cskh, Quỳnh anh"
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="relative pl-8">
+                            <div class="absolute left-0 top-1 w-7 h-7 bg-white border-2 border-amber-400 rounded-full flex items-center justify-center z-10">
+                                <i class="fa-solid fa-triangle-exclamation text-amber-500 text-xs"></i>
+                            </div>
+                            <div>
+                                <span class="text-xs text-slate-400 font-bold uppercase tracking-wider">26/10/2025</span>
+                                <div class="bg-amber-50 p-3 rounded-lg border border-amber-100 mt-1">
+                                    <p class="text-amber-900 text-sm font-bold mb-1">Phản hồi lâm sàng:</p>
+                                    <p class="text-slate-700 text-sm leading-relaxed">
+                                        "Cương 4-5/10. Bị khoảng 4 tháng nay. Kèm ra sớm 3p xuất."
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                         <div class="relative pl-8">
+                            <div class="absolute left-0 top-1 w-7 h-7 bg-white border-2 border-slate-300 rounded-full flex items-center justify-center z-10">
+                                <i class="fa-regular fa-calendar text-slate-400 text-xs"></i>
+                            </div>
+                            <div>
+                                <span class="text-xs text-slate-400 font-bold uppercase tracking-wider">26/10/2025</span>
+                                <div class="bg-white p-3 rounded-lg border border-slate-200 shadow-sm mt-1">
+                                    <p class="text-slate-600 text-base">Hẹn 26/10 qua PK thăm khám trực tiếp</p>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+</body>
+</html> -->

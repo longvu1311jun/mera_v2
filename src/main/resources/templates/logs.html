@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Xem Logs Hệ Thống</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #f5f5f5;
+      padding: 20px;
+      line-height: 1.6;
+    }
+    
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      padding: 20px;
+    }
+    
+    h1 {
+      color: #333;
+      margin-bottom: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .stats {
+      display: flex;
+      gap: 15px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    
+    .stat-card {
+      background: #f8f9fa;
+      padding: 15px 20px;
+      border-radius: 6px;
+      border-left: 4px solid #007bff;
+      flex: 1;
+      min-width: 150px;
+    }
+    
+    .stat-card.error {
+      border-left-color: #dc3545;
+    }
+    
+    .stat-card.warn {
+      border-left-color: #ffc107;
+    }
+    
+    .stat-card.info {
+      border-left-color: #17a2b8;
+    }
+    
+    .stat-card h3 {
+      font-size: 24px;
+      margin-bottom: 5px;
+    }
+    
+    .stat-card p {
+      color: #666;
+      font-size: 14px;
+    }
+    
+    .filters {
+      background: #f8f9fa;
+      padding: 15px;
+      border-radius: 6px;
+      margin-bottom: 20px;
+      display: flex;
+      gap: 15px;
+      flex-wrap: wrap;
+      align-items: end;
+    }
+    
+    .filter-group {
+      flex: 1;
+      min-width: 200px;
+    }
+    
+    .filter-group label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: 600;
+      color: #555;
+      font-size: 14px;
+    }
+    
+    .filter-group select,
+    .filter-group input {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    
+    .filter-group input:focus,
+    .filter-group select:focus {
+      outline: none;
+      border-color: #007bff;
+    }
+    
+    .btn {
+      padding: 8px 20px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      text-decoration: none;
+      display: inline-block;
+      transition: background 0.3s;
+    }
+    
+    .btn-primary {
+      background: #007bff;
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      background: #0056b3;
+    }
+    
+    .btn-danger {
+      background: #dc3545;
+      color: white;
+    }
+    
+    .btn-danger:hover {
+      background: #c82333;
+    }
+    
+    .btn-secondary {
+      background: #6c757d;
+      color: white;
+    }
+    
+    .btn-secondary:hover {
+      background: #5a6268;
+    }
+    
+    .logs-container {
+      max-height: 600px;
+      overflow-y: auto;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+    }
+    
+    .log-entry {
+      padding: 12px;
+      border-bottom: 1px solid #eee;
+      transition: background 0.2s;
+    }
+    
+    .log-entry:hover {
+      background: #f8f9fa;
+    }
+    
+    .log-entry:last-child {
+      border-bottom: none;
+    }
+    
+    .log-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: start;
+      margin-bottom: 8px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    
+    .log-level {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    
+    .log-level.ERROR {
+      background: #ffebee;
+      color: #c62828;
+    }
+    
+    .log-level.WARN {
+      background: #fff3e0;
+      color: #e65100;
+    }
+    
+    .log-level.INFO {
+      background: #e3f2fd;
+      color: #1565c0;
+    }
+    
+    .log-level.DEBUG {
+      background: #f5f5f5;
+      color: #616161;
+    }
+    
+    .log-timestamp {
+      color: #666;
+      font-size: 12px;
+      font-family: 'Courier New', monospace;
+    }
+    
+    .log-logger {
+      color: #888;
+      font-size: 12px;
+      font-style: italic;
+      margin-top: 5px;
+    }
+    
+    .log-message {
+      color: #333;
+      margin-top: 8px;
+      word-break: break-word;
+      white-space: pre-wrap;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+    }
+    
+    .log-stacktrace {
+      margin-top: 10px;
+      padding: 10px;
+      background: #f8f9fa;
+      border-left: 3px solid #dc3545;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      color: #721c24;
+      white-space: pre-wrap;
+      word-break: break-word;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    
+    .toggle-stacktrace {
+      color: #007bff;
+      cursor: pointer;
+      font-size: 12px;
+      margin-top: 5px;
+      text-decoration: underline;
+    }
+    
+    .toggle-stacktrace:hover {
+      color: #0056b3;
+    }
+    
+    .empty-state {
+      text-align: center;
+      padding: 40px;
+      color: #999;
+    }
+    
+    .actions {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    
+    @media (max-width: 768px) {
+      .filters {
+        flex-direction: column;
+      }
+      
+      .filter-group {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>
+      <span>📋 Xem Logs Hệ Thống</span>
+      <a href="/" class="btn btn-secondary">← Về Trang Chủ</a>
+    </h1>
+    
+    <div class="stats">
+      <div class="stat-card">
+        <h3 th:text="${totalLogs}">0</h3>
+        <p>Tổng số logs</p>
+      </div>
+      <div class="stat-card error">
+        <h3 th:text="${errorCount}">0</h3>
+        <p>ERROR</p>
+      </div>
+      <div class="stat-card warn">
+        <h3 th:text="${warnCount}">0</h3>
+        <p>WARN</p>
+      </div>
+      <div class="stat-card info">
+        <h3 th:text="${infoCount}">0</h3>
+        <p>INFO</p>
+      </div>
+    </div>
+    
+    <div class="actions">
+      <a th:href="@{/logs/clear}" class="btn btn-danger" 
+         onclick="return confirm('Bạn có chắc muốn xóa tất cả logs?');">🗑️ Xóa Tất Cả Logs</a>
+      <a th:href="@{/logs}" class="btn btn-secondary">🔄 Làm Mới</a>
+    </div>
+    
+    <form method="get" action="/logs" class="filters">
+      <div class="filter-group">
+        <label for="level">Mức độ:</label>
+        <select id="level" name="level">
+          <option value="">Tất cả</option>
+          <option value="ERROR" th:selected="${currentLevel == 'ERROR'}">ERROR</option>
+          <option value="WARN" th:selected="${currentLevel == 'WARN'}">WARN</option>
+          <option value="INFO" th:selected="${currentLevel == 'INFO'}">INFO</option>
+          <option value="DEBUG" th:selected="${currentLevel == 'DEBUG'}">DEBUG</option>
+        </select>
+      </div>
+      
+      <div class="filter-group">
+        <label for="search">Tìm kiếm:</label>
+        <input type="text" id="search" name="search" 
+               th:value="${currentSearch}" 
+               placeholder="Tìm trong message hoặc logger...">
+      </div>
+      
+      <div class="filter-group">
+        <label for="limit">Số lượng:</label>
+        <input type="number" id="limit" name="limit" 
+               th:value="${currentLimit}" 
+               min="10" max="1000" step="10">
+      </div>
+      
+      <div class="filter-group">
+        <label>&nbsp;</label>
+        <button type="submit" class="btn btn-primary" style="width: 100%;">🔍 Tìm Kiếm</button>
+      </div>
+    </form>
+    
+    <div class="logs-container" th:if="${logs != null and !logs.empty}">
+      <div th:each="log : ${logs}" class="log-entry">
+        <div class="log-header">
+          <span class="log-level" th:classappend="${'log-level.' + log.level}" 
+                th:text="${log.level}">INFO</span>
+          <span class="log-timestamp" th:text="${log.timestampFormatted}">2025-12-08 10:00:00.000</span>
+        </div>
+        
+        <div class="log-logger" th:text="${log.logger}">com.example.Logger</div>
+        
+        <div class="log-message" th:text="${log.message}">Log message here</div>
+        
+        <div th:if="${log.hasStackTrace()}">
+          <span class="toggle-stacktrace" 
+                th:onclick="'toggleStackTrace(' + ${logStat.index} + ')'">
+            📄 Xem Stack Trace
+          </span>
+          <div th:id="'stacktrace-' + ${logStat.index}" 
+               class="log-stacktrace" 
+               style="display: none;"
+               th:text="${log.stackTrace}">
+            Stack trace here
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="empty-state" th:if="${logs == null or logs.empty}">
+      <p>📭 Không có logs nào</p>
+      <p style="font-size: 12px; margin-top: 10px;">Logs sẽ được hiển thị khi hệ thống hoạt động</p>
+    </div>
+  </div>
+  
+  <script>
+    function toggleStackTrace(index) {
+      const element = document.getElementById('stacktrace-' + index);
+      if (element) {
+        element.style.display = element.style.display === 'none' ? 'block' : 'none';
+      }
+    }
+    
+    // Auto refresh mỗi 30 giây
+    setTimeout(function() {
+      location.reload();
+    }, 30000);
+  </script>
+</body>
+</html>
+

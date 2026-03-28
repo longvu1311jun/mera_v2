@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>User Token</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    .section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+    .error { color: red; }
+    .success { color: green; }
+    pre { background: #f5f5f5; padding: 10px; border-radius: 3px; overflow-x: auto; }
+    table { border-collapse: collapse; width: 100%; margin-top: 10px; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+    th { background-color: #f2f2f2; }
+    .table-id { font-family: monospace; }
+  </style>
+</head>
+<body>
+<h2>Kết quả login</h2>
+
+<div th:if="${needsLogin}">
+  <div class="section" style="text-align: center; padding: 40px;">
+    <h3 style="color: #666;">Bạn chưa đăng nhập hoặc phiên đăng nhập đã hết hạn</h3>
+    <p style="margin: 20px 0;">Vui lòng đăng nhập lại để xem token</p>
+    <a th:href="${authUrl}" style="display: inline-block; padding: 12px 24px; background-color: #4CAF50; color: white; text-decoration: none; border-radius: 5px; font-size: 16px; font-weight: bold;">Đăng nhập với Lark</a>
+  </div>
+</div>
+
+<div th:if="${error}">
+  <div class="section" style="text-align: center; padding: 40px;">
+    <p class="error" style="font-size: 18px; margin-bottom: 20px;" th:text="'Lỗi: ' + ${error}"></p>
+    <a th:href="${authUrl}" style="display: inline-block; padding: 12px 24px; background-color: #4CAF50; color: white; text-decoration: none; border-radius: 5px; font-size: 16px; font-weight: bold;">Đăng nhập lại</a>
+  </div>
+</div>
+
+<div th:if="${userAccessToken}" class="section">
+  <h3>Token Information</h3>
+  <p><b>user_access_token:</b></p>
+  <pre th:text="${userAccessToken}"></pre>
+
+  <p><b>refresh_token:</b></p>
+  <pre th:text="${refreshToken}"></pre>
+</div>
+
+<div th:if="${tenantAccessToken}" class="section" style="background: #f0f7ff; border-left: 4px solid #2196F3;">
+  <h3>🔐 Tenant Token (Tự động lấy khi login)</h3>
+  <p><b>tenant_access_token:</b></p>
+  <pre th:text="${tenantAccessToken}"></pre>
+  <p style="color: #666; font-size: 12px; margin-top: 10px;">
+    💡 Token này được lấy tự động khi bạn đăng nhập và có thể dùng làm fallback khi user token hết hạn.
+  </p>
+</div>
+
+<div th:if="${tenantTokenError}" class="section" style="background: #ffebee; border-left: 4px solid #f44336;">
+  <p class="error"><b>⚠️ Lỗi khi lấy tenant token:</b> <span th:text="${tenantTokenError}"></span></p>
+</div>
+
+<div th:if="${appToken}" class="section">
+  <h3>App Token</h3>
+  <p><b>app_token (obj_token):</b></p>
+  <pre th:text="${appToken}"></pre>
+</div>
+
+<div th:if="${tableError}" class="section">
+  <p class="error"><b>Lỗi khi lấy tables:</b> <span th:text="${tableError}"></span></p>
+</div>
+
+<div th:if="${baseIdsError}" class="section">
+  <p class="error"><b>Lỗi khi lấy Base IDs:</b> <span th:text="${baseIdsError}"></span></p>
+</div>
+
+<div th:if="${baseIds != null and !baseIds.empty}" class="section">
+  <h3>📋 Danh sách Base IDs</h3>
+  <p class="success"><b>Tổng số: <span th:text="${baseIdsCount}"></span> Base ID(s)</b></p>
+  
+  <div th:if="${defaultAppToken != null or defaultTableId != null}" style="background: #e3f2fd; padding: 15px; border-radius: 5px; margin-bottom: 15px; border-left: 4px solid #2196F3;">
+    <h4 style="margin-top: 0; color: #1976D2;">⚙️ Cấu hình mặc định để tạo bản ghi:</h4>
+    <p style="margin: 5px 0;" th:if="${defaultAppToken != null}">
+      <b>Base ID:</b> <span class="table-id" th:text="${defaultAppToken}"></span>
+    </p>
+    <p style="margin: 5px 0;" th:if="${defaultTableId != null}">
+      <b>Table ID:</b> <span class="table-id" th:text="${defaultTableId}"></span>
+    </p>
+  </div>
+  
+  <table>
+    <thead>
+      <tr>
+        <th>STT</th>
+        <th>Base Name</th>
+        <th>Base ID</th>
+        <th>Path</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr th:each="baseId, iterStat : ${baseIds}">
+        <td th:text="${iterStat.count}"></td>
+        <td th:text="${baseId.baseName}"></td>
+        <td class="table-id" th:text="${baseId.baseId}"></td>
+        <td th:text="${baseId.path}"></td>
+      </tr>
+    </tbody>
+  </table>
+  
+  <h4>Danh sách Base IDs (chỉ ID):</h4>
+  <ul>
+    <li th:each="baseId : ${baseIds}">
+      <span class="table-id" th:text="${baseId.baseId}"></span> 
+      <span th:text="'(' + ${baseId.baseName} + ')'"></span>
+    </li>
+  </ul>
+</div>
+
+<div th:if="${tables != null and !tables.empty}" class="section">
+  <h3>Danh sách Tables (tên chứa "_")</h3>
+  <p class="success"><b>Tổng số: <span th:text="${count}"></span> table(s)</b></p>
+  
+  <table>
+    <thead>
+      <tr>
+        <th>STT</th>
+        <th>Table ID</th>
+        <th>Tên Table</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr th:each="table, iterStat : ${tables}">
+        <td th:text="${iterStat.count}"></td>
+        <td class="table-id" th:text="${table.tableId}"></td>
+        <td th:text="${table.name}"></td>
+      </tr>
+    </tbody>
+  </table>
+  
+  <h4>Danh sách Table IDs:</h4>
+  <ul>
+    <li th:each="table : ${tables}">
+      <span class="table-id" th:text="${table.tableId}"></span> 
+      <span th:text="'(' + ${table.name} + ')'"></span>
+    </li>
+  </ul>
+</div>
+
+<div th:if="${tables != null and tables.empty}" class="section">
+  <p>Không tìm thấy table nào có tên chứa "_"</p>
+</div>
+
+</body>
+</html>

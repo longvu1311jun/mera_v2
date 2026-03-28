@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Báo cáo Sale</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    table { border-collapse: collapse; width: 100%; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
+    th { background-color: #f2f2f2; }
+    h1 { margin-bottom: 10px; }
+    .small { color: #777; font-size: 13px; }
+  </style>
+</head>
+<body>
+<h1>Báo cáo Sale theo tháng hiện tại</h1>
+<p>Dữ liệu auto cập nhật mỗi 1 giờ từ Lark Base.</p>
+<p th:if="${report != null}" style="color: #666; font-size: 14px;">
+  Tổng số tư vấn viên trong báo cáo: <strong th:text="${totalTables}"></strong> 
+  <span th:if="${tablesWithData < totalTables}">
+    (Có dữ liệu: <strong th:text="${tablesWithData}"></strong>, 
+    Không có dữ liệu tháng này: <strong th:text="${totalTables - tablesWithData}"></strong>)
+  </span>
+</p>
+
+<div th:if="${error}" style="color: red; padding: 10px; background: #ffe6e6; border: 1px solid red; margin-bottom: 10px;">
+  <strong>Lỗi:</strong> <span th:text="${error}"></span>
+</div>
+
+<div th:if="${message}" style="color: orange; padding: 10px; background: #fff3cd; border: 1px solid orange; margin-bottom: 10px;">
+  <span th:text="${message}"></span>
+  <br><a href="/">Đăng nhập tại đây</a>
+</div>
+
+<p th:if="${!hasToken and !message}" style="color: red;">
+  Vui lòng đăng nhập tại trang chủ để tự động lấy token và báo cáo.
+  <br><a href="/">Đăng nhập tại đây</a>
+</p>
+
+
+<table>
+    <thead>
+    <tr>
+        <th>Tư vấn viên</th>
+        <th>Nhu cầu</th>
+        <th>Trùng</th>
+        <th>Rác</th>
+        <th>Không tương tác</th>
+        <th>Chốt nóng</th>
+        <th>Chốt cũ</th>
+        <th>Đơn huỷ</th>
+
+        <th>Tổng mess</th>
+        <th>Tổng đơn</th>
+        <th>Đơn/mess nhu cầu</th>
+        <th>Đơn/mess tổng</th>
+        <th>Tỉ lệ huỷ</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    <tr th:each="s : ${report}">
+        <td th:text="${s.staffName}"></td>
+
+        <td th:text="${s.nhuCau}"></td>
+        <td th:text="${s.trung}"></td>
+        <td th:text="${s.rac}"></td>
+        <td th:text="${s.khongTuongTac}"></td>
+        <td th:text="${s.chotNong}"></td>
+        <td th:text="${s.chotCu}"></td>
+        <td th:text="${s.donHuy}"></td>
+
+        <td th:text="${s.tongMes}"></td>
+        <td th:text="${s.tongDon}"></td>
+        <td th:text="${s.donMesNhuCau}"></td>
+        <td th:text="${s.donMesTong}"></td>
+        <td th:text="${s.tiLeHuy}"></td>
+    </tr>
+    </tbody>
+</table>
+</body>
+</html>

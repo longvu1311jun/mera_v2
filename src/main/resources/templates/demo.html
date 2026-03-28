@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tra cứu thông tin khách hàng</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+        }
+
+        .timeline-line::before {
+            content: '';
+            position: absolute;
+            top: 15px;
+            bottom: 0;
+            left: 15px;
+            width: 2px;
+            background: #e5e7eb;
+            z-index: 0;
+        }
+
+        /* Ẩn thanh cuộn nhưng vẫn cuộn được */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        #ordersWrap,
+        #notesWrap {
+            max-height: 100%;
+            /* chỉnh số này theo layout */
+            overflow-y: auto;
+        }
+        /* Loading overlay */
+        .loading-overlay {
+            position: fixed;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0,0,0,0.25);
+            z-index: 60;
+        }
+        .loading-box {
+            background: white;
+            padding: 14px 18px;
+            border-radius: 8px;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            box-shadow: 0 6px 24px rgba(0,0,0,0.12);
+        }
+        .loading-box .spinner {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            border: 3px solid #e6fffa;
+            border-top-color: #14b8a6;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+
+<body class="text-slate-600 h-screen flex flex-col overflow-hidden bg-slate-50">
+    <div id="loadingOverlay" class="loading-overlay" style="display:none;">
+        <div class="loading-box">
+            <div class="spinner"></div>
+            <div>Đang tìm, vui lòng chờ...</div>
+        </div>
+    </div>
+    <header class="bg-white shadow-sm border-b border-slate-200 flex-none z-50">
+        <div class="w-full px-4 h-14 flex items-center justify-between">
+            <div class="flex items-center gap-2 w-[340px]">
+                <div class="w-8 h-8 bg-brand-600 rounded-lg flex items-center justify-center text-white font-bold">
+                    <i class="fa-solid fa-hospital"></i>
+                </div>
+                <h1 class="font-bold text-lg text-slate-800 tracking-tight">MERA<span
+                        class="text-brand-600">Group</span></h1>
+            </div>
+
+            <div class="flex-1 px-4">
+                <div class="relative group max-w-3xl mx-auto">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <i class="fa-solid fa-magnifying-glass text-slate-400"></i>
+                    </div>
+
+                    <input type="text" id="phoneInput"
+                        class="block w-full pl-10 pr-24 py-2.5 border border-slate-200 rounded-full bg-slate-100 focus:bg-white focus:ring-2 focus:ring-brand-500 focus:outline-none transition text-sm"
+                        placeholder="Tìm kiếm SĐT, Tên...">
+
+                    <button id="searchBtn"
+                        class="absolute right-1 top-1 bottom-1 bg-brand-600 hover:bg-brand-700 text-white px-5 rounded-full text-xs font-bold transition shadow-sm flex items-center">
+                        Tra cứu
+                    </button>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-3 w-[100px] justify-end">
+                <div class="w-8 h-8 rounded-full bg-slate-200 overflow-hidden border border-slate-300">
+                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Admin" alt="Admin">
+                </div>
+            </div>
+        </div>
+    </header>
+    <main class="flex-1 w-full h-full p-3 overflow-hidden">
+
+        <div id="emptyState" class="w-full h-full flex items-center justify-center text-slate-500">
+            Nhập số điện thoại để tìm kiếm thông tin khách hàng
+        </div>
+
+        <div id="mainGrid" class="hidden grid grid-cols-1 lg:grid-cols-[350px_1fr_1fr] gap-4 h-full">
+            <!-- thông tin khách hàng -->
+            <div class="flex flex-col gap-4 overflow-y-auto no-scrollbar pb-10">
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex-none"
+                    id="customerCard" style="order:2;">
+                    <div class="h-20 bg-gradient-to-r from-brand-600 to-teal-400"></div>
+                    <div class="px-5 pb-5 text-center relative" id="customerInfo">
+
+
+                    </div>
+                </div>
+                <div id="leftProductSummary" class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 flex flex-col flex-1 min-h-[120px]">
+                    <h3 class="font-bold text-slate-700 text-sm mb-2">Tổng hợp sản phẩm đã mua</h3>
+                    <div id="leftProductSummaryContent" class="text-sm text-slate-600"></div>
+                </div>
+            </div>
+            <!-- Lịch sử mua hàng -->
+            <div id="ordersWrap"></div>
+            <!-- Ghi chú (POS) + Trao đổi (right column) -->
+            <div class="flex flex-col gap-2 h-full min-h-0">
+                <div id="posNotesWrap" class="bg-white rounded-xl shadow-sm border border-slate-200 p-3 mb-2">
+                    <div id="posNotesHeader" class="flex items-center justify-between mb-2 cursor-pointer">
+                        <div class="flex items-center gap-2">
+                            <div class="font-bold text-slate-700">Ghi chú (POS)</div>
+                            <i id="posNotesToggleIcon" class="fa-solid fa-chevron-right text-slate-400 transition-transform"></i>
+                        </div>
+                    </div>
+                    <div id="posNotesList" class="text-sm text-slate-600 hidden">Chưa có ghi chú</div>
+                </div>
+                <!-- Trao đổi -->
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-3 flex flex-col min-h-0">
+                    <div class="flex items-center justify-between mb-2">
+                        <div class="font-bold text-slate-700">Trao đổi</div>
+                        <button id="exchangeAddBtn" class="text-sm text-white bg-brand-600 px-3 py-1 rounded">Thêm mới</button>
+                    </div>
+                    <div id="conversationsList" class="flex-1 overflow-y-auto min-h-0"></div>
+                </div>
+            </div>
+        </div>
+    </main>
+    <!-- Order detail modal -->
+    <div id="orderModal" class="fixed inset-0 hidden items-center justify-center z-50">
+        <div class="absolute inset-0 bg-black/40" id="orderModalOverlay"></div>
+        <div class="bg-white rounded-lg shadow-lg w-[900px] max-w-[95%] relative z-10">
+            <div class="px-5 py-3 border-b flex items-center justify-between">
+                <h3 class="font-bold">Chi tiết đơn hàng</h3>
+                <button id="orderModalClose" class="text-slate-500 hover:text-slate-700">Đóng ✕</button>
+            </div>
+            <div class="p-5" id="orderModalContent">
+                <div id="orderDetails"></div>
+                <div class="mt-4">
+                    <label class="block text-sm font-medium text-slate-600 mb-2">Ghi chú cho đơn</label>
+                    <textarea id="orderNoteInput" class="w-full border border-slate-200 rounded p-2" rows="3"></textarea>
+                    <div class="mt-3 flex justify-end gap-2">
+                        <button id="orderNoteCancel" class="px-4 py-2 rounded bg-slate-100">Hủy</button>
+                        <button id="orderNoteSubmit" class="px-4 py-2 rounded bg-brand-600 text-white">Ghi chú</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Notes feature removed from UI -->
+    <!-- Exchange add modal -->
+    <div id="exchangeModal" class="fixed inset-0 hidden items-center justify-center z-50">
+        <div class="absolute inset-0 bg-black/40" id="exchangeModalOverlay"></div>
+        <div class="bg-white rounded-lg shadow-lg w-[720px] max-w-[95%] relative z-10">
+            <div class="px-5 py-3 border-b flex items-center justify-between">
+                <h3 class="font-bold">Thêm trao đổi mới</h3>
+                <button id="exchangeModalClose" class="text-slate-500 hover:text-slate-700">Đóng ✕</button>
+            </div>
+            <div class="p-5" id="exchangeModalContent">
+                <div>
+                    <label class="block text-sm font-medium text-slate-600 mb-2">Nội dung trao đổi</label>
+                    <textarea id="exchangeInput" class="w-full border border-slate-200 rounded p-2" rows="5"></textarea>
+                </div>
+                <!-- Removed date input; date will be set automatically on save -->
+                <div class="mt-4 flex justify-end gap-2">
+                    <button id="exchangeCancel" class="px-4 py-2 rounded bg-slate-100">Hủy</button>
+                    <button id="exchangeSubmit" class="px-4 py-2 rounded bg-brand-600 text-white">Lưu</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        // Load JS with cache-buster so users see latest changes immediately
+        (function() {
+            var s = document.createElement('script');
+            s.src = '/js/search-info.js?v=' + Date.now();
+            s.defer = true;
+            document.body.appendChild(s);
+        })();
+    </script>
+    <!-- <script src="/static/js/demo.js"></script> -->
+</body>
+
+</html>

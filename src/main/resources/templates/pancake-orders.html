@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Lấy đơn hàng từ Pancake</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; max-width: 1200px; margin: 0 auto; }
+    h1 { color: #333; }
+    .form-section { background: #f5f5f5; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+    .form-group { margin-bottom: 15px; }
+    label { display: inline-block; width: 150px; font-weight: bold; }
+    input[type="text"], select { padding: 8px; border: 1px solid #ddd; border-radius: 4px; width: 200px; }
+    button { padding: 10px 20px; background-color: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; }
+    button:hover { background-color: #45a049; }
+    .section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+    .error { color: red; background: #ffe6e6; padding: 10px; border-radius: 4px; }
+    .success { color: green; background: #e6ffe6; padding: 10px; border-radius: 4px; }
+    pre { background: #f5f5f5; padding: 10px; border-radius: 3px; overflow-x: auto; }
+    table { border-collapse: collapse; width: 100%; margin-top: 10px; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 12px; }
+    th { background-color: #4CAF50; color: white; }
+    tr:nth-child(even) { background-color: #f9f9f9; }
+    .info-box { background: #e6f3ff; padding: 15px; border-radius: 4px; margin-bottom: 20px; }
+    .timestamp-info { background: #fff3cd; padding: 10px; border-radius: 4px; margin-bottom: 15px; }
+    .back-link { display: inline-block; margin-bottom: 20px; color: #666; text-decoration: none; }
+    .back-link:hover { color: #333; }
+    .btn-detail { padding: 5px 10px; background-color: #2196F3; color: white; text-decoration: none; border-radius: 3px; font-size: 12px; }
+    .btn-detail:hover { background-color: #1976D2; }
+    .btn-save-all { padding: 10px 20px; background-color: #FF9800; color: white; border: none; border-radius: 4px; cursor: pointer; }
+    .btn-save-all:hover { background-color: #F57C00; }
+    .btn-save-all:disabled { background-color: #ccc; cursor: not-allowed; }
+    .btn-save { padding: 5px 10px; background-color: #4CAF50; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 12px; }
+    .btn-save:hover { background-color: #45a049; }
+    .btn-save:disabled { background-color: #ccc; cursor: not-allowed; }
+    .loading { opacity: 0.5; pointer-events: none; }
+  </style>
+</head>
+<body>
+  <a href="/" class="back-link">← Về trang chủ</a>
+  <h1>Lấy đơn hàng từ Pancake</h1>
+
+  <div class="info-box">
+    <strong>Hướng dẫn:</strong> Chọn ngày bắt đầu và ngày kết thúc từ lịch. Hệ thống sẽ tự động trừ 7 giờ và chuyển đổi sang timestamp.<br>
+    Ví dụ: Chọn 01/01/2026 sẽ chuyển thành 31/12/2025 17:00:00 UTC
+  </div>
+
+  <form th:action="@{/pancake/orders/fetch}" method="post" class="form-section">
+    <div class="form-group">
+      <label for="startDate">Ngày bắt đầu:</label>
+      <input type="date" id="startDate" name="startDate" th:value="${startDate}" required>
+    </div>
+
+    <div class="form-group">
+      <label for="endDate">Ngày kết thúc:</label>
+      <input type="date" id="endDate" name="endDate" th:value="${endDate}" required>
+    </div>
+
+    <div class="form-group">
+      <label for="status">Lọc theo Status:</label>
+      <select id="status" name="status">
+        <option value="" th:selected="${status == ''}">Tất cả các status</option>
+        <option value="0" th:selected="${status == '0'}">0 - Mới</option>
+        <option value="1" th:selected="${status == '1'}">1 - Đã xác nhận</option>
+        <option value="11" th:selected="${status == '11'}">11 - Đã giao hàng</option>
+        <option value="3" th:selected="${status == '3'}">11 - Đã nhận</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label for="updateStatus">Trường lọc:</label>
+      <select id="updateStatus" name="updateStatus">
+        <option value="inserted_at" th:selected="${updateStatus == 'inserted_at'}">Ngày tạo đơn</option>
+        <option value="updated_at" th:selected="${updateStatus == 'updated_at'}">Ngày cập nhật</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label for="pageSize">Số bản ghi/trang:</label>
+      <input type="text" id="pageSize" name="pageSize" th:value="${pageSize}" value="100">
+    </div>
+
+    <div class="form-group">
+      <label for="search">Tìm kiếm:</label>
+      <input type="text" id="search" name="search" th:value="${search}" placeholder="Tên, SĐT, mã đơn...">
+    </div>
+
+    <button type="submit">Lấy đơn hàng</button>
+  </form>
+
+  <div th:if="${error}" class="error" th:text="${error}"></div>
+
+  <div th:if="${success}" class="success">
+    Đã lấy được <span th:text="${orderCount}">0</span> đơn hàng (Trang 1)
+    <button class="btn-save-all" onclick="saveAllOrders()" style="margin-left: 15px;">Lưu tất cả vào DB</button>
+    <span id="saveAllStatus" style="margin-left: 10px;"></span>
+  </div>
+
+  <div th:if="${convertedStartDate}" class="timestamp-info">
+    <strong>Timestamp đã chuyển đổi:</strong><br>
+    Bắt đầu: <span th:text="${convertedStartDate}"></span><br>
+    Kết thúc: <span th:text="${convertedEndDate}"></span><br>
+    (Timestamp: <span th:text="${startTimestamp}"></span> đến <span th:text="${endTimestamp}"></span>)
+  </div>
+
+  <div th:if="${orders}" class="section">
+    <h3>Danh sách đơn hàng - Trang 1</h3>
+
+    <!-- Search/Filter -->
+    <div style="margin-bottom: 15px; display: flex; gap: 10px; align-items: center;">
+      <input type="text" id="tableSearch" placeholder="Tìm kiếm..." onkeyup="filterTable()" style="padding: 8px; width: 250px; border: 1px solid #ddd; border-radius: 4px;">
+
+      <select id="statusFilter" onchange="filterTable()" style="padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+        <option value="">Tất cả Status</option>
+        <option value="0">0 - Mới</option>
+        <option value="17">17 - Chờ xác nhận</option>
+        <option value="11">11 - Chờ hàng</option>
+        <option value="12">12 - Chờ in</option>
+        <option value="13">13 - Đã in</option>
+        <option value="20">20 - Đã đặt hàng</option>
+        <option value="1">1 - Đã xác nhận</option>
+        <option value="8">8 - Đang đóng hàng</option>
+        <option value="9">9 - Chờ chuyển hàng</option>
+        <option value="2">2 - Đã gửi hàng</option>
+        <option value="3">3 - Đã nhận</option>
+        <option value="16">16 - Đã thu tiền</option>
+        <option value="4">4 - Đang hoàn</option>
+        <option value="15">15 - Hoàn một phần</option>
+        <option value="5">5 - Đã hoàn</option>
+        <option value="6">6 - Đã hủy</option>
+        <option value="7">7 - Đã xóa</option>
+      </select>
+
+      <span id="filterCount" style="color: #666;"></span>
+    </div>
+
+    <table id="orderTable">
+      <thead>
+        <tr>
+          <th>System ID</th>
+          <th>Mã đơn</th>
+          <th>Status</th>
+          <th>Tên khách</th>
+          <th>Điện thoại</th>
+          <th>Địa chỉ</th>
+          <th>Nguồn</th>
+          <th>Ngày tạo</th>
+          <th>Tổng tiền</th>
+          <th>Thao tác</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr th:each="order : ${orders}">
+          <td th:text="${order.systemId}"></td>
+          <td th:text="${order.id}"></td>
+          <td th:text="${order.status}"></td>
+          <td th:text="${order.shippingAddress?.fullName}"></td>
+          <td th:text="${order.shippingAddress?.phoneNumber}"></td>
+          <td th:text="${order.shippingAddress?.address}"></td>
+          <td th:text="${order.orderSourcesName}"></td>
+          <td th:text="${order.insertedAt}"></td>
+          <td th:text="${#numbers.formatDecimal(order.totalPrice, 0, 'COMMA', 0, 'POINT')}"></td>
+          <td>
+            <div class="action-bar">
+              <button class="btn-save" th:attr="onclick=|saveOrder(${order.systemId})|">Lưu đơn hàng này vào DB</button>
+            </div>
+            <a th:href="@{/pancake/orders/detail(systemId=${order.systemId})}" class="btn-detail">Chi tiết</a>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <script>
+    function filterTable() {
+      const input = document.getElementById('tableSearch');
+      const filter = input.value.toLowerCase();
+      const statusFilter = document.getElementById('statusFilter').value;
+      const table = document.getElementById('orderTable');
+      const tbody = table.getElementsByTagName('tbody')[0];
+      const rows = tbody.getElementsByTagName('tr');
+      let visibleCount = 0;
+
+      for (let i = 0; i < rows.length; i++) {
+        const cells = rows[i].getElementsByTagName('td');
+        let textMatch = false;
+        let statusMatch = true;
+
+        // Check text search
+        if (!filter) {
+          textMatch = true;
+        } else {
+          for (let j = 0; j < cells.length; j++) {
+            const cellText = cells[j].textContent || cells[j].innerText;
+            if (cellText.toLowerCase().indexOf(filter) > -1) {
+              textMatch = true;
+              break;
+            }
+          }
+        }
+
+        // Check status filter (column index 2 = Status)
+        if (statusFilter) {
+          const statusCell = cells[2];
+          const statusText = statusCell.textContent || statusCell.innerText;
+          statusMatch = statusText.trim() === statusFilter;
+        }
+
+        const found = textMatch && statusMatch;
+        rows[i].style.display = found ? '' : 'none';
+        if (found) visibleCount++;
+      }
+
+      const totalRows = rows.length;
+      const filterActive = filter || statusFilter;
+      document.getElementById('filterCount').textContent =
+        filterActive ? '(' + visibleCount + '/' + totalRows + ')' : '';
+    }
+
+    function saveOrder(systemId) {
+      if (!confirm('Bạn có chắc muốn lưu đơn hàng ' + systemId + ' vào DB?')) {
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('systemId', systemId);
+
+      fetch('/pancake/order/save', {
+        method: 'POST',
+        body: formData
+      })
+              .then(response => response.json())
+              .then(data => {
+                if (data.success) {
+                  alert('✓ ' + data.message);
+                } else {
+                  alert('✗ ' + data.message);
+                }
+              })
+              .catch(error => {
+                alert('✗ Lỗi: ' + error.message);
+              });
+    }
+
+    function saveAllOrders() {
+      const btn = document.querySelector('.btn-save-all');
+      const statusSpan = document.getElementById('saveAllStatus');
+
+      btn.disabled = true;
+      btn.textContent = 'Đang lưu...';
+      statusSpan.textContent = '';
+
+      const formData = new FormData();
+
+      fetch('/pancake/orders/saveAll', {
+        method: 'POST',
+        body: formData
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          statusSpan.textContent = '✓ ' + data.message;
+          statusSpan.style.color = 'green';
+        } else {
+          statusSpan.textContent = '✗ ' + data.message;
+          statusSpan.style.color = 'red';
+        }
+      })
+      .catch(error => {
+        statusSpan.textContent = '✗ Lỗi: ' + error.message;
+        statusSpan.style.color = 'red';
+      })
+      .finally(() => {
+        btn.disabled = false;
+        btn.textContent = 'Lưu tất cả vào DB';
+      });
+    }
+  </script>
+</body>
+</html>
