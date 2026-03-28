@@ -27,4 +27,3 @@ public class CustomerTag {
     @JoinColumn(name = "tag_id", referencedColumnName = "id", insertable = false, updatable = false)
     private Tag tag;
 }
-

@@ -9,4 +9,3 @@ public interface CustomerRepository extends JpaRepository<Customer, String> {
 
   List<Customer> findAllByIdIn(List<String> ids);
 }
-

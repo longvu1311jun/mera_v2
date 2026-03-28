@@ -48,4 +48,3 @@ public class Combo1_2 {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 }
-

@@ -315,4 +315,3 @@ public class Order {
     @OneToMany(mappedBy = "order", fetch = FetchType.LAZY, cascade = CascadeType.REMOVE)
     private List<OrderEditHistory> editHistories = new ArrayList<>();
 }
-

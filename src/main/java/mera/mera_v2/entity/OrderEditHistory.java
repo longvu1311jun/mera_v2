@@ -39,4 +39,3 @@ public class OrderEditHistory {
     @JoinColumn(name = "order_id", referencedColumnName = "id", insertable = false, updatable = false)
     private Order order;
 }
-

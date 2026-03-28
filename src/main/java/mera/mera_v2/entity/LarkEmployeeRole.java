@@ -36,4 +36,3 @@ public class LarkEmployeeRole {
     @JoinColumn(name = "employee_id", referencedColumnName = "id", insertable = false, updatable = false)
     private LarkEmployee employee;
 }
-

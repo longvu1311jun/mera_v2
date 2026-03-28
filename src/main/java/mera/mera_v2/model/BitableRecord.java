@@ -27,5 +27,3 @@ public class BitableRecord {
     this.fields = fields;
   }
 }
-
-

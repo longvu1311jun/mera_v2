@@ -12,4 +12,3 @@ import java.util.List;
 public class OrdersApiResponse {
   private List<OrderApiDto> data;
 }
-

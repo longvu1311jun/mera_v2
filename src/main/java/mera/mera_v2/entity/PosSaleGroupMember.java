@@ -30,4 +30,3 @@ public class PosSaleGroupMember {
     @JoinColumn(name = "sale_group_id", referencedColumnName = "id", insertable = false, updatable = false)
     private PosSaleGroup posSaleGroup;
 }
-

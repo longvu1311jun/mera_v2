@@ -98,4 +98,3 @@ public class Customer {
     @OneToMany(mappedBy = "customer", fetch = FetchType.LAZY, cascade = CascadeType.REMOVE)
     private List<CustomerNote> notes = new ArrayList<>();
 }
-

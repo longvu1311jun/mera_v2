@@ -68,5 +68,3 @@ public class EmployeeStatsDto {
     this.quaHan = quaHan;
   }
 }
-
-

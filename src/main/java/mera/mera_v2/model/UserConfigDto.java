@@ -65,5 +65,3 @@ public class UserConfigDto {
     this.traoDoiTableId = traoDoiTableId;
   }
 }
-
-

@@ -59,5 +59,3 @@ public class SaleRecordRow {
     this.trangThaiMess = trangThaiMess;
   }
 }
-
-

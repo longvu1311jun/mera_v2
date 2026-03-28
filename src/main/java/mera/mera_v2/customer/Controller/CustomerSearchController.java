@@ -17,8 +17,8 @@ import java.util.Collections;
 import jakarta.annotation.PreDestroy;
 import mera.mera_v2.model.BitableRecord;
 import mera.mera_v2.model.UserConfigDto;
-import mera.mera_v2.service.BitableService;
-import mera.mera_v2.service.LarkTokenService;
+import mera.mera_v2.customer.Service.BitableService;
+import mera.mera_v2.lark.token.LarkTokenService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
@@ -823,5 +823,3 @@ public class CustomerSearchController {
     }
   }
 }
-
-

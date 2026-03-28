@@ -75,5 +75,3 @@ public class TokenInfo {
     this.lastUpdated = lastUpdated;
   }
 }
-
-

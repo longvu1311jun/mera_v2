@@ -1,5 +1,6 @@
-import mera.mera_v2.lark.token.LarkTokenService;
 package mera.mera_v2.lark.wiki;
+
+import mera.mera_v2.lark.token.LarkTokenService;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.servlet.http.HttpSession;
@@ -804,5 +805,3 @@ public class LarkWikiService {
 
   // ================== end of class ==================
 }
-
-

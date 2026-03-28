@@ -16,4 +16,3 @@ public class VariationWarehouseStockId implements Serializable {
     private String variationId;
     private String warehouseId;
 }
-

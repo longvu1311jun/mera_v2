@@ -98,4 +98,3 @@ public class OrderItem {
     @JoinColumn(name = "order_id", referencedColumnName = "id", insertable = false, updatable = false)
     private Order order;
 }
-

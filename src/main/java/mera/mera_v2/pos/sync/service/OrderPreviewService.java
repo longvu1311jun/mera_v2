@@ -5,7 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import mera.mera_v2.pos.sync.client.OrderApiClient;
 import mera.mera_v2.pos.sync.dto.OrderApiDto;
 import mera.mera_v2.pos.sync.dto.OrderPreviewRequest;
-import mera.mera_v2.pos.sync.exceptions.ApiClientException;
+import mera.mera_v2.pos.sync.exception.ApiClientException;
 import org.springframework.stereotype.Service;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -102,4 +102,3 @@ public class OrderPreviewService {
     }
   }
 }
-

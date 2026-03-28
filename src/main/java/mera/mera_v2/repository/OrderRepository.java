@@ -14,4 +14,3 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
   @Query("SELECT o.id FROM Order o WHERE o.id IN :ids")
   List<Long> findExistingIds(@Param("ids") List<Long> ids);
 }
-

@@ -15,4 +15,3 @@ public class OrderPreviewRequest {
   private Integer startPage = 1;
   private String updateStatus = "inserted_at";
 }
-

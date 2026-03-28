@@ -10,4 +10,3 @@ public class PageDTO {
   private String name;
   private String username;
 }
-

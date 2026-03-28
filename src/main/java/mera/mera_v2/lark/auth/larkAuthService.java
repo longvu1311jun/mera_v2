@@ -499,4 +499,3 @@ public class larkAuthService {
     return filteredTables;
   }
 }
-

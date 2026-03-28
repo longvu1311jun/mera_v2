@@ -25,5 +25,3 @@ public class BitableTable {
     this.tableId = tableId;
   }
 }
-
-

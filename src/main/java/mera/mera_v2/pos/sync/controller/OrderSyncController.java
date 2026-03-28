@@ -109,4 +109,3 @@ public class OrderSyncController {
     return ResponseEntity.ok("OrderSyncController is up");
   }
 }
-

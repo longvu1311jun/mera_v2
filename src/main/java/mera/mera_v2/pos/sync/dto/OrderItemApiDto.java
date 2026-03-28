@@ -31,4 +31,3 @@ public class OrderItemApiDto {
   @JsonProperty("variation_info")
   private VariationInfoApiDto variationInfo;
 }
-

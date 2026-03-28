@@ -59,4 +59,3 @@ public class Combo {
     @JoinColumn(name = "variation_id", referencedColumnName = "id", insertable = false, updatable = false)
     private ProductVariation variation;
 }
-

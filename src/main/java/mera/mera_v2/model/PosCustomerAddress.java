@@ -66,4 +66,3 @@ public class PosCustomerAddress {
     public String getProvinceId() { return provinceId; }
     public void setProvinceId(String provinceId) { this.provinceId = provinceId; }
 }
-

@@ -16,4 +16,3 @@ public class CustomerTagId implements Serializable {
     private String customerId;
     private Long tagId;
 }
-

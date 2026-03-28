@@ -5,4 +5,3 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface PosDepartmentRepository extends JpaRepository<PosDepartment, Long> {
 }
-

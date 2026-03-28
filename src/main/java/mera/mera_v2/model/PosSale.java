@@ -37,4 +37,3 @@ public class PosSale {
     this.quantity = quantity;
   }
 }
-

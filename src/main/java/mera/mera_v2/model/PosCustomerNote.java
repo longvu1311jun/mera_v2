@@ -67,4 +67,3 @@ public class PosCustomerNote {
     public Long getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(Long updatedAt) { this.updatedAt = updatedAt; }
 }
-

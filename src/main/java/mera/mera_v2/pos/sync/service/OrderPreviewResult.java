@@ -20,4 +20,3 @@ public class OrderPreviewResult {
   private final int totalFromApi;
   private final List<OrderApiDto> orders;
 }
-

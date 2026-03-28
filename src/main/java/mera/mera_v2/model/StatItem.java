@@ -35,4 +35,3 @@ public class StatItem {
         this.unit = unit;
     }
 }
-

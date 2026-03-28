@@ -16,4 +16,3 @@ public class OrderTagId implements Serializable {
     private Long orderId;
     private Long tagId;
 }
-

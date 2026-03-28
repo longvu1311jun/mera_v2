@@ -33,22 +33,22 @@ public class larkAuthController {
   private String defaultTableId;
 
   private final larkAuthService authService;
-  private final org.report.getusertoken.service.TokenStorageService tokenStorageService;
+  private final mera.mera_v2.lark.token.TokenStorageService tokenStorageService;
 
   @Autowired(required = false)
-  private org.report.reportstatusmesssale.config.LarkBaseProperties reportProps;
+  private mera.mera_v2.lark.webhook.config.LarkBaseProperties reportProps;
 
   @Autowired(required = false)
-  private org.report.reportstatusmesssale.service.ReportService reportService;
+  private mera.mera_v2.lark.webhook.service.ReportService reportService;
   
   @Autowired(required = false)
-  private org.report.PosTobase.getTableID getTableIDService;
+  private mera.mera_v2.lark.webhook.getTableID getTableIDService;
 
   @Autowired(required = false)
-  private org.report.PosTobase.service.BaseTableMappingService baseTableMappingService;
+  private mera.mera_v2.lark.webhook.service.BaseTableMappingService baseTableMappingService;
 
   @Autowired(required = false)
-  private org.report.PosTobase.service.TenantTokenService tenantTokenService;
+  private mera.mera_v2.lark.webhook.service.TenantTokenService tenantTokenService;
 
   // Trang home: show nÃºt Login
   @GetMapping("/")
@@ -152,9 +152,9 @@ public class larkAuthController {
         // BÆ°á»›c 3.5: Láº¥y danh sÃ¡ch Base IDs vÃ  Table IDs tá»« getTableID service
         if (getTableIDService != null) {
           try {
-            List<org.report.PosTobase.getTableID.BaseIdInfo> baseIdsFromService = 
+            List<mera.mera_v2.lark.webhook.getTableID.BaseIdInfo> baseIdsFromService = 
                 getTableIDService.getAllBaseIds();
-            java.util.Map<String, List<org.report.PosTobase.getTableID.TableIdInfo>> baseTableMap = 
+            java.util.Map<String, List<mera.mera_v2.lark.webhook.getTableID.TableIdInfo>> baseTableMap = 
                 getTableIDService.getAllBaseIdsAndTableIds();
             
             log.info("");
@@ -162,19 +162,19 @@ public class larkAuthController {
             log.info("ðŸ“‹ DANH SÃCH BASE IDs VÃ€ TABLE IDs:");
             log.info("â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•");
             
-            for (org.report.PosTobase.getTableID.BaseIdInfo baseInfo : baseIdsFromService) {
+            for (mera.mera_v2.lark.webhook.getTableID.BaseIdInfo baseInfo : baseIdsFromService) {
               log.info("â”‚ Base Name: {}", baseInfo.getBaseName());
               log.info("â”‚ Base ID:   {}", baseInfo.getBaseId());
               log.info("â”‚ Path:      {}", baseInfo.getPath());
               
-              List<org.report.PosTobase.getTableID.TableIdInfo> tableIds = 
+              List<mera.mera_v2.lark.webhook.getTableID.TableIdInfo> tableIds = 
                   baseTableMap.getOrDefault(baseInfo.getBaseId(), new java.util.ArrayList<>());
               log.info("â”‚ Tables ({})", tableIds.size());
               
               if (tableIds.isEmpty()) {
                 log.info("â”‚   (khÃ´ng cÃ³ tables)");
               } else {
-                for (org.report.PosTobase.getTableID.TableIdInfo tableInfo : tableIds) {
+                for (mera.mera_v2.lark.webhook.getTableID.TableIdInfo tableInfo : tableIds) {
                   log.info("â”‚   - Table ID: {} | Name: {}", tableInfo.getTableId(), tableInfo.getTableName());
                 }
               }
@@ -187,16 +187,16 @@ public class larkAuthController {
             
             // LÆ°u vÃ o BaseTableMappingService Ä‘á»ƒ webhook cÃ³ thá»ƒ sá»­ dá»¥ng
             if (baseTableMappingService != null) {
-              java.util.List<org.report.PosTobase.dto.BaseTableMapping> mappings = new java.util.ArrayList<>();
-              for (org.report.PosTobase.getTableID.BaseIdInfo baseInfo : baseIdsFromService) {
-                List<org.report.PosTobase.getTableID.TableIdInfo> tableIds = 
+              java.util.List<mera.mera_v2.lark.webhook.dto.BaseTableMapping> mappings = new java.util.ArrayList<>();
+              for (mera.mera_v2.lark.webhook.getTableID.BaseIdInfo baseInfo : baseIdsFromService) {
+                List<mera.mera_v2.lark.webhook.getTableID.TableIdInfo> tableIds = 
                         baseTableMap.getOrDefault(baseInfo.getBaseId(), new java.util.ArrayList<>());
                 // Trim() Base Name Ä‘á»ƒ loáº¡i bá» khoáº£ng tráº¯ng thá»«a
                 String baseName = baseInfo.getBaseName() != null ? baseInfo.getBaseName().trim() : null;
                 
                 if (!tableIds.isEmpty()) {
-                  for (org.report.PosTobase.getTableID.TableIdInfo tableInfo : tableIds) {
-                    mappings.add(new org.report.PosTobase.dto.BaseTableMapping(
+                  for (mera.mera_v2.lark.webhook.getTableID.TableIdInfo tableInfo : tableIds) {
+                    mappings.add(new mera.mera_v2.lark.webhook.dto.BaseTableMapping(
                             baseName,
                             baseInfo.getBaseId(),
                             tableInfo.getTableId(),
@@ -205,7 +205,7 @@ public class larkAuthController {
                   }
                 } else {
                   // Náº¿u khÃ´ng cÃ³ table, váº«n thÃªm base vÃ o mapping
-                  mappings.add(new org.report.PosTobase.dto.BaseTableMapping(
+                  mappings.add(new mera.mera_v2.lark.webhook.dto.BaseTableMapping(
                           baseName,
                           baseInfo.getBaseId(),
                           null,
@@ -395,7 +395,7 @@ public class larkAuthController {
   }
 
   @Autowired(required = false)
-  private org.report.getusertoken.scheduler.TokenRefreshScheduler tokenRefreshScheduler;
+  private mera.mera_v2.lark.webhook.scheduler2.TokenRefreshScheduler tokenRefreshScheduler;
 
   /**
    * Endpoint Ä‘á»ƒ lÃ m má»›i token thá»§ cÃ´ng
@@ -431,4 +431,3 @@ public class larkAuthController {
     return "redirect:/token";
   }
 }
-

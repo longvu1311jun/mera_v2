@@ -26,6 +26,32 @@ public class TokenStorageService {
 
     private volatile Instant tenantTokenExpireAt;
 
+    public synchronized void save(mera.mera_v2.model.TokenInfo tokenInfo) {
+        this.userAccessToken = tokenInfo.getAccessToken();
+        this.refreshToken = tokenInfo.getRefreshToken();
+        this.tokenExpireAt = Instant.now().plusSeconds(tokenInfo.getExpiresIn());
+        this.refreshTokenExpireAt = Instant.now().plusSeconds(2592000L);
+        log.info("Tokens saved from TokenInfo");
+    }
+
+    public synchronized boolean hasToken() {
+        return userAccessToken != null && !userAccessToken.isEmpty();
+    }
+
+    public synchronized mera.mera_v2.model.TokenInfo get() {
+        if (!hasToken()) return null;
+        mera.mera_v2.model.TokenInfo info = new mera.mera_v2.model.TokenInfo();
+        info.setAccessToken(this.userAccessToken);
+        info.setRefreshToken(this.refreshToken);
+        int expiresIn = 0;
+        if (this.tokenExpireAt != null) {
+            long remaining = this.tokenExpireAt.getEpochSecond() - Instant.now().getEpochSecond();
+            expiresIn = remaining > 0 ? (int)remaining : 0;
+        }
+        info.setExpiresIn(expiresIn);
+        return info;
+    }
+
     private static final DateTimeFormatter FORMATTER =
             DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 

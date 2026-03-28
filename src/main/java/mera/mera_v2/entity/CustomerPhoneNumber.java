@@ -33,4 +33,3 @@ public class CustomerPhoneNumber {
     @JoinColumn(name = "customer_id", referencedColumnName = "id", insertable = false, updatable = false)
     private Customer customer;
 }
-

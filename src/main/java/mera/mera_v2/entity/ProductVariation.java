@@ -102,4 +102,3 @@ public class ProductVariation {
     @JoinColumn(name = "product_id", referencedColumnName = "id", insertable = false, updatable = false)
     private Product product;
 }
-

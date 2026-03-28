@@ -21,5 +21,3 @@ public class CreatorDTO {
 
   private String avatarUrl;
 }
-
-

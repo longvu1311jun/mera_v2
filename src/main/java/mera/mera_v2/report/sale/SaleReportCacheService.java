@@ -112,4 +112,3 @@ public class SaleReportCacheService {
     } catch (Exception ignored) {}
   }
 }
-

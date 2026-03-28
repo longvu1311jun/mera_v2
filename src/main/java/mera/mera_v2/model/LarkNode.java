@@ -124,5 +124,3 @@ public class LarkNode {
     this.bodyContent = bodyContent;
   }
 }
-
-

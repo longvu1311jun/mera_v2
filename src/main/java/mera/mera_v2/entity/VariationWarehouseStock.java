@@ -54,4 +54,3 @@ public class VariationWarehouseStock {
     @JoinColumn(name = "warehouse_id", referencedColumnName = "id", insertable = false, updatable = false)
     private Warehouse warehouse;
 }
-

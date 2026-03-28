@@ -31,5 +31,3 @@ public class StatusHistoryDto {
   @JsonProperty("updated_at")
   private String updatedAt;
 }
-
-

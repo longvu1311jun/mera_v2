@@ -20,4 +20,3 @@ public class PosSaleGroup {
     @Column(name = "name", length = 255, nullable = false)
     private String name;
 }
-

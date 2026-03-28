@@ -72,4 +72,3 @@ public class PosCustomer {
     this.orders = orders;
   }
 }
-

@@ -16,4 +16,3 @@ public class PosSaleGroupMemberId implements Serializable {
     private String shopUserId;
     private Integer saleGroupId;
 }
-

@@ -433,4 +433,3 @@ public class LarkTokenService {
     @JsonProperty("expires_in") long expiresIn;
   }
 }
-

@@ -40,4 +40,3 @@ public class SaleReportCacheEntry {
     this.rows = rows;
   }
 }
-

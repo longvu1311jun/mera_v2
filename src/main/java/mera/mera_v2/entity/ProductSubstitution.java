@@ -38,4 +38,3 @@ public class ProductSubstitution {
     @Column(name = "quantity", nullable = false)
     private Integer quantity = 1;
 }
-

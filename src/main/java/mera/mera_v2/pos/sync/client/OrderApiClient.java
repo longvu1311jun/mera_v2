@@ -4,7 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import mera.mera_v2.pos.sync.dto.OrderApiDto;
 import mera.mera_v2.pos.sync.dto.OrderListResponseDto;
-import mera.mera_v2.pos.sync.exceptions.ApiClientException;
+import mera.mera_v2.pos.sync.exception.ApiClientException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
@@ -133,4 +133,3 @@ public class OrderApiClient {
     return url.replaceAll("api_key=[^&]*", "api_key=***");
   }
 }
-

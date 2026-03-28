@@ -40,4 +40,3 @@ public class OrderSyncResult {
     return insertedStatusHistories + updatedStatusHistories;
   }
 }
-

@@ -75,4 +75,3 @@ public class PosShopUser {
     @JoinColumn(name = "department_id", referencedColumnName = "id", insertable = false, updatable = false)
     private PosDepartment department;
 }
-

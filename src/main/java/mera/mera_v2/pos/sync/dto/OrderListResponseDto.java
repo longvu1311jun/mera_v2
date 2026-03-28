@@ -20,4 +20,3 @@ public class OrderListResponseDto {
   private Integer totalEntries;
   private Integer totalPages;
 }
-

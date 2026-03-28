@@ -36,4 +36,3 @@ public class CustomerDTO {
   @JsonProperty("updated_at")
   private String updatedAt;
 }
-

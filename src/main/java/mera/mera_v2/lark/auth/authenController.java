@@ -38,10 +38,10 @@ import mera.mera_v2.model.TokenInfo;
 import mera.mera_v2.model.UserConfigDto;
 import mera.mera_v2.model.EmployeeStatsDto;
 import mera.mera_v2.model.PosUser;
-import mera.mera_v2.service.BitableService;
-import mera.mera_v2.service.LarkTokenService;
-import mera.mera_v2.service.LarkWikiService;
-import mera.mera_v2.service.PosService;
+import mera.mera_v2.customer.Service.BitableService;
+import mera.mera_v2.lark.token.LarkTokenService;
+import mera.mera_v2.lark.wiki.LarkWikiService;
+import mera.mera_v2.customer.Service.PosService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -207,8 +207,8 @@ public class authenController {
       model.addAttribute("isExpired", token.isExpired());
 
       @SuppressWarnings("unchecked")
-      List<org.report.backend.model.LarkNode> cachedBases =
-          (List<org.report.backend.model.LarkNode>) session.getAttribute(SESSION_ALL_BASES);
+      List<mera.mera_v2.model.LarkNode> cachedBases =
+          (List<mera.mera_v2.model.LarkNode>) session.getAttribute(SESSION_ALL_BASES);
 
       @SuppressWarnings("unchecked")
       List<UserConfigDto> cachedUserConfigs =
@@ -286,15 +286,15 @@ public class authenController {
   }
 
   private void loadAndCacheData(HttpSession session, Model model) throws Exception {
-    List<org.report.backend.model.LarkNode> allNodes = larkWikiService.getAllNodesWithChildren(session);
+    List<mera.mera_v2.model.LarkNode> allNodes = larkWikiService.getAllNodesWithChildren(session);
 
     List<PosUser> posUsers = posService.getUsers();
-    Map<PosUser, org.report.backend.model.LarkNode> matchedMap =
+    Map<PosUser, mera.mera_v2.model.LarkNode> matchedMap =
         larkWikiService.matchUsersWithNodes(posUsers, session);
 
     List<UserConfigDto> userConfigs = new ArrayList<>();
     for (PosUser posUser : posUsers) {
-      org.report.backend.model.LarkNode matchedNode = matchedMap.get(posUser);
+      mera.mera_v2.model.LarkNode matchedNode = matchedMap.get(posUser);
       UserConfigDto userConfig = new UserConfigDto(posUser, matchedNode);
       
       // âœ… Láº¥y Table ID cho ba báº£ng: KhÃ¡ch HÃ ng, Lá»‹ch Háº¹n, Trao Äá»•i
@@ -527,7 +527,7 @@ public class authenController {
               ResponseEntity<String> r = rt.exchange(url, HttpMethod.POST, entity, String.class);
               if (Boolean.TRUE.equals(debug)) {
                 try {
-                  log.info("Lark records/search raw response for baseId={} tableId={} status={}\n{}", uc.getBaseId(), uc.getTraoDoiTableId(), r.getStatusCodeValue(), r.getBody());
+                  log.info("Lark records/search raw response for baseId={} tableId={} status={}\n{}", uc.getBaseId(), uc.getTraoDoiTableId(), r.getStatusCode().value(), r.getBody());
                 } catch (Exception le) {
                   log.warn("Failed to log raw Lark response: {}", le.getMessage());
                 }
@@ -671,7 +671,7 @@ public class authenController {
 
       ResponseEntity<String> r = rt.postForEntity(url, entity, String.class);
       if (!r.getStatusCode().is2xxSuccessful() || r.getBody() == null) {
-        resp.put("error", "Lark search failed: " + r.getStatusCodeValue());
+        resp.put("error", "Lark search failed: " + r.getStatusCode().value());
         return ResponseEntity.status(500).body(resp);
       }
 
@@ -812,7 +812,7 @@ public class authenController {
 
       ResponseEntity<String> r = rt.postForEntity(url, entity, String.class);
       if (!r.getStatusCode().is2xxSuccessful() || r.getBody() == null) {
-        resp.put("error", "Lark create failed: " + r.getStatusCodeValue());
+        resp.put("error", "Lark create failed: " + r.getStatusCode().value());
         return ResponseEntity.status(500).body(resp);
       }
       Map<?, ?> created = mapper.readValue(r.getBody(), Map.class);
@@ -869,9 +869,9 @@ public class authenController {
       RestTemplate rt = new RestTemplate();
       log.info("Calling POS create_note URL={} body={}", url, mapper.writeValueAsString(body));
       ResponseEntity<String> r = rt.postForEntity(url, entity, String.class);
-      log.info("POS create_note response status={} body={}", r.getStatusCodeValue(), r.getBody());
+      log.info("POS create_note response status={} body={}", r.getStatusCode().value(), r.getBody());
       if (!r.getStatusCode().is2xxSuccessful() || r.getBody() == null) {
-        resp.put("error", "POS create note failed: " + r.getStatusCodeValue());
+        resp.put("error", "POS create note failed: " + r.getStatusCode().value());
         return ResponseEntity.status(500).body(resp);
       }
       Map<?, ?> created = mapper.readValue(r.getBody(), Map.class);
@@ -1302,4 +1302,3 @@ public class authenController {
     return String.valueOf(v);
   }
 }
-

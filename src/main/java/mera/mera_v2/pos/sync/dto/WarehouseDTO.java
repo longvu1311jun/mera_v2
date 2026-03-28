@@ -15,4 +15,3 @@ public class WarehouseDTO {
   private String districtId;
   private String communeId;
 }
-

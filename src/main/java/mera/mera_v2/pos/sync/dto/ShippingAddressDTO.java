@@ -33,4 +33,3 @@ public class ShippingAddressDTO {
   @JsonProperty("commune_name")
   private String communeName;
 }
-
