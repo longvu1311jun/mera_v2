@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+
+<html class="light" lang="vi">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>MeraGroup - Sales Command Dashboard</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Manrope:wght@400;500;600;700&amp;display=swap"
+        rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#6366F1",
+                        "tertiary": "#EC4899",
+                        "background": "#F8FAFC",
+                        "surface": "#FFFFFF",
+                        "on-surface": "#1E293B",
+                        "on-surface-variant": "#64748B",
+                        "outline": "#E2E8F0",
+                        "surface-container": "#F1F5F9",
+                        "surface-container-high": "#E2E8F0",
+                        "surface-container-low": "#FFFFFF",
+                        "primary-dim": "#4F46E5",
+                        "secondary": "#8B5CF6",
+                        "error": "#EF4444",
+                        "on-primary": "#FFFFFF"
+                    },
+                    fontFamily: {
+                        "headline": ["Plus Jakarta Sans"],
+                        "body": ["Manrope"],
+                        "label": ["Manrope"]
+                    },
+                    borderRadius: { "DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px" },
+                },
+            },
+        }
+    </script>
+    <style>
+        body {
+            background-color: #F8FAFC;
+            color: #1E293B;
+            font-family: 'Manrope', sans-serif;
+            overflow-x: hidden;
+        }
+
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+
+        .clean-card {
+            background: #FFFFFF;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+            border: 1px solid #E2E8F0;
+        }
+
+        .glow-indigo-light {
+            box-shadow: 0 10px 15px -3px rgba(99, 102, 241, 0.08);
+        }
+
+        .text-gradient {
+            background: linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+    </style>
+</head>
+
+<body class="antialiased text-on-surface">
+    <!-- SideNavBar Shell -->
+    <aside
+        class="h-screen w-72 fixed left-0 top-0 overflow-y-auto bg-white border-r border-slate-200 flex flex-col gap-8 py-10 px-6 z-[60]">
+        <div class="flex items-center gap-3 px-2">
+            <div class="w-10 h-10 rounded-xl bg-primary flex items-center justify-center shadow-lg shadow-primary/20">
+                <span class="material-symbols-outlined text-white"
+                    style="font-variation-settings: 'FILL' 1;">rocket_launch</span>
+            </div>
+            <div>
+                <h1 class="text-2xl font-black text-primary font-headline tracking-tight">MeraGroup</h1>
+                <p class="text-[10px] uppercase tracking-[0.2em] text-on-surface-variant font-bold">Sales Command</p>
+            </div>
+        </div>
+        <nav class="flex-1 flex flex-col gap-1">
+            <!-- Active Tab: Overview -->
+            <a class="bg-primary/5 text-primary rounded-2xl flex items-center gap-3 px-4 py-3 font-headline font-semibold tracking-tight text-sm active:scale-[0.97] transition-all duration-300"
+                href="#">
+                <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">dashboard</span>
+                <span>Overview</span>
+            </a>
+            <a class="text-slate-500 hover:bg-slate-50 hover:text-primary flex items-center gap-3 px-4 py-3 font-headline font-semibold tracking-tight text-sm active:scale-[0.97] transition-all duration-300 rounded-2xl"
+                href="#">
+                <span class="material-symbols-outlined">monitoring</span>
+                <span>Performance</span>
+            </a>
+            <a class="text-slate-500 hover:bg-slate-50 hover:text-primary flex items-center gap-3 px-4 py-3 font-headline font-semibold tracking-tight text-sm active:scale-[0.97] transition-all duration-300 rounded-2xl"
+                href="#">
+                <span class="material-symbols-outlined">query_stats</span>
+                <span>Insights</span>
+            </a>
+            <a class="text-slate-500 hover:bg-slate-50 hover:text-primary flex items-center gap-3 px-4 py-3 font-headline font-semibold tracking-tight text-sm active:scale-[0.97] transition-all duration-300 rounded-2xl"
+                href="#">
+                <span class="material-symbols-outlined">payments</span>
+                <span>Revenue</span>
+            </a>
+            <a class="text-slate-500 hover:bg-slate-50 hover:text-primary flex items-center gap-3 px-4 py-3 font-headline font-semibold tracking-tight text-sm active:scale-[0.97] transition-all duration-300 rounded-2xl"
+                href="#">
+                <span class="material-symbols-outlined">group</span>
+                <span>Team</span>
+            </a>
+            <a class="text-slate-500 hover:bg-slate-50 hover:text-primary flex items-center gap-3 px-4 py-3 font-headline font-semibold tracking-tight text-sm active:scale-[0.97] transition-all duration-300 rounded-2xl"
+                href="#">
+                <span class="material-symbols-outlined">settings</span>
+                <span>Settings</span>
+            </a>
+        </nav>
+        <div class="mt-auto flex flex-col gap-6">
+            <div class="p-4 rounded-2xl bg-slate-50 border border-slate-100 flex items-center gap-3">
+                <img alt="User Profile Avatar" class="w-10 h-10 rounded-full object-cover border-2 border-primary/20"
+                    data-alt="professional headshot of a confident male executive with short dark hair and a friendly expression in a modern office setting"
+                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuDZjP4nRQVgfBO7VNsdSjuUqe0CuUb86OGyLYvKnABxlscHGB6b1YZeZKOJjQFhz3FNYT3C7QSrAy_nIeyL_spbWi1PmWSe9RAE3Ys_fGQ2mIt1Q0_04jQBamieL1gcL-OsP-04GHLX9gMrMJ8SkczNfAjFHtRy-CH4_TTCcDfms7joeAjQrleym4fRB1ryT1KrL0CkMuRovXL4369UplKIw_5oZI64qjiPZlUw4EbBz1r4foCf0ONCuc51a98qqbYC4v1L7HvgK7C5" />
+                <div class="overflow-hidden">
+                    <p class="text-sm font-bold text-on-surface truncate">Admin</p>
+                    <p class="text-[10px] text-on-surface-variant uppercase font-bold tracking-wider">Quản lý</p>
+                </div>
+            </div>
+            <div class="flex flex-col gap-1">
+                <a class="text-slate-500 hover:text-primary flex items-center gap-3 px-4 py-2 text-xs font-semibold transition-colors"
+                    href="#">
+                    <span class="material-symbols-outlined text-sm">help</span>
+                    <span>Help Center</span>
+                </a>
+                <a class="text-slate-500 hover:text-error flex items-center gap-3 px-4 py-2 text-xs font-semibold transition-colors"
+                    href="#">
+                    <span class="material-symbols-outlined text-sm">logout</span>
+                    <span>Logout</span>
+                </a>
+            </div>
+        </div>
+    </aside>
+    <!-- TopAppBar Shell -->
+    <header
+        class="fixed top-0 right-0 w-[calc(100%-18rem)] z-50 bg-white/80 backdrop-blur-lg border-b border-slate-200 flex justify-between items-center h-20 px-10">
+        <div class="flex items-center gap-4">
+            <div class="flex items-center gap-2 text-on-surface-variant font-body text-sm font-medium">
+                <span>MeraGroup</span>
+                <span class="material-symbols-outlined text-xs">chevron_right</span>
+                <span class="text-primary font-bold border-b-2 border-primary/20 pb-1">Dashboard</span>
+            </div>
+        </div>
+        <div class="flex items-center gap-6">
+            <button
+                class="px-5 py-2.5 rounded-full bg-primary text-white text-sm font-bold shadow-lg shadow-primary/20 hover:bg-primary-dim transition-all active:scale-95">
+                Tải Báo Cáo
+            </button>
+            <div class="flex items-center gap-4">
+                <button
+                    class="w-10 h-10 rounded-full flex items-center justify-center text-slate-400 hover:text-primary hover:bg-slate-50 transition-all">
+                    <span class="material-symbols-outlined">notifications_active</span>
+                </button>
+                <div class="w-10 h-10 rounded-full overflow-hidden border border-slate-200">
+                    <img alt="Administrator Profile" class="w-full h-full object-cover"
+                        data-alt="portrait of a focused professional administrator in a minimalist setting with soft blue ambient lighting"
+                        src="https://lh3.googleusercontent.com/aida-public/AB6AXuDqgGx26qi0Xls1bMsmHmWuVDSKFuHqyjAsgOpAKY7yTTc0m8cHXQnmRC6ccRolnojf-edfYUCQq93Ol94yeBpxsqT1qlNaIz7dZpNoP8T91Gd0a-3BnEOH6s5u_Ab1y5TuS_8sfkQNLZaYsq5fVU095tHOCLTAjEiBszxaKDgWS5dDWXbrbZprkBWmM6HLewPjj_topZbrL78OHaHkHu_FMG_XJadHhXdzwpkHzVBYrLmXEaWa1kv7pum0HF_v7-7_dRykVcGQsSY_" />
+                </div>
+            </div>
+        </div>
+    </header>
+    <!-- Main Content Canvas -->
+    <main class="ml-72 pt-20 p-10 min-h-screen">
+        <!-- Hero Section -->
+        <section class="mb-12 relative overflow-hidden rounded-xl p-10 clean-card">
+            <div class="absolute top-0 right-0 -mr-20 -mt-20 w-96 h-96 bg-primary/5 blur-[100px] rounded-full"></div>
+            <div class="absolute bottom-0 left-0 -ml-20 -mb-20 w-64 h-64 bg-secondary/5 blur-[80px] rounded-full"></div>
+            <div class="relative z-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
+                <div>
+                    <h2 class="text-4xl font-black font-headline tracking-tight mb-2 text-on-surface">Tổng quan hiệu
+                        suất bán hàng</h2>
+                    <p class="text-on-surface-variant text-lg max-w-2xl font-body">Xu hướng doanh số, hiệu quả nhân viên
+                        và chất lượng tệp khách hàng được cập nhật theo thời gian thực.</p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <div
+                        class="bg-slate-100 px-4 py-2 rounded-xl border border-slate-200 flex items-center gap-3 cursor-pointer hover:bg-slate-200 transition-colors text-on-surface">
+                        <span class="material-symbols-outlined text-primary">calendar_today</span>
+                        <span class="text-sm font-medium">Tháng này</span>
+                        <span class="material-symbols-outlined text-xs">expand_more</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <!-- Overview Cards Row -->
+        <section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+            <!-- Card 1 -->
+            <div
+                class="clean-card p-6 rounded-xl glow-indigo-light group hover:translate-y-[-4px] transition-all duration-300">
+                <div class="flex justify-between items-start mb-4">
+                    <div class="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
+                        <span class="material-symbols-outlined"
+                            style="font-variation-settings: 'FILL' 1;">payments</span>
+                    </div>
+                    <span class="text-xs font-bold px-2 py-1 rounded-lg bg-green-100 text-green-600">↑12.5%</span>
+                </div>
+                <p class="text-on-surface-variant text-xs font-bold uppercase tracking-widest mb-1">Tổng Doanh Thu</p>
+                <h3 class="text-2xl font-black font-headline text-on-surface">2,840,000,000đ</h3>
+                <p class="text-[10px] text-on-surface-variant/70 mt-2">So với 2.52B tháng trước</p>
+            </div>
+            <!-- Card 2 -->
+            <div class="clean-card p-6 rounded-xl group hover:translate-y-[-4px] transition-all duration-300">
+                <div class="flex justify-between items-start mb-4">
+                    <div class="w-12 h-12 rounded-2xl bg-secondary/10 flex items-center justify-center text-secondary">
+                        <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">group</span>
+                    </div>
+                    <span class="text-xs font-bold px-2 py-1 rounded-lg bg-green-100 text-green-600">↑8.3%</span>
+                </div>
+                <p class="text-on-surface-variant text-xs font-bold uppercase tracking-widest mb-1">Khách Hàng Hoạt Động
+                </p>
+                <h3 class="text-2xl font-black font-headline text-on-surface">1,247</h3>
+                <p class="text-[10px] text-on-surface-variant/70 mt-2">Người dùng đang tương tác</p>
+            </div>
+            <!-- Card 3 -->
+            <div class="clean-card p-6 rounded-xl group hover:translate-y-[-4px] transition-all duration-300">
+                <div class="flex justify-between items-start mb-4">
+                    <div class="w-12 h-12 rounded-2xl bg-tertiary/10 flex items-center justify-center text-tertiary">
+                        <span class="material-symbols-outlined"
+                            style="font-variation-settings: 'FILL' 1;">analytics</span>
+                    </div>
+                    <span class="text-xs font-bold px-2 py-1 rounded-lg bg-red-100 text-red-600">↓2.1%</span>
+                </div>
+                <p class="text-on-surface-variant text-xs font-bold uppercase tracking-widest mb-1">Tỉ Lệ Chuyển Đổi</p>
+                <h3 class="text-2xl font-black font-headline text-on-surface">23.4%</h3>
+                <p class="text-[10px] text-on-surface-variant/70 mt-2">Mục tiêu: 25.0%</p>
+            </div>
+            <!-- Card 4 -->
+            <div class="clean-card p-6 rounded-xl group hover:translate-y-[-4px] transition-all duration-300">
+                <div class="flex justify-between items-start mb-4">
+                    <div class="w-12 h-12 rounded-2xl bg-amber-100 flex items-center justify-center text-amber-600">
+                        <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">stars</span>
+                    </div>
+                    <span class="text-xs font-bold px-2 py-1 rounded-lg bg-amber-50 text-amber-700">Top Rank</span>
+                </div>
+                <p class="text-on-surface-variant text-xs font-bold uppercase tracking-widest mb-1">Top Performer</p>
+                <div class="flex items-center gap-3">
+                    <div class="flex-1">
+                        <h3 class="text-lg font-black font-headline text-on-surface">Nguyễn Văn A</h3>
+                        <p class="text-xs text-amber-600 font-bold">156 đơn chốt</p>
+                    </div>
+                    <img alt="Top Performer Avatar" class="w-10 h-10 rounded-full border border-amber-200"
+                        data-alt="cheerful professional young man with a warm smile wearing a tailored shirt in a bright modern office"
+                        src="https://lh3.googleusercontent.com/aida-public/AB6AXuDTzYV0bRM6-IpTXoAfY_daM9I7c83lgmMp_EGgmb0khxnXUqPEvisvb41vR8Kl7M1L7YUe9YFm1T-BCulMkG3yn_yUly-FcD13aHpnQznIGIh7XzUa75OqS1-M8xzZjvDvvV17jZsRlYn1WRpKrsZ0OWMRs34uLjFzsQ3pjLFmm5KJe3Oa4fCEX0araik14e2wCPs69_3lPb7o2xSE86HRmpxd-lbRc1u_6S5Vxm3tJZqMIobANBeNTxe5D-Dyjf--THkUzGNnn8SE" />
+                </div>
+            </div>
+        </section>
+        <!-- Insights Row -->
+        <section class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+            <div
+                class="bg-white p-5 rounded-xl flex items-center gap-4 border-l-4 border-primary shadow-sm border-t border-r border-b border-slate-100">
+                <span class="material-symbols-outlined text-primary">person_celebrate</span>
+                <div>
+                    <p class="text-[10px] uppercase font-bold text-on-surface-variant">Best Sales Agent</p>
+                    <p class="text-sm font-semibold text-on-surface">Nhân viên chốt cao nhất tháng</p>
+                </div>
+            </div>
+            <div
+                class="bg-white p-5 rounded-xl flex items-center gap-4 border-l-4 border-secondary shadow-sm border-t border-r border-b border-slate-100">
+                <span class="material-symbols-outlined text-secondary">schedule</span>
+                <div>
+                    <p class="text-[10px] uppercase font-bold text-on-surface-variant">Peak Hours</p>
+                    <p class="text-sm font-semibold text-on-surface">14:00-17:00 (Doanh số tốt nhất)</p>
+                </div>
+            </div>
+            <div
+                class="bg-white p-5 rounded-xl flex items-center gap-4 border-l-4 border-tertiary shadow-sm border-t border-r border-b border-slate-100">
+                <span class="material-symbols-outlined text-tertiary">trending_up</span>
+                <div>
+                    <p class="text-[10px] uppercase font-bold text-on-surface-variant">Growth Insight</p>
+                    <p class="text-sm font-semibold text-on-surface">Nhóm khách tiềm năng tăng 34%</p>
+                </div>
+            </div>
+        </section>
+        <!-- Charts Section (Bento Grid Style) -->
+        <section class="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-12">
+            <!-- Large Area Chart Placeholder -->
+            <div class="lg:col-span-8 clean-card rounded-xl p-8 relative overflow-hidden">
+                <div class="flex justify-between items-center mb-10">
+                    <div>
+                        <h4 class="text-xl font-bold font-headline text-on-surface">Xu hướng Doanh Số</h4>
+                        <p class="text-xs text-on-surface-variant">Thống kê theo tuần (7 ngày gần nhất)</p>
+                    </div>
+                    <div class="flex gap-2">
+                        <div
+                            class="flex items-center gap-2 px-3 py-1 bg-slate-50 rounded-lg text-[10px] font-bold text-primary">
+                            <span class="w-2 h-2 rounded-full bg-primary"></span> Tuần này
+                        </div>
+                        <div
+                            class="flex items-center gap-2 px-3 py-1 bg-slate-50 rounded-lg text-[10px] font-bold text-on-surface-variant">
+                            <span class="w-2 h-2 rounded-full bg-slate-400"></span> Tuần trước
+                        </div>
+                    </div>
+                </div>
+                <div class="h-64 flex items-end justify-between gap-4 relative">
+                    <!-- SVG Chart Mockup -->
+                    <div class="absolute inset-0 z-0">
+                        <svg class="w-full h-full" preserveaspectratio="none" viewbox="0 0 800 200">
+                            <defs>
+                                <lineargradient id="chartGradient" x1="0%" x2="0%" y1="0%" y2="100%">
+                                    <stop offset="0%" style="stop-color:#6366F1;stop-opacity:0.2"></stop>
+                                    <stop offset="100%" style="stop-color:#6366F1;stop-opacity:0"></stop>
+                                </lineargradient>
+                            </defs>
+                            <path d="M0,150 Q100,140 200,80 T400,100 T600,40 T800,70 L800,200 L0,200 Z"
+                                fill="url(#chartGradient)"></path>
+                            <path d="M0,150 Q100,140 200,80 T400,100 T600,40 T800,70" fill="none" stroke="#6366F1"
+                                stroke-linecap="round" stroke-width="3"></path>
+                            <circle cx="200" cy="80" fill="white" r="6" stroke="#6366F1" stroke-width="3"></circle>
+                            <circle cx="600" cy="40" fill="white" r="6" stroke="#6366F1" stroke-width="3"></circle>
+                        </svg>
+                    </div>
+                    <!-- Chart Labels -->
+                    <div
+                        class="w-full flex justify-between px-2 pt-2 text-[10px] font-bold text-on-surface-variant z-10">
+                        <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+                    </div>
+                </div>
+            </div>
+            <!-- Horizontal Bar Chart -->
+            <div class="lg:col-span-4 clean-card rounded-xl p-8">
+                <h4 class="text-xl font-bold font-headline mb-6 text-on-surface">Top 5 Nhân Viên</h4>
+                <div class="space-y-6">
+                    <div class="space-y-2">
+                        <div class="flex justify-between text-xs font-bold text-on-surface">
+                            <span>Nguyễn Văn A</span>
+                            <span class="text-primary">842M</span>
+                        </div>
+                        <div class="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
+                            <div class="h-full bg-primary rounded-full" style="width: 90%"></div>
+                        </div>
+                    </div>
+                    <div class="space-y-2">
+                        <div class="flex justify-between text-xs font-bold text-on-surface">
+                            <span>Trần Thị B</span>
+                            <span class="text-secondary">715M</span>
+                        </div>
+                        <div class="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
+                            <div class="h-full bg-secondary rounded-full" style="width: 75%"></div>
+                        </div>
+                    </div>
+                    <div class="space-y-2">
+                        <div class="flex justify-between text-xs font-bold text-on-surface">
+                            <span>Lê Văn C</span>
+                            <span class="text-indigo-400">620M</span>
+                        </div>
+                        <div class="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
+                            <div class="h-full bg-indigo-400 rounded-full" style="width: 65%"></div>
+                        </div>
+                    </div>
+                    <div class="space-y-2">
+                        <div class="flex justify-between text-xs font-bold text-on-surface">
+                            <span>Phạm Hoàng D</span>
+                            <span class="text-slate-400">410M</span>
+                        </div>
+                        <div class="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
+                            <div class="h-full bg-slate-400 rounded-full" style="width: 45%"></div>
+                        </div>
+                    </div>
+                    <div class="space-y-2">
+                        <div class="flex justify-between text-xs font-bold text-on-surface">
+                            <span>Hoàng Thị E</span>
+                            <span class="text-slate-400">258M</span>
+                        </div>
+                        <div class="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
+                            <div class="h-full bg-slate-300 rounded-full" style="width: 30%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <!-- Alerts Section -->
+        <section class="mb-12">
+            <div class="flex items-center gap-3 mb-6">
+                <span class="material-symbols-outlined text-tertiary">warning</span>
+                <h4 class="text-xl font-bold font-headline text-on-surface">Cảnh báo &amp; Cơ hội</h4>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div
+                    class="p-6 rounded-xl bg-white border border-slate-200 flex items-start gap-4 hover:border-tertiary/30 transition-colors shadow-sm">
+                    <div
+                        class="w-10 h-10 rounded-full bg-tertiary/10 flex items-center justify-center text-tertiary shrink-0">
+                        <span class="material-symbols-outlined">trending_down</span>
+                    </div>
+                    <div>
+                        <p class="font-bold text-on-surface mb-1">3 nhân viên giảm doanh số liên tiếp</p>
+                        <p class="text-sm text-on-surface-variant">Cần xem xét lại quy trình tư vấn của nhóm Sales 2
+                            trong tuần vừa qua.</p>
+                        <button class="mt-4 text-xs font-bold text-tertiary underline uppercase tracking-widest">Xem Chi
+                            Tiết</button>
+                    </div>
+                </div>
+                <div
+                    class="p-6 rounded-xl bg-white border border-slate-200 flex items-start gap-4 hover:border-primary/30 transition-colors shadow-sm">
+                    <div
+                        class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                        <span class="material-symbols-outlined">notification_important</span>
+                    </div>
+                    <div>
+                        <p class="font-bold text-on-surface mb-1">12 khách hàng chưa follow-up &gt; 7 ngày</p>
+                        <p class="text-sm text-on-surface-variant">Cơ hội chốt đơn có thể bị bỏ lỡ. Hệ thống đề xuất gán
+                            lại lead cho Team Lead.</p>
+                        <button class="mt-4 text-xs font-bold text-primary underline uppercase tracking-widest">Xử Lý
+                            Ngay</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <!-- Footer -->
+        <footer
+            class="mt-20 py-8 border-t border-slate-200 flex flex-col md:flex-row justify-between items-center gap-4 text-on-surface-variant text-xs">
+            <div class="flex gap-8">
+                <a class="hover:text-primary transition-colors" href="#">Hỗ trợ nội bộ</a>
+                <a class="hover:text-primary transition-colors" href="#">Chính sách dữ liệu</a>
+            </div>
+            <p>© 2025 MeraGroup. All rights reserved.</p>
+        </footer>
+    </main>
+    <!-- Ambient Background Elements -->
+    <div class="fixed top-0 left-0 w-full h-full pointer-events-none -z-10 overflow-hidden">
+        <div class="absolute top-[20%] left-[10%] w-[500px] h-[500px] bg-primary/5 blur-[120px] rounded-full"></div>
+        <div class="absolute bottom-[10%] right-[10%] w-[400px] h-[400px] bg-secondary/5 blur-[100px] rounded-full">
+        </div>
+    </div>
+</body>
+
+</html>

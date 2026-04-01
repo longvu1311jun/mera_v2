@@ -47,13 +47,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
 import org.springframework.http.HttpMethod;
 import org.springframework.web.client.RestTemplate;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.format.DateTimeFormatter;
-import java.time.ZoneId;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -93,7 +90,7 @@ public class authenController {
     this.posService = posService;
     this.larkWikiService = larkWikiService;
     this.bitableService = bitableService;
-    // Táº¡o thread pool vá»›i 5 threads Ä‘á»ƒ xá»­ lÃ½ stats song song
+    // Tạo thread pool với 5 threads để xử lý stats song song
     this.executorService = Executors.newFixedThreadPool(5);
   }
 
@@ -126,11 +123,11 @@ public class authenController {
       TokenInfo token = tokenService.getCurrentToken(session);
       model.addAttribute("isAuthenticated", true);
       model.addAttribute("tokenExpiresAt", token.getExpiresAt());
+      return "index"; // Dashboard remains index for now
     } else {
       model.addAttribute("isAuthenticated", false);
+      return "UI/login";
     }
-
-    return "index";
   }
 
   @GetMapping("/admin")
@@ -147,11 +144,11 @@ public class authenController {
       TokenInfo token = tokenService.getCurrentToken(session);
       model.addAttribute("isAuthenticated", true);
       model.addAttribute("tokenExpiresAt", token.getExpiresAt());
+      return "index";
     } else {
       model.addAttribute("isAuthenticated", false);
+      return "UI/login";
     }
-
-    return "index";
   }
 
   @GetMapping("/oauth/callback")
@@ -186,14 +183,14 @@ public class authenController {
   private static final String SESSION_SALE_TABLES = "SESSION_SALE_TABLES";
   private static final String SESSION_EMPLOYEE_STATS = "SESSION_EMPLOYEE_STATS";
   private static final String SESSION_EMPLOYEE_STATS_FETCHED_AT = "SESSION_EMPLOYEE_STATS_FETCHED_AT";
-  // Cache riÃªng cho LastMonth Ä‘á»ƒ khi ngÆ°á»i dÃ¹ng chuyá»ƒn qua láº¡i khÃ´ng pháº£i load láº¡i
+  // Cache riêng cho LastMonth để khi người dùng chuyển qua lại không phải load lại
   private static final String SESSION_EMPLOYEE_STATS_LAST = "SESSION_EMPLOYEE_STATS_LAST";
   private static final String SESSION_EMPLOYEE_STATS_LAST_FETCHED_AT = "SESSION_EMPLOYEE_STATS_LAST_FETCHED_AT";
 
   @GetMapping("/config")
   public String config(Model model, HttpSession session) {
     if (tokenService.hasToken(session)) {
-      log.info("ðŸ” Checking token status for /config endpoint");
+      log.info("🔍 Checking token status for /config endpoint");
       tokenService.autoRefreshTokenIfNeeded(session);
 
       TokenInfo token = tokenService.getCurrentToken(session);
@@ -245,7 +242,7 @@ public class authenController {
   @PostMapping("/config/refresh")
   public String refreshData(HttpSession session, RedirectAttributes redirectAttributes) {
     if (!tokenService.hasToken(session)) {
-      redirectAttributes.addFlashAttribute("error", "Vui lÃ²ng Ä‘Äƒng nháº­p trÆ°á»›c");
+      redirectAttributes.addFlashAttribute("error", "Vui lòng đăng nhập trước");
       return "redirect:/config";
     }
 
@@ -258,7 +255,7 @@ public class authenController {
         } catch (Exception tokenError) {
           log.error("Failed to refresh expired token: {}", tokenError.getMessage());
           redirectAttributes.addFlashAttribute("error",
-              "Token Ä‘Ã£ háº¿t háº¡n vÃ  khÃ´ng thá»ƒ lÃ m má»›i. Vui lÃ²ng <a href='/'>Ä‘Äƒng nháº­p láº¡i</a>");
+              "Token đã hết hạn và không thể làm mới. Vui lòng <a href='/'>đăng nhập lại</a>");
           return "redirect:/config";
         }
       }
@@ -270,15 +267,15 @@ public class authenController {
       Model model = new org.springframework.ui.ExtendedModelMap();
       loadAndCacheData(session, model);
 
-      redirectAttributes.addFlashAttribute("success", "ÄÃ£ lÃ m má»›i dá»¯ liá»‡u thÃ nh cÃ´ng!");
+      redirectAttributes.addFlashAttribute("success", "Đã làm mới dữ liệu thành công!");
     } catch (Exception e) {
       log.error("Error refreshing data: {}", e.getMessage(), e);
       String errorMsg = e.getMessage();
       if (errorMsg != null && errorMsg.contains("invalid tenant access token")) {
         redirectAttributes.addFlashAttribute("error",
-            "Token khÃ´ng há»£p lá»‡. Vui lÃ²ng <a href='/'>Ä‘Äƒng nháº­p láº¡i</a>");
+            "Token không hợp lệ. Vui lòng <a href='/'>đăng nhập lại</a>");
       } else {
-        redirectAttributes.addFlashAttribute("error", "Lá»—i khi lÃ m má»›i dá»¯ liá»‡u: " + errorMsg);
+        redirectAttributes.addFlashAttribute("error", "Lỗi khi làm mới dữ liệu: " + errorMsg);
       }
     }
 
@@ -297,7 +294,7 @@ public class authenController {
       mera.mera_v2.model.LarkNode matchedNode = matchedMap.get(posUser);
       UserConfigDto userConfig = new UserConfigDto(posUser, matchedNode);
       
-      // âœ… Láº¥y Table ID cho ba báº£ng: KhÃ¡ch HÃ ng, Lá»‹ch Háº¹n, Trao Äá»•i
+      // ✅ Lấy Table ID cho ba bảng: Khách Hàng, Lịch Hẹn, Trao Đổi
       String baseId = userConfig.getBaseId();
       if (baseId != null && !baseId.isBlank()) {
         try {
@@ -307,11 +304,11 @@ public class authenController {
             String tableId = table.getTableId();
             
             if (tableName != null && tableId != null) {
-              if (tableName.equals("KhÃ¡ch HÃ ng")) {
+              if (tableName.equals("Khách Hàng")) {
                 userConfig.setKhachHangTableId(tableId);
-              } else if (tableName.equals("Lá»‹ch Háº¹n")) {
+              } else if (tableName.equals("Lịch Hẹn")) {
                 userConfig.setLichHenTableId(tableId);
-              } else if (tableName.equals("Trao Äá»•i")) {
+              } else if (tableName.equals("Trao Đổi")) {
                 userConfig.setTraoDoiTableId(tableId);
               }
             }
@@ -324,7 +321,7 @@ public class authenController {
       userConfigs.add(userConfig);
     }
 
-    // âœ… Láº¥y table sale tá»« Bitable API
+    // ✅ Lấy table sale từ Bitable API
     List<BitableTable> saleTables = bitableService.getSaleTables(session);
 
     session.setAttribute(SESSION_ALL_BASES, allNodes);
@@ -355,12 +352,12 @@ public class authenController {
     Map<String, Object> response = new HashMap<>();
     
     if (!tokenService.hasToken(session)) {
-      response.put("error", "Vui lÃ²ng Ä‘Äƒng nháº­p trÆ°á»›c");
+      response.put("error", "Vui lòng đăng nhập trước");
       return ResponseEntity.ok(response);
     }
 
     try {
-      log.info("ðŸ” Loading stats data for customerMonth: {}", customerMonth);
+      log.info("🔍 Loading stats data for customerMonth: {}", customerMonth);
       tokenService.autoRefreshTokenIfNeeded(session);
 
       // Validate customerMonth parameter
@@ -368,7 +365,7 @@ public class authenController {
         customerMonth = "CurrentMonth";
       }
 
-      // 1) âœ… Kiá»ƒm tra cache trong session cho cáº£ CurrentMonth vÃ  LastMonth
+      // 1) ✅ Kiểm tra cache trong session cho cả CurrentMonth và LastMonth
       @SuppressWarnings("unchecked")
       List<EmployeeStatsDto> cachedStatsCurrent =
           (List<EmployeeStatsDto>) session.getAttribute(SESSION_EMPLOYEE_STATS);
@@ -407,22 +404,22 @@ public class authenController {
         return ResponseEntity.ok(response);
       }
 
-      // 2) âŒ Cache miss -> Láº¥y dá»¯ liá»‡u má»›i
+      // 2) ❌ Cache miss -> Lấy dữ liệu mới
       @SuppressWarnings("unchecked")
       List<UserConfigDto> cachedUserConfigs =
           (List<UserConfigDto>) session.getAttribute(SESSION_USER_CONFIGS);
 
       if (cachedUserConfigs == null) {
-        // Náº¿u chÆ°a cÃ³ config, load config trÆ°á»›c
+        // Nếu chưa có config, load config trước
         Model tempModel = new org.springframework.ui.ExtendedModelMap();
         loadAndCacheData(session, tempModel);
         cachedUserConfigs = (List<UserConfigDto>) session.getAttribute(SESSION_USER_CONFIGS);
       }
 
-      // TÃ­nh toÃ¡n stats vá»›i customerMonth Ä‘Æ°á»£c chá»n
+      // Tính toán stats với customerMonth được chọn
       List<EmployeeStatsDto> statsList = calculateEmployeeStats(session, cachedUserConfigs, customerMonth);
       
-      // LÆ°u vÃ o cache theo tá»«ng thÃ¡ng
+      // Lưu vào cache theo từng tháng
       long nowMs = Instant.now().toEpochMilli();
       LocalDateTime nowDt = LocalDateTime.ofInstant(Instant.ofEpochMilli(nowMs), ZoneId.systemDefault());
       if (customerMonth.equals("CurrentMonth")) {
@@ -438,7 +435,7 @@ public class authenController {
       response.put("statsList", statsList);
       response.put("customerMonth", customerMonth);
       
-      // TÃ­nh tá»•ng
+      // Tính tổng
       long totalKhach = statsList.stream().mapToLong(EmployeeStatsDto::getTongKhach).sum();
       long totalLich = statsList.stream().mapToLong(EmployeeStatsDto::getTongLich).sum();
       long totalHoanThanh = statsList.stream().mapToLong(EmployeeStatsDto::getHoanThanh).sum();
@@ -449,7 +446,7 @@ public class authenController {
     } catch (Exception e) {
       log.error("Error loading stats: {}", e.getMessage(), e);
       response.put("statsList", new ArrayList<EmployeeStatsDto>());
-      response.put("error", "Lá»—i khi táº£i thá»‘ng kÃª: " + e.getMessage());
+      response.put("error", "Lỗi khi tải thống kê: " + e.getMessage());
       response.put("customerMonth", customerMonth);
     }
 
@@ -465,7 +462,7 @@ public class authenController {
       HttpSession session) {
     Map<String, Object> resp = new HashMap<>();
     if (!tokenService.hasToken(session)) {
-      resp.put("error", "Vui lÃ²ng Ä‘Äƒng nháº­p trÆ°á»›c");
+      resp.put("error", "Vui lòng đăng nhập trước");
       return ResponseEntity.status(401).body(resp);
     }
 
@@ -507,7 +504,7 @@ public class authenController {
 
               Map<String, Object> body = new HashMap<>();
               body.put("automatic_fields", false);
-              body.put("field_names", List.of("KhÃ¡ch HÃ ng", "Ná»™i dung", "PhoneNumber"));
+              body.put("field_names", List.of("Khách Hàng", "Nội dung", "PhoneNumber"));
               Map<String, Object> filter = new HashMap<>();
               Map<String, Object> cond = new HashMap<>();
               cond.put("field_name", "PhoneNumber");
@@ -546,7 +543,7 @@ public class authenController {
                     if (fields == null) continue;
                     // extract content text
                     String content = "";
-                    Object noidung = fields.get("Ná»™i dung");
+                    Object noidung = fields.get("Nội dung");
                     if (noidung instanceof List<?> l && !l.isEmpty()) {
                       Object first = l.get(0);
                       if (first instanceof Map<?, ?> m && m.get("text") != null) content = String.valueOf(m.get("text"));
@@ -555,15 +552,15 @@ public class authenController {
                     // customer name: use provided customerName or empty
                     String custName = customerName != null ? customerName : "";
                     // createdAt
-                    Object ngay = fields.get("NgÃ y");
+                    Object ngay = fields.get("Ngày");
                     Object createdAtValue = null;
                     if (ngay instanceof Number) {
                       createdAtValue = ((Number) ngay).longValue(); // keep timestamp (ms) as number
                     } else if (ngay != null) {
-                      // keep original value (string) â€” frontend will attempt to parse/format
+                      // keep original value (string) — frontend will attempt to parse/format
                       createdAtValue = String.valueOf(ngay);
                     }
-                    // Preserve original "NgÃ y" field in response (do not lose key)
+                    // Preserve original "Ngày" field in response (do not lose key)
                     Object ngayRawForResponse = ngay;
                     // debug logging
                     try {
@@ -579,14 +576,14 @@ public class authenController {
                     rec.put("content", content);
                     rec.put("customerName", custName);
                     rec.put("createdAt", createdAtValue);
-                    // include original "NgÃ y" value under key "NgÃ y" so frontend can use it directly
-                    rec.put("NgÃ y", ngayRawForResponse);
+                    // include original "Ngày" value under key "Ngày" so frontend can use it directly
+                    rec.put("Ngày", ngayRawForResponse);
                     // include source table info so frontend can create back into the same table
                     rec.put("baseId", baseId);
                     rec.put("tableId", tableId);
-                    // extract KhÃ¡ch HÃ ng link ids if present
+                    // extract Khách Hàng link ids if present
                     List<String> linkIds = new ArrayList<>();
-                    Object khField = fields.get("KhÃ¡ch HÃ ng");
+                    Object khField = fields.get("Khách Hàng");
                     if (khField instanceof Map<?, ?> khMap) {
                       Object lrr = khMap.get("link_record_ids");
                       if (lrr instanceof List<?>) {
@@ -628,7 +625,7 @@ public class authenController {
   /**
    * Search records in a specific Bitable table by phone number.
    * Accepts baseId, tableId, phone (and optional viewId) as request parameters.
-   * Returns normalized list of exchanges with fields: content, createdAt, phone, linkRecordIds, NgÃ y (raw).
+   * Returns normalized list of exchanges with fields: content, createdAt, phone, linkRecordIds, Ngày (raw).
    */
   @PostMapping("/api/lark/search-by-table")
   @ResponseBody
@@ -640,7 +637,7 @@ public class authenController {
       HttpSession session) {
     Map<String, Object> resp = new HashMap<>();
     if (!tokenService.hasToken(session)) {
-      resp.put("error", "Vui lÃ²ng Ä‘Äƒng nháº­p trÆ°á»›c");
+      resp.put("error", "Vui lòng đăng nhập trước");
       return ResponseEntity.status(401).body(resp);
     }
     try {
@@ -653,7 +650,7 @@ public class authenController {
 
       Map<String, Object> body = new HashMap<>();
       body.put("automatic_fields", false);
-      body.put("field_names", List.of("KhÃ¡ch HÃ ng", "Ná»™i dung", "PhoneNumber", "NgÃ y"));
+      body.put("field_names", List.of("Khách Hàng", "Nội dung", "PhoneNumber", "Ngày"));
       Map<String, Object> filter = new HashMap<>();
       Map<String, Object> cond = new HashMap<>();
       cond.put("field_name", "PhoneNumber");
@@ -690,7 +687,7 @@ public class authenController {
 
           // extract content
           String content = "";
-          Object noidung = fields.get("Ná»™i dung");
+          Object noidung = fields.get("Nội dung");
           if (noidung instanceof List<?> l && !l.isEmpty()) {
             Object first = l.get(0);
             if (first instanceof Map<?, ?> m && m.get("text") != null) content = String.valueOf(m.get("text"));
@@ -699,8 +696,8 @@ public class authenController {
             content = String.valueOf(noidung);
           }
 
-          // createdAt / NgÃ y
-          Object ngay = fields.get("NgÃ y");
+          // createdAt / Ngày
+          Object ngay = fields.get("Ngày");
           Object createdAtValue = null;
           if (ngay instanceof Number) {
             createdAtValue = ((Number) ngay).longValue();
@@ -725,9 +722,9 @@ public class authenController {
             // ignore parsing issues
           }
 
-          // KhÃ¡ch HÃ ng -> link_record_ids
+          // Khách Hàng -> link_record_ids
           List<String> linkIds = new ArrayList<>();
-          Object kh = fields.get("KhÃ¡ch HÃ ng");
+          Object kh = fields.get("Khách Hàng");
           if (kh instanceof Map<?, ?> khm) {
             Object lrr = khm.get("link_record_ids");
             if (lrr instanceof List<?>) {
@@ -746,7 +743,7 @@ public class authenController {
           rec.put("baseId", baseId);
           rec.put("tableId", tableId);
           rec.put("linkRecordIds", linkIds);
-          rec.put("NgÃ y", ngay);
+          rec.put("Ngày", ngay);
           results.add(rec);
         }
       }
@@ -777,7 +774,7 @@ public class authenController {
       HttpSession session) {
     Map<String, Object> resp = new HashMap<>();
     if (!tokenService.hasToken(session)) {
-      resp.put("error", "Vui lÃ²ng Ä‘Äƒng nháº­p trÆ°á»›c");
+      resp.put("error", "Vui lòng đăng nhập trước");
       return ResponseEntity.status(401).body(resp);
     }
     try {
@@ -800,9 +797,9 @@ public class authenController {
 
       Map<String, Object> body = new HashMap<>();
       Map<String, Object> fields = new HashMap<>();
-      fields.put("Ná»™i dung", content);
-      if (ngay != null) fields.put("NgÃ y", ngay);
-      fields.put("KhÃ¡ch HÃ ng", linkIds);
+      fields.put("Nội dung", content);
+      if (ngay != null) fields.put("Ngày", ngay);
+      fields.put("Khách Hàng", linkIds);
       body.put("fields", fields);
 
       HttpHeaders headers = new HttpHeaders();
@@ -837,7 +834,7 @@ public class authenController {
       HttpSession session) {
     Map<String, Object> resp = new HashMap<>();
     if (!tokenService.hasToken(session)) {
-      resp.put("error", "Vui lÃ²ng Ä‘Äƒng nháº­p trÆ°á»›c");
+      resp.put("error", "Vui lòng đăng nhập trước");
       return ResponseEntity.status(401).body(resp);
     }
     try {
@@ -892,21 +889,21 @@ public class authenController {
       HttpSession session, 
       RedirectAttributes redirectAttributes) {
     if (!tokenService.hasToken(session)) {
-      redirectAttributes.addFlashAttribute("error", "Vui lÃ²ng Ä‘Äƒng nháº­p trÆ°á»›c");
+      redirectAttributes.addFlashAttribute("error", "Vui lòng đăng nhập trước");
       return "redirect:/stats";
     }
 
     try {
-      // XÃ³a cache
+      // Xóa cache
       session.removeAttribute(SESSION_EMPLOYEE_STATS);
       session.removeAttribute(SESSION_EMPLOYEE_STATS_FETCHED_AT);
       session.removeAttribute(SESSION_EMPLOYEE_STATS_LAST);
       session.removeAttribute(SESSION_EMPLOYEE_STATS_LAST_FETCHED_AT);
       
-      redirectAttributes.addFlashAttribute("success", "ÄÃ£ lÃ m má»›i dá»¯ liá»‡u thá»‘ng kÃª thÃ nh cÃ´ng!");
+      redirectAttributes.addFlashAttribute("success", "Đã làm mới dữ liệu thống kê thành công!");
     } catch (Exception e) {
       log.error("Error refreshing stats: {}", e.getMessage(), e);
-      redirectAttributes.addFlashAttribute("error", "Lá»—i khi lÃ m má»›i dá»¯ liá»‡u: " + e.getMessage());
+      redirectAttributes.addFlashAttribute("error", "Lỗi khi làm mới dữ liệu: " + e.getMessage());
     }
 
     return "redirect:/stats?customerMonth=" + customerMonth;
@@ -929,7 +926,7 @@ public class authenController {
         customerMonth = "CurrentMonth";
       }
 
-      // Láº¥y stats tá»« cache náº¿u cÃ³ (cho cáº£ CurrentMonth vÃ  LastMonth)
+      // Lấy stats từ cache nếu có (cho cả CurrentMonth và LastMonth)
       @SuppressWarnings("unchecked")
       List<EmployeeStatsDto> cachedStatsCurrent =
           (List<EmployeeStatsDto>) session.getAttribute(SESSION_EMPLOYEE_STATS);
@@ -943,7 +940,7 @@ public class authenController {
       } else if (customerMonth.equals("LastMonth") && cachedStatsLast != null) {
         statsList = cachedStatsLast;
       } else {
-        // Náº¿u khÃ´ng cÃ³ cache, tÃ­nh láº¡i vÃ  lÆ°u cache nhÆ° getStatsData
+        // Nếu không có cache, tính lại và lưu cache như getStatsData
         @SuppressWarnings("unchecked")
         List<UserConfigDto> cachedUserConfigs =
             (List<UserConfigDto>) session.getAttribute(SESSION_USER_CONFIGS);
@@ -969,15 +966,15 @@ public class authenController {
         return ResponseEntity.badRequest().build();
       }
 
-      // XÃ¡c Ä‘á»‹nh thÃ¡ng hiá»ƒn thá»‹
+      // Xác định tháng hiển thị
       LocalDateTime nowDtLabel = LocalDateTime.now(ZoneId.systemDefault());
       int currentMonthNum = nowDtLabel.getMonthValue();
       int targetMonthNum = "CurrentMonth".equals(customerMonth)
           ? currentMonthNum
           : (currentMonthNum == 1 ? 12 : currentMonthNum - 1);
-      String monthLabel = "ThÃ¡ng " + targetMonthNum;
+      String monthLabel = "Tháng " + targetMonthNum;
 
-      // Táº¡o Excel
+      // Tạo Excel
       Workbook workbook = new XSSFWorkbook();
       Sheet sheet = workbook.createSheet("Stats");
 
@@ -1010,14 +1007,14 @@ public class authenController {
       // Title
       Row titleRow = sheet.createRow(0);
       Cell titleCell = titleRow.createCell(0);
-      titleCell.setCellValue("Thá»‘ng kÃª lá»‹ch háº¹n CSKH " + monthLabel);
+      titleCell.setCellValue("Thống kê lịch hẹn CSKH " + monthLabel);
       titleCell.setCellStyle(titleStyle);
       sheet.addMergedRegion(new org.apache.poi.ss.util.CellRangeAddress(0, 0, 0, 6));
 
       // Header
       Row headerRow = sheet.createRow(2);
       String[] headers = {
-          "STT", "TÃªn NhÃ¢n ViÃªn", "Tá»•ng KhÃ¡ch", "Tá»•ng Lá»‹ch", "HoÃ n ThÃ nh Muá»™n", "HoÃ n ThÃ nh", "QuÃ¡ Háº¡n"
+          "STT", "Tên Nhân Viên", "Tổng Khách", "Tổng Lịch", "Hoàn Thành Muộn", "Hoàn Thành", "Quá Hạn"
       };
       for (int i = 0; i < headers.length; i++) {
         Cell cell = headerRow.createCell(i);
@@ -1087,14 +1084,14 @@ public class authenController {
       List<UserConfigDto> userConfigs, String customerMonthRange) throws Exception {
     List<EmployeeStatsDto> statsList = Collections.synchronizedList(new ArrayList<>());
 
-    // customerMonthRange: "CurrentMonth" hoáº·c "LastMonth" - dÃ¹ng cho cáº£ API láº¥y khÃ¡ch hÃ ng vÃ  lá»‹ch háº¹n
-    // Cáº£ hai API Ä‘á»u filter theo cÃ¹ng thÃ¡ng Ä‘á»ƒ Ä‘áº£m báº£o tÃ­nh nháº¥t quÃ¡n
+    // customerMonthRange: "CurrentMonth" hoặc "LastMonth" - dùng cho cả API lấy khách hàng và lịch hẹn
+    // Cả hai API đều filter theo cùng tháng để đảm bảo tính nhất quán
     String khachHangTimeRange = customerMonthRange != null ? customerMonthRange : "CurrentMonth";
     String lichHenTimeRange = customerMonthRange != null ? customerMonthRange : "CurrentMonth";
 
-    // âœ… Chia danh sÃ¡ch userConfigs thÃ nh 5 pháº§n Ä‘á»ƒ xá»­ lÃ½ song song
+    // ✅ Chia danh sách userConfigs thành 5 phần để xử lý song song
     int totalConfigs = userConfigs.size();
-    int chunkSize = Math.max(1, (totalConfigs + 4) / 5); // Chia thÃ nh 5 pháº§n, lÃ m trÃ²n lÃªn
+    int chunkSize = Math.max(1, (totalConfigs + 4) / 5); // Chia thành 5 phần, làm tròn lên
     
     List<List<UserConfigDto>> chunks = new ArrayList<>();
     for (int i = 0; i < totalConfigs; i += chunkSize) {
@@ -1102,12 +1099,12 @@ public class authenController {
       chunks.add(userConfigs.subList(i, end));
     }
     
-    // Äáº£m báº£o cÃ³ Ä‘Ãºng 5 chunks (náº¿u Ã­t hÆ¡n thÃ¬ thÃªm empty lists)
+    // Đảm bảo có đúng 5 chunks (nếu ít hơn thì thêm empty lists)
     while (chunks.size() < 5) {
       chunks.add(Collections.emptyList());
     }
     
-    // Táº¡o cÃ¡c CompletableFuture Ä‘á»ƒ cháº¡y song song
+    // Tạo các CompletableFuture để chạy song song
     List<CompletableFuture<Void>> futures = new ArrayList<>();
     
     for (List<UserConfigDto> chunk : chunks) {
@@ -1121,48 +1118,48 @@ public class authenController {
       String lichHenTableId = userConfig.getLichHenTableId();
       String larkName = userConfig.getLarkName();
 
-      // Láº¥y thÃªm thÃ´ng tin chi tiáº¿t tá»« POS user
+      // Lấy thêm thông tin chi tiết từ POS user
       String posPhone = "";
       if (userConfig.getPosUser() != null && userConfig.getPosUser().getUser() != null) {
         posPhone = userConfig.getPosUser().getUser().getPhoneNumber() != null
             ? userConfig.getPosUser().getUser().getPhoneNumber() : "";
       }
 
-      log.info("[STATS] NhÃ¢n viÃªn: '{}' | SÄT: {} | Lark node: '{}' | baseId: '{}' | khTableId: '{}' | lhTableId: '{}'",
+      log.info("[STATS] Nhân viên: '{}' | SĐT: {} | Lark node: '{}' | baseId: '{}' | khTableId: '{}' | lhTableId: '{}'",
           employeeName, posPhone, larkName, baseId, khachHangTableId, lichHenTableId);
 
-      // Bá» qua nhÃ¢n viÃªn khÃ´ng cÃ³ base id - khÃ´ng hiá»ƒn thá»‹ trong báº£ng thá»‘ng kÃª
+      // Bỏ qua nhân viên không có base id - không hiển thị trong bảng thống kê
       if (baseId == null || baseId.isBlank()) {
-        log.info("[STATS]   â†’ Bá» qua: baseId rá»—ng");
+        log.info("[STATS]   → Bỏ qua: baseId rỗng");
         continue;
       }
 
-      // Bá» qua nhÃ¢n viÃªn khÃ´ng cÃ³ Ä‘á»§ table id
+      // Bỏ qua nhân viên không có đủ table id
       if (khachHangTableId == null || khachHangTableId.isBlank()
           || lichHenTableId == null || lichHenTableId.isBlank()) {
-        log.info("[STATS]   â†’ Bá» qua: thiáº¿u tableId (kh={}, lh={})",
+        log.info("[STATS]   → Bỏ qua: thiếu tableId (kh={}, lh={})",
             khachHangTableId, lichHenTableId);
         continue;
       }
 
       EmployeeStatsDto stats = new EmployeeStatsDto(employeeName);
       
-      // Kiá»ƒm tra xem cÃ³ pháº£i nhÃ¢n viÃªn Ä‘áº·c biá»‡t khÃ´ng
+      // Kiểm tra xem có phải nhân viên đặc biệt không
       boolean isSpecialEmployee = employeeName != null 
-          && (employeeName.contains("Nguyá»…n Thá»‹ Lan Anh") && employeeName.contains("0333058439"));
+          && (employeeName.contains("Nguyễn Thị Lan Anh") && employeeName.contains("0333058439"));
 
       try {
-        // 1. èŽ·å–å®¢æˆ·åˆ—è¡¨ï¼ˆRecord ID ä¼šè‡ªåŠ¨è¿”å›žï¼‰
-        // Sá»­ dá»¥ng view_id: vew5Ou4Kee cho báº£ng KhÃ¡ch HÃ ng
-        // Sá»­ dá»¥ng customerMonthRange (CurrentMonth hoáº·c LastMonth) cho API láº¥y khÃ¡ch hÃ ng
-        List<String> fieldNamesKhachHang = List.of("NgÃ y táº¡o", "Äiá»‡n thoáº¡i");
+        // 1. 获取客户列表（Record ID 会自动返回）
+        // Sử dụng view_id: vew5Ou4Kee cho bảng Khách Hàng
+        // Sử dụng customerMonthRange (CurrentMonth hoặc LastMonth) cho API lấy khách hàng
+        List<String> fieldNamesKhachHang = List.of("Ngày tạo", "Điện thoại");
         String khachHangViewId = "vew5Ou4Kee";
         List<BitableRecord> khachHangRecords = bitableService.searchRecords(session, baseId,
             khachHangTableId, fieldNamesKhachHang, khachHangViewId, khachHangTimeRange);
 
-        log.info("[STATS]   â†’ KhÃ¡ch HÃ ng: fetched {} records", khachHangRecords.size());
+        log.info("[STATS]   → Khách Hàng: fetched {} records", khachHangRecords.size());
 
-        // æå–å®¢æˆ· Record ID é›†åˆ
+        // 提取客户 Record ID 集合
         java.util.Set<String> khachHangRecordIds = new java.util.HashSet<>();
         for (BitableRecord record : khachHangRecords) {
           if (record.getRecordId() != null && !record.getRecordId().isBlank()) {
@@ -1171,8 +1168,8 @@ public class authenController {
         }
         stats.setTongKhach(khachHangRecordIds.size());
 
-        // 2. èŽ·å–é¢„çº¦åˆ—è¡¨ï¼ˆåŒ…å« KhÃ¡ch HÃ ng çš„ link_record_ids å’Œ Tráº¡ng ThÃ¡iï¼‰
-        List<String> fieldNamesLichHen = List.of("NgÃ y táº¡o", "KhÃ¡ch HÃ ng", "Tráº¡ng ThÃ¡i");
+        // 2. 获取预约列表（包含 Khách Hàng 的 link_record_ids 和 Trạng Thái）
+        List<String> fieldNamesLichHen = List.of("Ngày tạo", "Khách Hàng", "Trạng Thái");
         String lichHenViewId = isSpecialEmployee ? "vewENGQUc0" : "vewRa6d1vZ";
         if (isSpecialEmployee) {
           log.info("[STATS]   Using special view_id vewENGQUc0 for employee: {}", employeeName);
@@ -1181,7 +1178,7 @@ public class authenController {
         List<BitableRecord> lichHenRecords = bitableService.searchRecords(session, baseId,
             lichHenTableId, fieldNamesLichHen, lichHenViewId, lichHenTimeRange);
 
-        log.info("[STATS]   â†’ Lá»‹ch Háº¹n: fetched {} records", lichHenRecords.size());
+        log.info("[STATS]   → Lịch Hẹn: fetched {} records", lichHenRecords.size());
 
         long tongLich = 0;
         long hoanThanhMuon = 0;
@@ -1192,13 +1189,13 @@ public class authenController {
           Map<String, Object> fields = record.getFields();
           if (fields == null) continue;
 
-          // èŽ·å– KhÃ¡ch HÃ ng çš„ link_record_ids
-          Object khachHangField = fields.get("KhÃ¡ch HÃ ng");
+          // 获取 Khách Hàng 的 link_record_ids
+          Object khachHangField = fields.get("Khách Hàng");
           if (khachHangField == null) continue;
 
           java.util.List<String> linkRecordIds = extractLinkRecordIds(khachHangField);
 
-          // æ£€æŸ¥æ˜¯å¦æœ‰ä»»ä½• link_record_id åœ¨å®¢æˆ·åˆ—è¡¨ä¸­
+          // 检查是否有任何 link_record_id 在客户列表中
           boolean hasMatchingCustomer = false;
           for (String linkRecordId : linkRecordIds) {
             if (khachHangRecordIds.contains(linkRecordId)) {
@@ -1210,15 +1207,15 @@ public class authenController {
           if (hasMatchingCustomer) {
             tongLich++;
 
-            // èŽ·å– Tráº¡ng ThÃ¡i
-            Object trangThaiField = fields.get("Tráº¡ng ThÃ¡i");
+            // 获取 Trạng Thái
+            Object trangThaiField = fields.get("Trạng Thái");
             String trangThai = extractText(trangThaiField).toLowerCase();
 
-            if (trangThai.contains("hoÃ n thÃ nh muá»™n") || trangThai.contains("hoÃ n thÃ nh trá»…")) {
+            if (trangThai.contains("hoàn thành muộn") || trangThai.contains("hoàn thành trễ")) {
               hoanThanhMuon++;
-            } else if (trangThai.contains("hoÃ n thÃ nh")) {
+            } else if (trangThai.contains("hoàn thành")) {
               hoanThanh++;
-            } else if (trangThai.contains("quÃ¡ háº¡n") || trangThai.contains("quÃ¡ háº¡n")) {
+            } else if (trangThai.contains("quá hạn")) {
               quaHan++;
             }
           }
@@ -1230,7 +1227,7 @@ public class authenController {
           stats.setQuaHan(quaHan);
 
           if (khachHangRecordIds.size() == 0 && tongLich == 0) {
-            log.info("[STATS]   â†’ Káº¾T QUáº¢ Báº°NG 0: {} khÃ¡ch, {} lá»‹ch", khachHangRecordIds.size(), tongLich);
+            log.info("[STATS]   → KẾT QUẢ BẰNG 0: {} khách, {} lịch", khachHangRecordIds.size(), tongLich);
           }
 
         } catch (Exception e) {
@@ -1244,7 +1241,7 @@ public class authenController {
       futures.add(future);
     }
     
-    // Chá» táº¥t cáº£ cÃ¡c thread hoÃ n thÃ nh
+    // Chờ tất cả các thread hoàn thành
     try {
       CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).get(120, TimeUnit.SECONDS);
     } catch (TimeoutException e) {

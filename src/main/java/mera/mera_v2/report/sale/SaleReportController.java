@@ -11,7 +11,6 @@ import mera.mera_v2.model.BitableTable;
 import mera.mera_v2.model.SaleReportCacheEntry;
 import mera.mera_v2.model.SaleSummaryRow;
 import mera.mera_v2.customer.Service.BitableService;
-import mera.mera_v2.report.sale.SaleReportCacheService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.poi.ss.usermodel.BorderStyle;
@@ -85,10 +84,10 @@ public class SaleReportController {
     }
 
     try {
-      log.info("ðŸ” Loading sale report data for range: {}", range);
+      log.info("🔍 Loading sale report data for range: {}", range);
       tokenService.autoRefreshTokenIfNeeded(session);
 
-      // 1) âœ… session cache
+      // 1) ✅ session cache
       @SuppressWarnings("unchecked")
       List<SaleSummaryRow> cached = (List<SaleSummaryRow>) session.getAttribute(SESSION_SALE_SUMMARY);
       String cachedRange = (String) session.getAttribute(SESSION_SALE_RANGE);
@@ -104,7 +103,7 @@ public class SaleReportController {
         return ResponseEntity.ok(response);
       }
 
-      // 2) âœ… disk cache
+      // 2) ✅ disk cache
       Optional<SaleReportCacheEntry> disk = cacheService.get(range);
       if (disk.isPresent()) {
         SaleReportCacheEntry entry = disk.get();
@@ -126,7 +125,7 @@ public class SaleReportController {
         return ResponseEntity.ok(response);
       }
 
-      // 3) âŒ cache miss -> thá»‘ng kÃª tháº­t
+      // 3) ❌ cache miss -> thống kế thật
       List<BitableTable> saleTables = bitableService.getSaleTables(session);
       List<SaleSummaryRow> rows = new ArrayList<>();
 
@@ -192,18 +191,18 @@ public class SaleReportController {
     try {
       tokenService.autoRefreshTokenIfNeeded(session);
 
-      // Láº¥y data tá»« session cache hoáº·c disk cache
+      // Lấy data từ session cache hoặc disk cache
       @SuppressWarnings("unchecked")
       List<SaleSummaryRow> rows = (List<SaleSummaryRow>) session.getAttribute(SESSION_SALE_SUMMARY);
       String cachedRange = (String) session.getAttribute(SESSION_SALE_RANGE);
 
-      // Náº¿u khÃ´ng cÃ³ trong session hoáº·c range khÃ¡c, láº¥y tá»« disk cache
+      // Nếu không có trong session hoặc range khác, lấy từ disk cache
       if (rows == null || !range.equals(cachedRange)) {
         Optional<SaleReportCacheEntry> disk = cacheService.get(range);
         if (disk.isPresent()) {
           rows = disk.get().getRows();
         } else {
-          // Náº¿u khÃ´ng cÃ³ cache, load data má»›i
+          // Nếu không có cache, load data mới
           List<BitableTable> saleTables = bitableService.getSaleTables(session);
           rows = new ArrayList<>();
           for (BitableTable t : saleTables) {
@@ -216,11 +215,11 @@ public class SaleReportController {
         return ResponseEntity.badRequest().build();
       }
 
-      // Táº¡o Excel file
+      // Tạo Excel file
       Workbook workbook = new XSSFWorkbook();
       Sheet sheet = workbook.createSheet("Sale Report");
 
-      // Táº¡o style cho header
+      // Tạo style cho header
       CellStyle headerStyle = workbook.createCellStyle();
       Font headerFont = workbook.createFont();
       headerFont.setBold(true);
@@ -234,26 +233,26 @@ public class SaleReportController {
       headerStyle.setBorderRight(BorderStyle.THIN);
       headerStyle.setAlignment(HorizontalAlignment.CENTER);
 
-      // Táº¡o style cho sá»‘
+      // Tạo style cho số
       CellStyle numberStyle = workbook.createCellStyle();
       numberStyle.setDataFormat(workbook.getCreationHelper().createDataFormat().getFormat("#,##0"));
 
-      // Táº¡o style cho pháº§n trÄƒm
+      // Tạo style cho phần trăm
       CellStyle percentStyle = workbook.createCellStyle();
       percentStyle.setDataFormat(workbook.getCreationHelper().createDataFormat().getFormat("0.0%"));
 
-      // XÃ¡c Ä‘á»‹nh thÃ¡ng hiá»ƒn thá»‹ theo range
+      // Xác định tháng hiển thị theo range
       LocalDateTime nowDtLabel = LocalDateTime.now(ZoneId.systemDefault());
       int currentMonthNum = nowDtLabel.getMonthValue();
       int targetMonthNum = "CurrentMonth".equals(range)
           ? currentMonthNum
           : (currentMonthNum == 1 ? 12 : currentMonthNum - 1);
-      String monthLabel = "ThÃ¡ng " + targetMonthNum;
+      String monthLabel = "Tháng " + targetMonthNum;
 
-      // Táº¡o title
+      // Tạo title
       Row titleRow = sheet.createRow(0);
       Cell titleCell = titleRow.createCell(0);
-      titleCell.setCellValue("Thá»‘ng kÃª tin nháº¯n phÃ²ng Sale " + monthLabel);
+      titleCell.setCellValue("Thống kê tin nhắn phòng Sale " + monthLabel);
       CellStyle titleStyle = workbook.createCellStyle();
       Font titleFont = workbook.createFont();
       titleFont.setBold(true);
@@ -263,12 +262,12 @@ public class SaleReportController {
       titleCell.setCellStyle(titleStyle);
       sheet.addMergedRegion(new org.apache.poi.ss.util.CellRangeAddress(0, 0, 0, 13));
 
-      // DÃ²ng trá»‘ng ngÄƒn cÃ¡ch
+      // Dòng trống ngăn cách
       Row headerRow = sheet.createRow(2);
       String[] headers = {
-          "#", "TÆ° váº¥n viÃªn", "Nhu cáº§u", "TrÃ¹ng", "RÃ¡c", "KhÃ´ng tÆ°Æ¡ng tÃ¡c",
-          "Chá»‘t nÃ³ng", "Chá»‘t cÅ©", "ÄÆ¡n há»§y", "Tá»•ng mess", "Tá»•ng Ä‘Æ¡n",
-          "ÄÆ¡n/mess nhu cáº§u", "ÄÆ¡n/mess tá»•ng", "Tá»‰ lá»‡ há»§y"
+          "#", "Tư vấn viên", "Nhu cầu", "Trùng", "Rác", "Không tương tác",
+          "Chốt nóng", "Chốt cũ", "Đơn hủy", "Tổng mess", "Tổng đơn",
+          "Đơn/mess nhu cầu", "Đơn/mess tổng", "Tỷ lệ hủy"
       };
       
       for (int i = 0; i < headers.length; i++) {
@@ -277,7 +276,7 @@ public class SaleReportController {
         cell.setCellStyle(headerStyle);
       }
 
-      // ThÃªm data rows
+      // Thêm data rows
       int rowNum = 3;
       for (SaleSummaryRow row : rows) {
         Row dataRow = sheet.createRow(rowNum++);
@@ -286,7 +285,7 @@ public class SaleReportController {
         dataRow.createCell(colNum++).setCellValue(rowNum - 1); // STT
         dataRow.createCell(colNum++).setCellValue(row.getTableName() != null ? row.getTableName() : "");
         
-        // Sá»‘ nguyÃªn
+        // Số nguyên
         Cell nhuCauCell = dataRow.createCell(colNum++);
         nhuCauCell.setCellValue(row.getNhuCau());
         nhuCauCell.setCellStyle(numberStyle);
@@ -323,16 +322,15 @@ public class SaleReportController {
         tongDonCell.setCellValue(row.getTongDon());
         tongDonCell.setCellStyle(numberStyle);
         
-        // Pháº§n trÄƒm: dá»¯ liá»‡u Ä‘ang á»Ÿ dáº¡ng %, cáº§n chia 100 Ä‘á»ƒ Excel format Ä‘Ãºng
-        Cell donPerMessNhuCauCell = dataRow.createCell(colNum++);
-        donPerMessNhuCauCell.setCellValue(row.getDonPerMessNhuCau() / 100.0);
-        donPerMessNhuCauCell.setCellStyle(percentStyle);
+        // Phần trăm: dữ liệu đang ở dạng %, cần chia 100 để Excel format đúng
+        Cell nhuCauRateCell = dataRow.createCell(colNum++);
+        nhuCauRateCell.setCellValue(row.getDonPerMessNhuCau() / 100.0);
+        nhuCauRateCell.setCellStyle(percentStyle);
         
-        Cell donPerMessTongCell = dataRow.createCell(colNum++);
-        donPerMessTongCell.setCellValue(row.getDonPerMessTong() / 100.0);
-        donPerMessTongCell.setCellStyle(percentStyle);
+        Cell tongRateCell = dataRow.createCell(colNum++);
+        tongRateCell.setCellValue(row.getDonPerMessTong() / 100.0);
+        tongRateCell.setCellStyle(percentStyle);
         
-        // tiLeHuyPercent lÃ  pháº§n trÄƒm (vÃ­ dá»¥ 12.5 cho 12.5%), cáº§n chia 100 Ä‘á»ƒ chuyá»ƒn sang tá»· lá»‡
         Cell tiLeHuyCell = dataRow.createCell(colNum++);
         tiLeHuyCell.setCellValue(row.getTiLeHuyPercent() / 100.0);
         tiLeHuyCell.setCellStyle(percentStyle);
@@ -341,11 +339,11 @@ public class SaleReportController {
       // Auto-size columns
       for (int i = 0; i < headers.length; i++) {
         sheet.autoSizeColumn(i);
-        // TÄƒng width má»™t chÃºt Ä‘á»ƒ khÃ´ng bá»‹ cáº¯t
+        // Tăng width một chút để không bị cắt
         sheet.setColumnWidth(i, sheet.getColumnWidth(i) + 1000);
       }
 
-      // Táº¡o tÃªn file vá»›i ngÃ y giá»
+      // Tạo tên file với ngày giờ
       SimpleDateFormat dateFormat = new SimpleDateFormat("yyyyMMdd_HHmmss");
       String fileName = "saleReport_" + monthLabel + "_" + dateFormat.format(new java.util.Date()) + ".xlsx";
 

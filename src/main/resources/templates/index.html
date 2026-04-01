@@ -1,10 +1,285 @@
+<!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" lang="vi">
 <head>
-  <meta charset="UTF-8">
-  <title>Login với Lark</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - MeraGroup</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: #0d0d18;
+            color: #e9e6f7;
+            overflow-x: hidden;
+        }
+        .glass-card {
+            background: rgba(30, 30, 45, 0.6);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            transition: all 0.3s ease;
+        }
+        .glass-card:hover {
+            border-color: rgba(99, 102, 241, 0.4);
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(99, 102, 241, 0.1);
+        }
+        .sidebar-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 16px;
+            border-radius: 12px;
+            color: #aba9b9;
+            transition: all 0.2s;
+        }
+        .sidebar-item:hover {
+            background: rgba(99, 102, 241, 0.1);
+            color: #9396ff;
+        }
+        .sidebar-item.active {
+            background: linear-gradient(135deg, #6366F1 0%, #A855F7 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+        }
+        .gradient-text {
+            background: linear-gradient(135deg, #a3a6ff 0%, #c180ff 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .btn-lark {
+            background: linear-gradient(135deg, #6366F1 0%, #A855F7 100%);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .btn-lark:hover {
+            transform: scale(1.02);
+            box-shadow: 0 0 20px rgba(99, 102, 241, 0.5);
+        }
+    </style>
 </head>
-<body>
-<h2>Đăng nhập Lark</h2>
-<a th:href="${authUrl}">Login với Lark</a>
+<body class="min-h-screen flex">
+
+    <!-- Sidebar -->
+    <aside class="w-72 bg-[#13131F] border-r border-[#242434] p-6 flex flex-col fixed h-full h-screen">
+        <div class="mb-10 flex items-center gap-3">
+            <div class="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center font-bold text-xl">M</div>
+            <span class="text-xl font-extrabold tracking-tight">Mera<span class="gradient-text">Group</span></span>
+        </div>
+
+        <nav class="flex-1 space-y-2 overflow-y-auto">
+            <div class="text-[10px] uppercase font-bold text-slate-500 mb-2 px-1">Menu Chính</div>
+            
+            <a href="/" class="sidebar-item active">
+                <span class="mr-3">🏠</span> Dashboard
+            </a>
+            
+            <a href="/saleReport" class="sidebar-item">
+                <span class="mr-3">📊</span> Sale Report 1
+            </a>
+            
+            <a href="/stats" class="sidebar-item">
+                <span class="mr-3">📈</span> Stats Lịch Hẹn
+            </a>
+
+            <div class="pt-4 text-[10px] uppercase font-bold text-slate-500 mb-2 px-1">Tra cứu & POS</div>
+            
+            <a href="/searchCustomer" class="sidebar-item">
+                <span class="mr-3">🔎</span> Tìm Khách Hàng
+            </a>
+            
+            <a href="/searchInfo" class="sidebar-item">
+                <span class="mr-3">🕵️</span> Tra Cứu Của SALE
+            </a>
+
+            <a href="/pancake-orders" class="sidebar-item">
+                <span class="mr-3">📦</span> Danh Sách Đơn POS
+            </a>
+
+            <div class="pt-4 text-[10px] uppercase font-bold text-slate-500 mb-2 px-1">Hệ Thống</div>
+            
+            <a href="/config" class="sidebar-item">
+                <span class="mr-3">⚙️</span> Cấu Hình Webhook
+            </a>
+            
+            <a href="/lark/token" class="sidebar-item">
+                <span class="mr-3">🔑</span> Token & Base
+            </a>
+
+            <a href="/logs" class="sidebar-item">
+                <span class="mr-3">📝</span> Logs Realtime
+            </a>
+
+            <a href="/test-api.html" class="sidebar-item">
+                <span class="mr-3">🧪</span> Công cụ Sync
+            </a>
+        </nav>
+
+        <div class="mt-auto pt-6 border-t border-[#242434]" th:if="${isAuthenticated}">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-slate-700 rounded-full flex items-center justify-center text-sm font-bold">AD</div>
+                <div class="flex-1 min-w-0">
+                    <p class="text-sm font-semibold truncate" th:text="${userName ?: 'Admin User'}"></p>
+                    <p class="text-[10px] text-slate-500" th:text="'Hết hạn: ' + ${#strings.substring(tokenExpiresAt, 11, 16)}"></p>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 ml-72 p-10">
+        
+        <!-- Header / Top Bar -->
+        <header class="flex justify-between items-center mb-12">
+            <div>
+                <h1 class="text-3xl font-extrabold" th:text="${isAuthenticated ? 'Chào mừng quay trở lại!' : 'Hệ Thống MeraGroup'}"></h1>
+                <p class="text-slate-500 mt-1" th:text="${isAuthenticated ? 'Bức tranh tổng thể về hiệu suất bán hàng của bạn.' : 'Vui lòng đăng nhập để truy cập các tính năng.'}"></p>
+            </div>
+            
+            <div class="flex items-center gap-4" th:if="${!isAuthenticated}">
+                <a th:href="${authUrl}" class="btn-lark px-6 py-3 rounded-full font-bold text-sm flex items-center gap-2">
+                    <span>🚀 Đăng nhập với Lark</span>
+                </a>
+            </div>
+            
+            <div class="flex items-center gap-6" th:if="${isAuthenticated}">
+                <div class="relative">
+                    <span class="absolute -top-1 -right-1 w-3 h-3 bg-red-500 border-2 border-[#0d0d18] rounded-full"></span>
+                    <span class="text-xl">🔔</span>
+                </div>
+                <a href="/config" class="px-5 py-2 glass-card text-sm font-bold border-none hover:bg-white hover:text-black">
+                    Tải Báo Cáo
+                </a>
+            </div>
+        </header>
+
+        <!-- Unauthenticated View -->
+        <div th:if="${!isAuthenticated}" class="flex flex-col items-center justify-center py-20 text-center">
+            <div class="w-32 h-32 bg-indigo-500/10 rounded-full flex items-center justify-center mb-8 animate-pulse">
+                <span class="text-6xl">🔒</span>
+            </div>
+            <h2 class="text-2xl font-bold mb-4">Bạn chưa đăng nhập</h2>
+            <p class="text-slate-400 max-w-md mb-8">
+                Hệ thống báo cáo và quản lý tệp khách hàng yêu cầu quyền truy cập từ tài khoản Lark nội bộ.
+            </p>
+            <a th:href="${authUrl}" class="btn-lark px-10 py-4 rounded-full font-bold text-lg shadow-xl">
+                Authorize with Lark Suite
+            </a>
+        </div>
+
+        <!-- Authenticated Dashboard -->
+        <div th:if="${isAuthenticated}">
+            
+            <!-- Hero / Overview Stats -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
+                <div class="glass-card p-6">
+                    <p class="text-slate-500 text-xs font-bold uppercase tracking-wider mb-2">Trạng thái Token</p>
+                    <div class="flex items-end justify-between">
+                        <span class="text-2xl font-bold text-green-400">Hoạt động</span>
+                        <span class="text-xs text-slate-500" th:text="${tokenExpiresAt}">-</span>
+                    </div>
+                </div>
+                <div class="glass-card p-6 border-l-4 border-indigo-500">
+                    <p class="text-slate-500 text-xs font-bold uppercase tracking-wider mb-2">Modules Sẵn Sàng</p>
+                    <div class="flex items-end justify-between">
+                        <span class="text-2xl font-bold">12</span>
+                        <span class="text-xs text-green-500">↑ 100%</span>
+                    </div>
+                </div>
+                <!-- Mock stats for visual effect -->
+                <div class="glass-card p-6">
+                    <p class="text-slate-500 text-xs font-bold uppercase tracking-wider mb-2">Đơn hàng mới (Today)</p>
+                    <div class="flex items-end justify-between">
+                        <span class="text-2xl font-bold">156</span>
+                        <span class="text-xs text-green-500">↑ 12%</span>
+                    </div>
+                </div>
+                <div class="glass-card p-6">
+                    <p class="text-slate-500 text-xs font-bold uppercase tracking-wider mb-2">Tỉ lệ chốt</p>
+                    <div class="flex items-end justify-between">
+                        <span class="text-2xl font-bold">24.5%</span>
+                        <span class="text-xs text-red-500">↓ 2%</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dashboard Grid -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                
+                <!-- Sale Insights (Quick Access) -->
+                <div class="lg:col-span-2 space-y-8">
+                    <div class="glass-card p-8">
+                        <div class="flex justify-between items-center mb-8">
+                            <h3 class="text-xl font-bold">💡 Hoạt động hệ thống</h3>
+                            <a href="/logs" class="text-sm text-indigo-400 font-bold hover:underline">Xem tất cả logs</a>
+                        </div>
+                        
+                        <div class="space-y-6">
+                            <div class="flex items-center gap-4">
+                                <div class="w-10 h-10 rounded-lg bg-green-500/20 flex items-center justify-center text-green-500">✓</div>
+                                <div>
+                                    <p class="text-sm font-semibold">Đồng bộ Pancake POS thành công</p>
+                                    <p class="text-[10px] text-slate-500">Vừa xong • 12 đơn hàng mới đã được cập nhật</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-4">
+                                <div class="w-10 h-10 rounded-lg bg-indigo-500/20 flex items-center justify-center text-indigo-500">⚙</div>
+                                <div>
+                                    <p class="text-sm font-semibold">Tự động refresh token Lark</p>
+                                    <p class="text-[10px] text-slate-500">10 phút trước • Token đã được gia hạn thêm 2 tiếng</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quick Navigation Cards -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <a href="/saleReport" class="glass-card p-8 flex flex-col gap-4 group">
+                            <div class="w-12 h-12 rounded-2xl bg-indigo-600 flex items-center justify-center text-2xl group-hover:scale-110 transition">📊</div>
+                            <div>
+                                <h4 class="text-lg font-bold">Báo Cáo Sale 1</h4>
+                                <p class="text-xs text-slate-500 mt-1">Tổng hợp mess, đơn chốt và tỉ lệ hủy theo từng tư vấn viên.</p>
+                            </div>
+                        </a>
+                        <a href="/stats" class="glass-card p-8 flex flex-col gap-4 group">
+                            <div class="w-12 h-12 rounded-2xl bg-purple-600 flex items-center justify-center text-2xl group-hover:scale-110 transition">📈</div>
+                            <div>
+                                <h4 class="text-lg font-bold">Thống Kê Lịch Hẹn</h4>
+                                <p class="text-xs text-slate-500 mt-1">Theo dõi KPI lịch hẹn của CSKH, trạng thái muộn/quá hạn.</p>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Right Sidebar Inside Content -->
+                <div class="space-y-6">
+                    <div class="glass-card p-6 bg-gradient-to-br from-indigo-900/20 to-transparent">
+                        <h3 class="font-bold mb-4 flex items-center gap-2">
+                            <span>🚀</span> Lối tắt nhanh
+                        </h3>
+                        <div class="space-y-3">
+                            <a href="/searchCustomer" class="block p-3 rounded-xl bg-white/5 hover:bg-white/10 transition text-sm">🔍 Tìm kiếm số điện thoại</a>
+                            <a href="/pancake-orders" class="block p-3 rounded-xl bg-white/5 hover:bg-white/10 transition text-sm">🛒 Kiểm tra đơn Pancake</a>
+                            <a href="/config" class="block p-3 rounded-xl bg-white/5 hover:bg-white/10 transition text-sm">⚡ Cài đặt Webhook Status</a>
+                            <a href="/test-api.html" class="block p-3 rounded-xl bg-white/5 hover:bg-white/10 transition text-sm text-indigo-400">🧪 Force Sync Tool</a>
+                        </div>
+                    </div>
+
+                    <div class="glass-card p-6">
+                        <h3 class="font-bold mb-4">Hỗ trợ nội bộ</h3>
+                        <p class="text-xs text-slate-500 mb-4">Nếu gặp lỗi về token hoặc kết nối Bitable, vui lòng liên hệ Admin qua kênh Lark.</p>
+                        <button class="w-full py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-xs font-bold transition">Nhắn cho Admin</button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </main>
+
+    <footer class="fixed bottom-0 left-72 right-0 p-4 bg-[#0d0d18]/80 backdrop-blur-sm text-center text-[10px] text-slate-600 border-t border-white/5">
+        MeraGroup Dashboard v2.0 • Data integration with Lark & Pancake • &copy; 2025 All rights reserved.
+    </footer>
+
 </body>
 </html>

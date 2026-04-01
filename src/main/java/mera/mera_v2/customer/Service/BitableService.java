@@ -36,10 +36,10 @@ public class BitableService {
   private static final String SALE_BITABLE_APP_TOKEN = "VsLjbnWlfapGXhszsvqlRm6QgIf";
   private static final String SALE_VIEW_ID = "vewE3Ope6x";
 
-  // Bitable app/token Ä‘Ã­ch cho báº£ng "Tá»« chá»‘i chÄƒm"
+  // Bitable app/token đích cho bảng "Từ chối chăm"
   private static final String TU_CHOI_CHAM_APP_TOKEN = "Fah8bsKwQan10vsg9Q1l5LOhgsg";
   private static final String TU_CHOI_CHAM_TABLE_ID = "tblsiLRl6QUcbG8V";
-  // Bitable app/token + table cho tráº¡ng thÃ¡i "Äang chÄƒm"
+  // Bitable app/token + table cho trạng thái "Đang chăm"
   private static final String DANG_CHAM_APP_TOKEN = "A9EeblIYZafN5Ys0aiNl9Phxggh";
   private static final String DANG_CHAM_TABLE_ID = "tblfjNnW3AoRzKUg";
 
@@ -55,7 +55,7 @@ public class BitableService {
     this.tokenService = tokenService;
   }
 
-  /** Láº¥y tables SALE, chá»‰ giá»¯ table name cÃ³ "_" */
+  /** Lấy tables SALE, chỉ giữ table name có "_" */
   public List<BitableTable> getSaleTables(HttpSession session) throws Exception {
     List<BitableTable> all = listTables(session, SALE_BITABLE_APP_TOKEN, DEFAULT_TABLE_PAGE_SIZE);
     List<BitableTable> filtered = new ArrayList<>();
@@ -66,7 +66,7 @@ public class BitableService {
     return filtered;
   }
 
-  /** Láº¥y táº¥t cáº£ tables tá»« má»™t Base ID */
+  /** Lấy tất cả tables từ một Base ID */
   public List<BitableTable> getTablesByBaseId(HttpSession session, String baseId) throws Exception {
     if (baseId == null || baseId.isBlank()) {
       return new ArrayList<>();
@@ -74,7 +74,7 @@ public class BitableService {
     return listTables(session, baseId, DEFAULT_TABLE_PAGE_SIZE);
   }
 
-  /** TÃ¬m kiáº¿m records tá»« má»™t table vá»›i filter tÃ¹y chá»‰nh */
+  /** Tìm kiếm records từ một table với filter tùy chỉnh */
   public List<BitableRecord> searchRecords(HttpSession session, String baseId, String tableId,
       List<String> fieldNames, String viewId, String timeRangeValue) throws Exception {
     if (baseId == null || baseId.isBlank() || tableId == null || tableId.isBlank()) {
@@ -101,7 +101,7 @@ public class BitableService {
       bodyReq.viewId = viewId;
 
       Condition c = new Condition();
-      c.fieldName = "NgÃ y táº¡o";
+      c.fieldName = "Ngày tạo";
       c.operator = "is";
       c.value = List.of(timeRangeValue);
 
@@ -146,7 +146,7 @@ public class BitableService {
     return allRecords;
   }
 
-  /** TÃ¬m kiáº¿m khÃ¡ch hÃ ng theo sá»‘ Ä‘iá»‡n thoáº¡i */
+  /** Tìm kiếm khách hàng theo số điện thoại */
   public List<BitableRecord> searchCustomerByPhone(HttpSession session, String baseId, String tableId,
       String phoneNumber, String viewId) throws Exception {
     if (baseId == null || baseId.isBlank() || tableId == null || tableId.isBlank() 
@@ -171,21 +171,21 @@ public class BitableService {
       RecordSearchRequest bodyReq = new RecordSearchRequest();
       bodyReq.automaticFields = false;
       bodyReq.fieldNames = List.of(
-          "Äiá»‡n thoáº¡i",
-          "TÃªn khÃ¡ch hÃ ng",
-          "MÃ£ KH",
-          "Tuá»•i",
-          "Äá»‹a chá»‰",
+          "Điện thoại",
+          "Tên khách hàng",
+          "Mã KH",
+          "Tuổi",
+          "Địa chỉ",
           "Link",
-          "TÃªn Liá»‡u TrÃ¬nh",
-          "Bá»‡nh ná»n"
+          "Tên Liệu Trình",
+          "Bệnh nền"
       );
       if (viewId != null && !viewId.isBlank()) {
         bodyReq.viewId = viewId;
       }
 
       Condition c = new Condition();
-      c.fieldName = "Äiá»‡n thoáº¡i";
+      c.fieldName = "Điện thoại";
       c.operator = "is";
       c.value = List.of(phoneNumber.trim());
 
@@ -231,24 +231,24 @@ public class BitableService {
   }
 
   /**
-   * TÃ¬m táº¥t cáº£ khÃ¡ch hÃ ng cÃ³ "TÃªn Liá»‡u TrÃ¬nh" chá»©a "Tá»« chá»‘i chÄƒm" trong 1 table CSKH.
-   * DÃ¹ng view khÃ¡ch hÃ ng chung, láº¥y Ä‘áº§y Ä‘á»§ cÃ¡c field cáº§n Ä‘á»ƒ insert sang báº£ng "Tá»« chá»‘i chÄƒm".
+   * Tìm tất cả khách hàng có "Tên Liệu Trình" chứa "Từ chối chăm" trong 1 table CSKH.
+   * Dùng view khách hàng chung, lấy đầy đủ các field cần để insert sang bảng "Từ chối chăm".
    */
   public List<BitableRecord> searchRejectedCareCustomers(HttpSession session, String baseId, String tableId,
       String viewId) throws Exception {
-    return searchCareCustomersByKeyword(session, baseId, tableId, viewId, "Tá»« chá»‘i chÄƒm");
+    return searchCareCustomersByKeyword(session, baseId, tableId, viewId, "Từ chối chăm");
   }
 
   /**
-   * TÃ¬m khÃ¡ch hÃ ng cÃ³ "TÃªn Liá»‡u TrÃ¬nh" chá»©a "Äang chÄƒm".
+   * Tìm khách hàng có "Tên Liệu Trình" chứa "Đang chăm".
    */
   public List<BitableRecord> searchDangChamCustomers(HttpSession session, String baseId, String tableId,
       String viewId) throws Exception {
-    return searchCareCustomersByKeyword(session, baseId, tableId, viewId, "Äang chÄƒm");
+    return searchCareCustomersByKeyword(session, baseId, tableId, viewId, "Đang chăm");
   }
 
   /**
-   * TÃ¬m khÃ¡ch hÃ ng theo tá»« khÃ³a trong "TÃªn Liá»‡u TrÃ¬nh".
+   * Tìm khách hàng theo từ khóa trong "Tên Liệu Trình".
    */
   private List<BitableRecord> searchCareCustomersByKeyword(HttpSession session, String baseId, String tableId,
       String viewId, String keyword) throws Exception {
@@ -273,24 +273,24 @@ public class BitableService {
       RecordSearchRequest bodyReq = new RecordSearchRequest();
       bodyReq.automaticFields = false;
       bodyReq.fieldNames = List.of(
-          "MÃ£ KH",
-          "TÃªn khÃ¡ch hÃ ng",
-          "Äá»‹a chá»‰",
-          "Tá»‰nh/ThÃ nh phá»‘",
-          "Äiá»‡n thoáº¡i",
-          "TÃªn Liá»‡u TrÃ¬nh",
+          "Mã KH",
+          "Tên khách hàng",
+          "Địa chỉ",
+          "Tỉnh/Thành phố",
+          "Điện thoại",
+          "Tên Liệu Trình",
           "Link",
-          "Tuá»•i",
-          "Bá»‡nh ná»n",
-          "NgÆ°á»i CSKH",
-          "NgÃ y táº¡o"
+          "Tuổi",
+          "Bệnh nền",
+          "Người CSKH",
+          "Ngày tạo"
       );
       if (viewId != null && !viewId.isBlank()) {
         bodyReq.viewId = viewId;
       }
 
       Condition c = new Condition();
-      c.fieldName = "TÃªn Liá»‡u TrÃ¬nh";
+      c.fieldName = "Tên Liệu Trình";
       c.operator = "contains";
       c.value = List.of(keyword);
 
@@ -336,15 +336,15 @@ public class BitableService {
   }
 
   /**
-   * Kiá»ƒm tra trong báº£ng "Tá»« chá»‘i chÄƒm" Ä‘Ã­ch Ä‘Ã£ tá»“n táº¡i báº£n ghi vá»›i sá»‘ Ä‘iá»‡n thoáº¡i nÃ y chÆ°a.
-   * Náº¿u Ä‘Ã£ tá»“n táº¡i thÃ¬ tráº£ vá» true, Ä‘á»ƒ bá» qua khÃ´ng insert trÃ¹ng.
+   * Kiểm tra trong bảng "Từ chối chăm" đích đã tồn tại bản ghi với số điện thoại này chưa.
+   * Nếu đã tồn tại thì trả về true, để bỏ qua không insert trùng.
    */
   public boolean existsRejectedCareByPhone(HttpSession session, String phoneNumber) throws Exception {
     return existsCareByPhone(session, phoneNumber, TU_CHOI_CHAM_TABLE_ID, false);
   }
 
   /**
-   * Kiá»ƒm tra trong báº£ng "Äang chÄƒm" Ä‘Ã­ch Ä‘Ã£ tá»“n táº¡i báº£n ghi vá»›i sá»‘ Ä‘iá»‡n thoáº¡i nÃ y chÆ°a.
+   * Kiểm tra trong bảng "Đang chăm" đích đã tồn tại bản ghi với số điện thoại này chưa.
    */
   public boolean existsDangChamByPhone(HttpSession session, String phoneNumber) throws Exception {
     return existsCareByPhone(session, phoneNumber, DANG_CHAM_TABLE_ID, false);
@@ -355,7 +355,7 @@ public class BitableService {
       return false;
     }
 
-    String accessToken = tokenService.getAccessToken(session, isRetry); // Náº¿u lÃ  retry thÃ¬ force refresh
+    String accessToken = tokenService.getAccessToken(session, isRetry); // Nếu là retry thì force refresh
 
     HttpHeaders headers = new HttpHeaders();
     headers.setBearerAuth(accessToken);
@@ -366,10 +366,10 @@ public class BitableService {
 
     RecordSearchRequest bodyReq = new RecordSearchRequest();
     bodyReq.automaticFields = false;
-    bodyReq.fieldNames = List.of("Äiá»‡n thoáº¡i");
+    bodyReq.fieldNames = List.of("Điện thoại");
 
     Condition c = new Condition();
-    c.fieldName = "Äiá»‡n thoáº¡i";
+    c.fieldName = "Điện thoại";
     c.operator = "is";
     c.value = List.of(phoneNumber.trim());
 
@@ -419,7 +419,7 @@ public class BitableService {
     return body.data != null && body.data.items != null && !body.data.items.isEmpty();
   }
 
-  /** TÃ¬m kiáº¿m trao Ä‘á»•i hoáº·c lá»‹ch háº¹n theo record_id cá»§a khÃ¡ch hÃ ng */
+  /** Tìm kiếm trao đổi hoặc lịch hẹn theo record_id của khách hàng */
   public List<BitableRecord> searchRecordsByCustomerId(HttpSession session, String baseId, String tableId,
       String customerRecordId, List<String> fieldNames, String viewId) throws Exception {
     if (baseId == null || baseId.isBlank() || tableId == null || tableId.isBlank() 
@@ -449,7 +449,7 @@ public class BitableService {
       }
 
       Condition c = new Condition();
-      c.fieldName = "KhÃ¡ch HÃ ng";
+      c.fieldName = "Khách Hàng";
       c.operator = "is";
       c.value = List.of(customerRecordId);
 
@@ -494,7 +494,7 @@ public class BitableService {
     return allRecords;
   }
 
-  /** âœ… Build summary theo 1 table (Ä‘áº¿m status trong lÃºc search + paginate) */
+  /** ✅ Build summary theo 1 table (đếm status trong lúc search + paginate) */
   public SaleSummaryRow buildSaleSummaryForTable(HttpSession session, BitableTable table, String timeRangeValue)
       throws Exception {
 
@@ -543,19 +543,19 @@ public class BitableService {
       if (items != null) {
         for (BitableRecord r : items) {
           Map<String, Object> fields = r.getFields();
-          Object rawStatus = (fields != null) ? fields.get("Tráº¡ng thÃ¡i mess") : null;
+          Object rawStatus = (fields != null) ? fields.get("Trạng thái mess") : null;
           String status = normalizeStatus(extractText(rawStatus));
 
           if (status.isEmpty()) continue;
 
           // buckets
-          if (status.contains("nhu cáº§u")) nhuCau++;
-          else if (status.contains("trÃ¹ng")) trung++;
-          else if (status.contains("rÃ¡c")) rac++;
-          else if (status.contains("khÃ´ng tÆ°Æ¡ng tÃ¡c")) khongTuongTac++;
-          else if (status.contains("chá»‘t nÃ³ng")) chotNong++;
-          else if (status.contains("chá»‘t cÅ©")) chotCu++;
-          else if (status.contains("Ä‘Æ¡n há»§y") || status.contains("Ä‘Æ¡n huá»·")) donHuy++;
+          if (status.contains("nhu cầu")) nhuCau++;
+          else if (status.contains("trùng")) trung++;
+          else if (status.contains("rác")) rac++;
+          else if (status.contains("không tương tác")) khongTuongTac++;
+          else if (status.contains("chốt nóng")) chotNong++;
+          else if (status.contains("chốt cũ")) chotCu++;
+          else if (status.contains("đơn hủy") || status.contains("đơn huỷ")) donHuy++;
         }
       }
 
@@ -582,23 +582,23 @@ public class BitableService {
 
     row.setDonHuy(donHuy);
 
-    // Theo yÃªu cáº§u: Tá»•ng mess = Nhu cáº§u + TrÃ¹ng + RÃ¡c + KhÃ´ng tÆ°Æ¡ng tÃ¡c + Chá»‘t nÃ³ng + Chá»‘t cÅ© + ÄÆ¡n há»§y
+    // Theo yêu cầu: Tổng mess = Nhu cầu + Trùng + Rác + Không tương tác + Chốt nóng + Chốt cũ + Đơn hủy
     tongMess = nhuCau + trung + rac + khongTuongTac + chotNong + chotCu + donHuy;
-    // Theo yÃªu cáº§u: Tá»•ng Ä‘Æ¡n = Chá»‘t nÃ³ng + Chá»‘t cÅ©
+    // Theo yêu cầu: Tổng đơn = Chốt nóng + Chốt cũ
     tongDon = chotNong + chotCu;
 
     row.setTongMess(tongMess);
     row.setTongDon(tongDon);
 
-    // ÄÆ¡n/mess nhu cáº§u = Tá»•ng Ä‘Æ¡n / (Nhu cáº§u + Chá»‘t nÃ³ng + Chá»‘t cÅ© + Há»§y)
-    // -> backend chá»‰ giá»¯ Tá»¶ Lá»† (0.x), pháº§n trÄƒm vÃ  kÃ½ hiá»‡u % xá»­ lÃ½ á»Ÿ frontend
+    // Đơn/mess nhu cầu = Tổng đơn / (Nhu cầu + Chốt nóng + Chốt cũ + Hủy)
+    // -> backend chỉ giữ Tỷ Lệ (0.x), phần trăm và ký hiệu % xử lý ở frontend
     long nhuCauDenominator = nhuCau + chotNong + chotCu + donHuy;
     double donPerMessNhuCau = (nhuCauDenominator == 0)
         ? 0.0
         : ((long)(((double) tongDon / (double) nhuCauDenominator)*100 * 10 + 0.5)) / 10.0;
     row.setDonPerMessNhuCau(donPerMessNhuCau);
 
-    // ÄÆ¡n/mess tá»•ng = Tá»•ng Ä‘Æ¡n / Tá»•ng mess (cÅ©ng giá»¯ dáº¡ng tá»· lá»‡ 0.x)
+    // Đơn/mess tổng = Tổng đơn / Tổng mess (cũng giữ dạng tỷ lệ 0.x)
     double donPerMessTong = (tongMess == 0)
         ? 0.0
         : ((long)(((double) tongDon / (double) tongMess)*100 * 10 + 0.5)) / 10.0;
@@ -666,8 +666,8 @@ public class BitableService {
   // ================== create record ==================
 
   /**
-   * Táº¡o báº£n ghi má»›i trong báº£ng "Tá»« chá»‘i chÄƒm" Ä‘Ã­ch, dÃ¹ng access token cá»§a user hiá»‡n táº¡i.
-   * fields pháº£i theo Ä‘Ãºng structure cá»§a Bitable (Map lá»“ng nhau, list, v.v.).
+   * Tạo bản ghi mới trong bảng "Từ chối chăm" đích, dùng access token của user hiện tại.
+   * fields phải theo đúng structure của Bitable (Map lồng nhau, list, v.v.).
    */
   public void createRejectedCareRecord(HttpSession session, Map<String, Object> fields) throws Exception {
     if (fields == null || fields.isEmpty()) {
@@ -678,7 +678,7 @@ public class BitableService {
   }
 
   /**
-   * Táº¡o báº£n ghi má»›i trong báº£ng "Äang chÄƒm".
+   * Tạo bản ghi mới trong bảng "Đang chăm".
    */
   public void createDangChamRecord(HttpSession session, Map<String, Object> fields) throws Exception {
     if (fields == null || fields.isEmpty()) {
@@ -689,7 +689,7 @@ public class BitableService {
   }
 
   private void createCareRecordWithRetry(HttpSession session, Map<String, Object> fields, String targetTableId, boolean isRetry) throws Exception {
-    String accessToken = tokenService.getAccessToken(session, isRetry); // Náº¿u lÃ  retry thÃ¬ force refresh
+    String accessToken = tokenService.getAccessToken(session, isRetry); // Nếu là retry thì force refresh
 
     HttpHeaders headers = new HttpHeaders();
     headers.setBearerAuth(accessToken);
@@ -701,7 +701,7 @@ public class BitableService {
 
     String url = buildCreateRecordUrl(resolveAppTokenForTarget(targetTableId), targetTableId);
 
-    // In ra curl tÆ°Æ¡ng Ä‘Æ°Æ¡ng Ä‘á»ƒ debug
+    // In ra curl tương đương để debug
     try {
       String jsonBody = objectMapper.writeValueAsString(body);
       String escapedJson = jsonBody.replace("'", "\\'");
@@ -810,11 +810,11 @@ public class BitableService {
     static RecordSearchRequest forSale(String viewId, String timeRangeValue) {
       RecordSearchRequest req = new RecordSearchRequest();
       req.automaticFields = false;
-      req.fieldNames = List.of("NgÃ y táº¡o", "Äiá»‡n Thoáº¡i", "Tráº¡ng thÃ¡i mess");
+      req.fieldNames = List.of("Ngày tạo", "Điện Thoại", "Trạng thái mess");
       req.viewId = viewId;
 
       Condition c = new Condition();
-      c.fieldName = "NgÃ y táº¡o";
+      c.fieldName = "Ngày tạo";
       c.operator = "is";
       c.value = List.of(timeRangeValue);
 

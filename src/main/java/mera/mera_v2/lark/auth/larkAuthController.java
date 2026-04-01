@@ -64,7 +64,7 @@ public class larkAuthController {
         + "&state=" + URLEncoder.encode("xyz", StandardCharsets.UTF_8);
 
     model.addAttribute("authUrl", authUrl);
-    return "index";
+    return "lark/login";
   }
 
   // Callback sau khi user áº¥n Authorize
