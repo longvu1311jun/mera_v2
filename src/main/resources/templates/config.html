@@ -3,319 +3,380 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Webhook Config</title>
+    <title>Cấu hình Webhook | Mera Group</title>
+    <!-- Modern Typography -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --primary: #6366f1;
+            --primary-light: #818cf8;
+            --secondary: #a855f7;
+            --accent: #f43f5e;
+            --bg: #0f172a;
+            --card-bg: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --success: #22c55e;
+            --danger: #ef4444;
+            --glass: rgba(30, 41, 59, 0.7);
+        }
+
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
-        
+
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg);
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.15) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(168, 85, 247, 0.15) 0px, transparent 50%);
+            color: var(--text-main);
             min-height: 100vh;
-            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
         }
-        
+
         .container {
-            max-width: 600px;
-            margin: 40px auto;
-            background: white;
-            border-radius: 16px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 800px;
+            margin: 60px auto;
+            width: 90%;
+            animation: fadeIn 0.8s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 3rem;
+            font-weight: 700;
+            background: linear-gradient(to right, #818cf8, #c084fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 12px;
+            letter-spacing: -1px;
+        }
+
+        .header p {
+            color: var(--text-muted);
+            font-size: 1.1rem;
+        }
+
+        .config-grid {
+            display: grid;
+            gap: 24px;
+        }
+
+        .config-card {
+            background: var(--glass);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            padding: 32px;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
             overflow: hidden;
         }
-        
-        .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 30px;
-            text-align: center;
+
+        .config-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+            opacity: 0;
+            transition: opacity 0.3s;
         }
-        
-        .header h1 {
-            font-size: 28px;
-            margin-bottom: 10px;
+
+        .config-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(99, 102, 241, 0.3);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
         }
-        
-        .header p {
-            opacity: 0.9;
-            font-size: 14px;
+
+        .config-card:hover::before {
+            opacity: 1;
         }
-        
-        .content {
-            padding: 30px;
-        }
-        
-        .config-item {
-            background: #f8f9fa;
-            border-radius: 12px;
-            padding: 24px;
-            margin-bottom: 20px;
-            border: 2px solid #e9ecef;
-            transition: all 0.3s ease;
-        }
-        
-        .config-item:hover {
-            border-color: #667eea;
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.1);
-        }
-        
-        .config-header {
+
+        .card-header {
             display: flex;
             justify-content: space-between;
-            align-items: center;
-            margin-bottom: 12px;
+            align-items: flex-start;
+            margin-bottom: 20px;
         }
-        
-        .config-title {
-            font-size: 18px;
+
+        .card-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.5rem;
             font-weight: 600;
-            color: #2d3748;
-        }
-        
-        .status-badge {
-            padding: 6px 14px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
-            text-transform: uppercase;
-        }
-        
-        .status-badge.enabled {
-            background: #d4edda;
-            color: #155724;
-        }
-        
-        .status-badge.disabled {
-            background: #f8d7da;
-            color: #721c24;
-        }
-        
-        .config-description {
-            color: #718096;
-            font-size: 14px;
-            margin-bottom: 16px;
-            line-height: 1.6;
-        }
-        
-        .toggle-container {
             display: flex;
             align-items: center;
             gap: 12px;
         }
-        
-        .toggle-switch {
+
+        .status-badge {
+            padding: 6px 14px;
+            border-radius: 99px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transition: all 0.3s;
+        }
+
+        .status-badge.enabled {
+            background: rgba(34, 197, 94, 0.1);
+            color: var(--success);
+            border: 1px solid rgba(34, 197, 94, 0.2);
+        }
+
+        .status-badge.disabled {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--danger);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+        }
+
+        .card-desc {
+            color: var(--text-muted);
+            line-height: 1.6;
+            font-size: 1rem;
+            margin-bottom: 28px;
+        }
+
+        .action-area {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        /* Toggle Switch */
+        .switch {
             position: relative;
-            width: 60px;
-            height: 30px;
-            background-color: #cbd5e0;
-            border-radius: 30px;
-            cursor: pointer;
-            transition: background-color 0.3s;
+            display: inline-block;
+            width: 64px;
+            height: 32px;
         }
-        
-        .toggle-switch.active {
-            background-color: #48bb78;
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
         }
-        
-        .toggle-slider {
+
+        .slider {
             position: absolute;
-            top: 3px;
-            left: 3px;
-            width: 24px;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #334155;
+            transition: .4s;
+            border-radius: 34px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
             height: 24px;
+            width: 24px;
+            left: 4px;
+            bottom: 4px;
             background-color: white;
+            transition: .4s;
             border-radius: 50%;
-            transition: transform 0.3s;
             box-shadow: 0 2px 4px rgba(0,0,0,0.2);
         }
-        
-        .toggle-switch.active .toggle-slider {
-            transform: translateX(30px);
+
+        input:checked + .slider {
+            background: linear-gradient(to right, var(--primary), var(--secondary));
         }
-        
+
+        input:checked + .slider:before {
+            transform: translateX(32px);
+        }
+
         .toggle-label {
-            font-size: 14px;
+            font-size: 0.95rem;
             font-weight: 500;
-            color: #4a5568;
+            color: var(--text-muted);
+            transition: color 0.3s;
         }
-        
-        .success-message {
+
+        input:checked ~ .toggle-label {
+            color: var(--text-main);
+        }
+
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 40px;
+            color: var(--text-muted);
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s;
+            padding: 10px 20px;
+            border-radius: 12px;
+        }
+
+        .back-btn:hover {
+            color: var(--primary-light);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        /* Toast Popup */
+        #toast {
             position: fixed;
-            top: 20px;
-            right: 20px;
-            background: #48bb78;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: var(--success);
             color: white;
-            padding: 16px 24px;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-            display: none;
-            animation: slideIn 0.3s ease;
+            padding: 16px 32px;
+            border-radius: 16px;
+            font-weight: 600;
+            box-shadow: 0 10px 30px rgba(34, 197, 94, 0.3);
+            transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             z-index: 1000;
         }
-        
-        @keyframes slideIn {
-            from {
-                transform: translateX(400px);
-                opacity: 0;
-            }
-            to {
-                transform: translateX(0);
-                opacity: 1;
-            }
+
+        #toast.show {
+            transform: translateX(-50%) translateY(0);
         }
-        
-        .nav-link {
-            display: inline-block;
-            margin-top: 20px;
-            padding: 12px 24px;
-            background: #667eea;
-            color: white;
-            text-decoration: none;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 500;
-            transition: all 0.3s ease;
-        }
-        
-        .nav-link:hover {
-            background: #5a67d8;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+
+        .icon-box {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
         }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>⚙️ Webhook Configuration</h1>
-            <p>Quản lý cấu hình xử lý webhook theo status</p>
+            <h1>Webhook Config</h1>
+            <p>Quản lý cấu hình xử lý đơn hàng từ Pancake POS</p>
         </div>
-        
-        <div class="content">
-            <!-- Config cho Status = 1 -->
-            <div class="config-item">
-                <div class="config-header">
-                    <div class="config-title">Status = 1 (Đã xác nhận)</div>
-                    <span class="status-badge" th:classappend="${status1Enabled ? 'enabled' : 'disabled'}"
+
+        <div class="config-grid">
+            <!-- Status 1 -->
+            <div class="config-card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <div class="icon-box">📦</div>
+                        Status = 1 (Đã xác nhận)
+                    </div>
+                    <span id="badge-1" class="status-badge" 
+                          th:classappend="${status1Enabled ? 'enabled' : 'disabled'}"
                           th:text="${status1Enabled ? 'Enabled' : 'Disabled'}"></span>
                 </div>
-                <div class="config-description">
-                    Khi bật: Hệ thống sẽ tự động tạo bản ghi trong Lark Bitable và gửi thông báo khi nhận được đơn hàng với status = 1 (đã xác nhận).
-                </div>
-                <div class="toggle-container">
-                    <div class="toggle-switch" 
-                         th:classappend="${status1Enabled ? 'active' : ''}"
-                         onclick="toggleStatus1()"
-                         id="toggle-status1">
-                        <div class="toggle-slider"></div>
-                    </div>
-                    <span class="toggle-label" id="label-status1"
-                          th:text="${status1Enabled ? 'Đang bật' : 'Đang tắt'}"></span>
+                <p class="card-desc">
+                    Tự động tạo bản ghi mới tại Lark Bitable và gửi thông báo Telegram/Lark khi có đơn hàng Pancake được chuyển sang trạng thái "Đã xác nhận".
+                </p>
+                <div class="action-area">
+                    <label class="switch">
+                        <input type="checkbox" id="toggle-1" th:checked="${status1Enabled}" onchange="updateConfig(1, this.checked)">
+                        <span class="slider"></span>
+                    </label>
+                    <span class="toggle-label" id="label-1" th:text="${status1Enabled ? 'Đang hoạt động' : 'Tạm dừng'}"></span>
                 </div>
             </div>
-            
-            <!-- Config cho Status = 6 -->
-            <div class="config-item">
-                <div class="config-header">
-                    <div class="config-title">Status = 6</div>
-                    <span class="status-badge" th:classappend="${status6Enabled ? 'enabled' : 'disabled'}"
+
+            <!-- Status 6 -->
+            <div class="config-card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <div class="icon-box">♻️</div>
+                        Status = 6 (Chờ xử lý)
+                    </div>
+                    <span id="badge-6" class="status-badge" 
+                          th:classappend="${status6Enabled ? 'enabled' : 'disabled'}"
                           th:text="${status6Enabled ? 'Enabled' : 'Disabled'}"></span>
                 </div>
-                <div class="config-description">
-                    Khi bật: Hệ thống sẽ xử lý webhook khi nhận được đơn hàng với status = 6. (Logic xử lý sẽ được bổ sung sau)
-                </div>
-                <div class="toggle-container">
-                    <div class="toggle-switch" 
-                         th:classappend="${status6Enabled ? 'active' : ''}"
-                         onclick="toggleStatus6()"
-                         id="toggle-status6">
-                        <div class="toggle-slider"></div>
-                    </div>
-                    <span class="toggle-label" id="label-status6"
-                          th:text="${status6Enabled ? 'Đang bật' : 'Đang tắt'}"></span>
+                <p class="card-desc">
+                    Xử lý các logic đặc biệt cho đơn hàng ở trạng thái 6. Hệ thống sẽ lọc và cập nhật dữ liệu tương ứng trên hệ thống báo cáo.
+                </p>
+                <div class="action-area">
+                    <label class="switch">
+                        <input type="checkbox" id="toggle-6" th:checked="${status6Enabled}" onchange="updateConfig(6, this.checked)">
+                        <span class="slider"></span>
+                    </label>
+                    <span class="toggle-label" id="label-6" th:text="${status6Enabled ? 'Đang hoạt động' : 'Tạm dừng'}"></span>
                 </div>
             </div>
-            
-            <a href="/" class="nav-link">← Quay về trang chủ</a>
         </div>
+
+        <a href="/" class="back-btn">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+            Quay về trang chủ
+        </a>
     </div>
-    
-    <div class="success-message" id="success-message">
-        ✅ Cập nhật config thành công!
-    </div>
-    
+
+    <div id="toast">✅ Cập nhật cấu hình thành công!</div>
+
     <script>
-        function showSuccessMessage() {
-            const msg = document.getElementById('success-message');
-            msg.style.display = 'block';
-            setTimeout(() => {
-                msg.style.display = 'none';
-            }, 3000);
+        function showToast() {
+            const toast = document.getElementById('toast');
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 3000);
         }
-        
-        function toggleStatus1() {
-            const toggle = document.getElementById('toggle-status1');
-            const label = document.getElementById('label-status1');
-            const isActive = toggle.classList.contains('active');
-            const newState = !isActive;
-            
-            fetch('/api/config/status1?enabled=' + newState, {
-                method: 'POST'
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    if (newState) {
-                        toggle.classList.add('active');
-                        label.textContent = 'Đang bật';
-                    } else {
-                        toggle.classList.remove('active');
-                        label.textContent = 'Đang tắt';
+
+        async function updateConfig(status, enabled) {
+            try {
+                const response = await fetch(`/api/config/status${status}?enabled=${enabled}`, {
+                    method: 'POST'
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success) {
+                        // Update UI
+                        const badge = document.getElementById(`badge-${status}`);
+                        const label = document.getElementById(`label-${status}`);
+                        
+                        if (enabled) {
+                            badge.className = 'status-badge enabled';
+                            badge.textContent = 'Enabled';
+                            label.textContent = 'Đang hoạt động';
+                        } else {
+                            badge.className = 'status-badge disabled';
+                            badge.textContent = 'Disabled';
+                            label.textContent = 'Tạm dừng';
+                        }
+                        
+                        showToast();
                     }
-                    showSuccessMessage();
-                    // Reload để cập nhật badge
-                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    throw new Error('Update failed');
                 }
-            })
-            .catch(error => {
+            } catch (error) {
                 console.error('Error:', error);
-                alert('Có lỗi xảy ra khi cập nhật config');
-            });
-        }
-        
-        function toggleStatus6() {
-            const toggle = document.getElementById('toggle-status6');
-            const label = document.getElementById('label-status6');
-            const isActive = toggle.classList.contains('active');
-            const newState = !isActive;
-            
-            fetch('/api/config/status6?enabled=' + newState, {
-                method: 'POST'
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    if (newState) {
-                        toggle.classList.add('active');
-                        label.textContent = 'Đang bật';
-                    } else {
-                        toggle.classList.remove('active');
-                        label.textContent = 'Đang tắt';
-                    }
-                    showSuccessMessage();
-                    // Reload để cập nhật badge
-                    setTimeout(() => location.reload(), 1000);
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Có lỗi xảy ra khi cập nhật config');
-            });
+                alert('Không thể lưu cấu hình. Vui lòng thử lại!');
+                // Revert toggle
+                document.getElementById(`toggle-${status}`).checked = !enabled;
+            }
         }
     </script>
 </body>
 </html>
-

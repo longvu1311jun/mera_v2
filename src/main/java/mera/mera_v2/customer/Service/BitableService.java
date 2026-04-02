@@ -146,15 +146,53 @@ public class BitableService {
     return allRecords;
   }
 
-  /** Tìm kiếm khách hàng theo số điện thoại */
+  /** Lấy danh sách fields của một table */
+  public List<Map<String, Object>> getFieldsByTableId(String accessToken, String baseId, String tableId) {
+    String url = String.format("https://open.larksuite.com/open-apis/bitable/v1/apps/%s/tables/%s/fields?page_size=100", baseId, tableId);
+    
+    HttpHeaders headers = new HttpHeaders();
+    headers.setBearerAuth(accessToken);
+    
+    try {
+      ResponseEntity<Map> response = restTemplate.exchange(url, HttpMethod.GET, new HttpEntity<>(headers), Map.class);
+      if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
+        Map<String, Object> data = (Map<String, Object>) response.getBody().get("data");
+        if (data != null && data.containsKey("items")) {
+          return (List<Map<String, Object>>) data.get("items");
+        }
+      }
+    } catch (Exception e) {
+      log.warn("Failed to get fields for table {}: {}", tableId, e.getMessage());
+    }
+    return Collections.emptyList();
+  }
+
+  /** Tìm tên field thực tế dựa trên một vài gợi ý tên (case-insensitive) */
+  private String detectFieldName(List<Map<String, Object>> fields, List<String> hints) {
+    if (fields == null || fields.isEmpty()) return hints.get(0);
+    
+    for (String hint : hints) {
+      for (Map<String, Object> field : fields) {
+        String actualName = (String) field.get("field_name");
+        if (actualName != null && actualName.equalsIgnoreCase(hint)) {
+          return actualName;
+        }
+      }
+    }
+    // Fallback to first hint if not found
+    return hints.get(0);
+  }
+
+  /** Tìm kiếm khách hàng theo số điện thoại (Search đa dạng) */
   public List<BitableRecord> searchCustomerByPhone(HttpSession session, String baseId, String tableId,
       String phoneNumber, String viewId) throws Exception {
-    if (baseId == null || baseId.isBlank() || tableId == null || tableId.isBlank() 
-        || phoneNumber == null || phoneNumber.isBlank()) {
+    if (baseId == null || baseId.isBlank() || tableId == null || tableId.isBlank() || phoneNumber == null) {
       return new ArrayList<>();
     }
 
     String accessToken = tokenService.getAccessToken(session, false);
+    List<Map<String, Object>> actualFields = getFieldsByTableId(accessToken, baseId, tableId);
+    String phoneFieldName = detectFieldName(actualFields, List.of("Điện thoại", "SĐT", "Số điện thoại", "Số Điện Thoại", "Phone"));
 
     HttpHeaders headers = new HttpHeaders();
     headers.setBearerAuth(accessToken);
@@ -169,25 +207,20 @@ public class BitableService {
       String url = buildSearchRecordsUrl(baseId, tableId, DEFAULT_RECORD_PAGE_SIZE, pageToken);
       
       RecordSearchRequest bodyReq = new RecordSearchRequest();
-      bodyReq.automaticFields = false;
-      bodyReq.fieldNames = List.of(
-          "Điện thoại",
-          "Tên khách hàng",
-          "Mã KH",
-          "Tuổi",
-          "Địa chỉ",
-          "Link",
-          "Tên Liệu Trình",
-          "Bệnh nền"
-      );
+      bodyReq.automaticFields = true; // Lấy tất cả các field tự động
       if (viewId != null && !viewId.isBlank()) {
         bodyReq.viewId = viewId;
       }
 
+      String searchPhone = phoneNumber.trim();
+      if (searchPhone.length() > 9) {
+          searchPhone = searchPhone.substring(searchPhone.length() - 9);
+      }
+
       Condition c = new Condition();
-      c.fieldName = "Điện thoại";
-      c.operator = "is";
-      c.value = List.of(phoneNumber.trim());
+      c.fieldName = phoneFieldName;
+      c.operator = "contains"; // Dùng contains để linh hoạt hơn
+      c.value = List.of(searchPhone);
 
       Filter f = new Filter();
       f.conjunction = "and";
@@ -428,6 +461,8 @@ public class BitableService {
     }
 
     String accessToken = tokenService.getAccessToken(session, false);
+    List<Map<String, Object>> actualFields = getFieldsByTableId(accessToken, baseId, tableId);
+    String customerLinkFieldName = detectFieldName(actualFields, List.of("Khách Hàng", "Khách hàng", "Customer", "Mã khách hàng", "Mã KH"));
 
     HttpHeaders headers = new HttpHeaders();
     headers.setBearerAuth(accessToken);
@@ -442,14 +477,13 @@ public class BitableService {
       String url = buildSearchRecordsUrl(baseId, tableId, DEFAULT_RECORD_PAGE_SIZE, pageToken);
       
       RecordSearchRequest bodyReq = new RecordSearchRequest();
-      bodyReq.automaticFields = false;
-      bodyReq.fieldNames = fieldNames;
+      bodyReq.automaticFields = true; // Tự động lấy các field
       if (viewId != null && !viewId.isBlank()) {
         bodyReq.viewId = viewId;
       }
 
       Condition c = new Condition();
-      c.fieldName = "Khách Hàng";
+      c.fieldName = customerLinkFieldName;
       c.operator = "is";
       c.value = List.of(customerRecordId);
 

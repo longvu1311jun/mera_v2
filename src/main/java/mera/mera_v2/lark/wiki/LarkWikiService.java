@@ -168,22 +168,34 @@ public class LarkWikiService {
   private String extractFirstPhoneNumber(String text) {
     if (text == null || text.isEmpty()) return null;
 
-    // Clean text: remove spaces, dots, dashes
-    String cleaned = text.replaceAll("[\\s\\.\\-]", "");
-    
-    // Pattern: 0..., +84..., or just 84... followed by 9-10 digits
-    Pattern pattern = Pattern.compile("(?:0|\\+84|84)(?:3|5|7|8|9)[0-9]{8,9}");
-    Matcher matcher = pattern.matcher(cleaned);
+    // Use a more permissive regex to find anything that looks like a phone number
+    // Look for digits, but allow common separators in between
+    // We'll strip them AFTER matching to verify length
+    Pattern pattern = Pattern.compile("(?:\\+84|0|84)[\\s\\.\\-]*[35789][0-9\\s\\.\\-]{7,11}");
+    Matcher matcher = pattern.matcher(text);
 
     if (matcher.find()) {
-      String phone = matcher.group();
+      String raw = matcher.group();
+      String phone = raw.replaceAll("[^0-9]", "");
+      
       // Normalize to 0... format
-      if (phone.startsWith("+84")) {
-        phone = "0" + phone.substring(3);
-      } else if (phone.startsWith("84")) {
+      if (phone.startsWith("84") && phone.length() > 9) {
         phone = "0" + phone.substring(2);
+      } else if (!phone.startsWith("0") && phone.length() == 9) {
+        phone = "0" + phone;
       }
-      return phone.replaceAll("[^0-9]", "");
+      
+      // Valid VN mobile phones are usually 10 digits starting with 03, 05, 07, 08, 09
+      if (phone.length() == 10 && phone.startsWith("0")) {
+        return phone;
+      }
+    }
+    
+    // Fallback: search for any 10-digit sequence
+    Pattern simplePattern = Pattern.compile("[0-9]{10}");
+    Matcher simpleMatcher = simplePattern.matcher(text.replaceAll("[^0-9]", ""));
+    if (simpleMatcher.find()) {
+        return simpleMatcher.group();
     }
 
     return null;

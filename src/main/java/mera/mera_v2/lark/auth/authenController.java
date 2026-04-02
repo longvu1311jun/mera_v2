@@ -51,6 +51,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.web.client.RestTemplate;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.format.DateTimeFormatter;
+import mera.mera_v2.lark.webhook.service.WebhookConfigService;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -82,14 +83,16 @@ public class authenController {
   private final PosService posService;
   private final LarkWikiService larkWikiService;
   private final BitableService bitableService;
+  private final WebhookConfigService webhookConfigService;
   private final ExecutorService executorService;
 
   public authenController(LarkTokenService tokenService, PosService posService, LarkWikiService larkWikiService,
-      BitableService bitableService) {
+      BitableService bitableService, WebhookConfigService webhookConfigService) {
     this.tokenService = tokenService;
     this.posService = posService;
     this.larkWikiService = larkWikiService;
     this.bitableService = bitableService;
+    this.webhookConfigService = webhookConfigService;
     // Tạo thread pool với 5 threads để xử lý stats song song
     this.executorService = Executors.newFixedThreadPool(5);
   }
@@ -187,8 +190,12 @@ public class authenController {
   private static final String SESSION_EMPLOYEE_STATS_LAST = "SESSION_EMPLOYEE_STATS_LAST";
   private static final String SESSION_EMPLOYEE_STATS_LAST_FETCHED_AT = "SESSION_EMPLOYEE_STATS_LAST_FETCHED_AT";
 
-  @GetMapping("/config")
+  @GetMapping({"/config", "/api/config"})
   public String config(Model model, HttpSession session) {
+    // Add webhook configuration status
+    model.addAttribute("status1Enabled", webhookConfigService.getProcessStatus1().get());
+    model.addAttribute("status6Enabled", webhookConfigService.getProcessStatus6().get());
+    
     if (tokenService.hasToken(session)) {
       log.info("🔍 Checking token status for /config endpoint");
       tokenService.autoRefreshTokenIfNeeded(session);
@@ -281,6 +288,35 @@ public class authenController {
 
     return "redirect:/config";
   }
+
+  @PostMapping("/api/config/status1")
+  @ResponseBody
+  public Map<String, Object> toggleStatus1(@RequestParam("enabled") boolean enabled) {
+    webhookConfigService.setProcessStatus1(enabled);
+    Map<String, Object> response = new HashMap<>();
+    response.put("success", true);
+    response.put("enabled", enabled);
+    return response;
+  }
+
+  @PostMapping("/api/config/status6")
+  @ResponseBody
+  public Map<String, Object> toggleStatus6(@RequestParam("enabled") boolean enabled) {
+    webhookConfigService.setProcessStatus6(enabled);
+    Map<String, Object> response = new HashMap<>();
+    response.put("success", true);
+    response.put("enabled", enabled);
+    return response;
+  }
+  @GetMapping("/api/config/status")
+  @ResponseBody
+  public Map<String, Object> getConfigStatus() {
+    Map<String, Object> response = new HashMap<>();
+    response.put("status1Enabled", webhookConfigService.getProcessStatus1().get());
+    response.put("status6Enabled", webhookConfigService.getProcessStatus6().get());
+    return response;
+  }
+
 
   private void loadAndCacheData(HttpSession session, Model model) throws Exception {
     List<mera.mera_v2.model.LarkNode> allNodes = larkWikiService.getAllNodesWithChildren(session);
