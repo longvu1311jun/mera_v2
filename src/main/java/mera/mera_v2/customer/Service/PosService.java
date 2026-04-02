@@ -55,25 +55,42 @@ public class PosService {
 
           log.info("=== POS API Debug ===");
           log.info("Total users from POS: {}", allUsers.size());
-          // Log all unique department names
-          java.util.Set<String> departments = allUsers.stream()
+          
+          // Only keep users belonging to specific allowed departments (White List)
+          List<PosUser> filteredUsers = allUsers.stream()
+              .filter(u -> {
+                  if (u.getDepartment() == null || u.getDepartment().getName() == null) {
+                      return false; // Skip users without a clear department
+                  }
+                  String deptName = u.getDepartment().getName().trim();
+                  // Check against allowed department list (Case-insensitive)
+                  return deptName.equalsIgnoreCase("NV sale 2 NT") ||
+                         deptName.equalsIgnoreCase("SALE 2 Nguyễn Trãi") ||
+                         deptName.equalsIgnoreCase("SALE 2 OCP") ||
+                         deptName.equalsIgnoreCase("NV SALE 2 OCP");
+              })
+              .collect(Collectors.toList());
+
+          log.info("Total users from POS: {}, Active Allowed: {}", allUsers.size(), filteredUsers.size());
+          
+          // Log all unique surviving department names
+          java.util.Set<String> departments = filteredUsers.stream()
               .filter(u -> u.getDepartment() != null && u.getDepartment().getName() != null)
               .map(u -> u.getDepartment().getName())
               .collect(java.util.stream.Collectors.toSet());
-          log.info("Unique departments: {}", departments);
+          log.info("Unique active departments: {}", departments);
 
-          // Log first 5 users for debugging
-          for (int i = 0; i < Math.min(5, allUsers.size()); i++) {
-            PosUser u = allUsers.get(i);
+          // Log first 5 filtered users for debugging
+          for (int i = 0; i < Math.min(5, filteredUsers.size()); i++) {
+            PosUser u = filteredUsers.get(i);
             String deptName = u.getDepartment() != null ? u.getDepartment().getName() : "null";
             String userName = u.getName();
             String phone = u.getUser() != null ? u.getUser().getPhoneNumber() : "null";
-            log.info("  POS User[{}]: name='{}', dept='{}', phone='{}'", i, userName, deptName, phone);
+            log.info("  Active POS User[{}]: name='{}', dept='{}', phone='{}'", i, userName, deptName, phone);
           }
 
-          // Tráº£ vá» táº¥t cáº£ users (khÃ´ng lá»c theo department) vÃ¬ mapping báº±ng sá»‘ Ä‘iá»‡n thoáº¡i
-          log.info("Returning all {} users for phone-based mapping", allUsers.size());
-          return allUsers;
+          log.info("Returning {} filtered users (excluded resigned/off departments)", filteredUsers.size());
+          return filteredUsers;
         }
       }
       log.warn("Failed to get users: HTTP {}", response.getStatusCode());

@@ -43,186 +43,109 @@ public class LarkWikiService {
   }
   
   /**
-   * Get all nodes (bases) from space
+   * Get all nodes (bases) from space with pagination support
    */
   public List<LarkNode> getAllNodes(HttpSession session) throws Exception {
-    String accessToken = tokenService.getAccessToken(session, false); // Don't force hourly refresh
-    String url = String.format(
-        "https://open.larksuite.com/open-apis/wiki/v2/spaces/%s/nodes",
-        LARK_SPACE_ID
-    );
+    List<LarkNode> allNodes = new java.util.ArrayList<>();
+    String pageToken = "";
+    boolean hasMore = true;
     
-    HttpHeaders headers = new HttpHeaders();
-    headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
-    headers.setBearerAuth(accessToken);
+    log.info("=== Fetching All Wiki Nodes (with Pagination) ===");
     
-    HttpEntity<String> entity = new HttpEntity<>(headers);
-    
-    try {
-      ResponseEntity<LarkNodesResponse> response = restTemplate.exchange(
-          url,
-          HttpMethod.GET,
-          entity,
-          LarkNodesResponse.class
+    while (hasMore) {
+      String accessToken = tokenService.getAccessToken(session, false);
+      String url = String.format(
+          "https://open.larksuite.com/open-apis/wiki/v2/spaces/%s/nodes?page_size=50",
+          LARK_SPACE_ID
       );
+      if (!pageToken.isEmpty()) {
+        url += "&page_token=" + pageToken;
+      }
       
-      // Log response Ä‘á»ƒ debug
-      log.info("=== API Response - Get All Nodes (Bases) ===");
-      log.info("URL: {}", url);
-      log.info("HTTP Status: {}", response.getStatusCode());
+      HttpHeaders headers = new HttpHeaders();
+      headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+      headers.setBearerAuth(accessToken);
+      
+      HttpEntity<String> entity = new HttpEntity<>(headers);
+      
+      ResponseEntity<LarkNodesResponse> response = restTemplate.exchange(
+          url, HttpMethod.GET, entity, LarkNodesResponse.class
+      );
       
       if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
         LarkNodesResponse body = response.getBody();
-        System.out.println("Full Response Body: " + body);
-        log.info("Response Code: {}", body.getCode());
-        log.info("Response Message: {}", body.getMsg());
-        
         if (body.getCode() == 0 && body.getData() != null) {
-          List<LarkNode> nodes = body.getData().getItems();
-          log.info("Total number of nodes (bases): {}", nodes.size());
-          
-          // Log tá»«ng node vá»›i Base ID (obj_token)
-          for (int i = 0; i < nodes.size(); i++) {
-            LarkNode node = nodes.get(i);
-            log.info("Base [{}]: Title='{}', BaseID(obj_token)='{}', NodeToken='{}', ParentNodeToken='{}'", 
-                i + 1, node.getTitle(), node.getObjToken(), node.getNodeToken(), node.getParentNodeToken());
-          }
-          
-          log.info("=== End API Response ===");
-          return nodes;
+          allNodes.addAll(body.getData().getItems());
+          hasMore = body.getData().isHasMore();
+          pageToken = body.getData().getPageToken();
+          log.info("Fetched {} nodes, hasMore={}", body.getData().getItems().size(), hasMore);
         } else {
-          log.warn("API returned error code: {}, message: {}", body.getCode(), body.getMsg());
+          log.warn("API Error: {} - {}", body.getCode(), body.getMsg());
+          break;
         }
+      } else {
+        log.warn("Failed to get nodes: HTTP {}", response.getStatusCode());
+        break;
       }
-      log.warn("Failed to get all nodes: HTTP {}", response.getStatusCode());
-      return Collections.emptyList();
-    } catch (RestClientException e) {
-      log.error("Error calling Lark Wiki API: {}", e.getMessage(), e);
-      return Collections.emptyList();
     }
+    
+    log.info("Total Wiki nodes fetched: {}", allNodes.size());
+    return allNodes;
   }
   
   /**
-   * Get parent node token from space
-   */
-  private String getParentNodeToken(HttpSession session) throws Exception {
-    String accessToken = tokenService.getAccessToken(session, false); // Don't force hourly refresh
-    String url = String.format(
-        "https://open.larksuite.com/open-apis/wiki/v2/spaces/%s/nodes",
-        LARK_SPACE_ID
-    );
-    
-    HttpHeaders headers = new HttpHeaders();
-    headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
-    headers.setBearerAuth(accessToken);
-    
-    HttpEntity<String> entity = new HttpEntity<>(headers);
-    
-    try {
-      ResponseEntity<LarkNodesResponse> response = restTemplate.exchange(
-          url,
-          HttpMethod.GET,
-          entity,
-          LarkNodesResponse.class
-      );
-      
-      if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
-        LarkNodesResponse body = response.getBody();
-        System.out.println(body);
-        log.info("=== API Response - Get Parent Node Token ===");
-        log.info("URL: {}", url);
-        log.info("Response Code: {}", body.getCode());
-        log.info("Response Message: {}", body.getMsg());
-        
-        if (body.getCode() == 0 && body.getData() != null && !body.getData().getItems().isEmpty()) {
-          // Get first node's parent_node_token
-          LarkNode firstNode = body.getData().getItems().get(0);
-          String parentToken = firstNode.getParentNodeToken();
-          log.info("Parent Node Token: {}", parentToken);
-          log.info("=== End API Response ===");
-          return parentToken;
-        }
-      }
-      throw new RuntimeException("Failed to get parent node token");
-    } catch (RestClientException e) {
-      log.error("Error calling Lark Wiki API: {}", e.getMessage(), e);
-      throw new RuntimeException("Error getting parent node token: " + e.getMessage(), e);
-    }
-  }
-  
-  /**
-   * Get child nodes of a specific node using its node_token as parent_node_token
+   * Get child nodes of a specific node with pagination support
    */
   public List<LarkNode> getChildNodesByNodeToken(String nodeToken, HttpSession session) throws Exception {
-    if (nodeToken == null || nodeToken.isEmpty()) {
-      log.warn("Node token is null or empty");
-      return Collections.emptyList();
-    }
+    if (nodeToken == null || nodeToken.isEmpty()) return Collections.emptyList();
     
-    String accessToken = tokenService.getAccessToken(session, false); // Don't force hourly refresh
-    String url = String.format(
-        "https://open.larksuite.com/open-apis/wiki/v2/spaces/%s/nodes?parent_node_token=%s",
-        LARK_SPACE_ID,
-        nodeToken
-    );
+    List<LarkNode> childNodes = new java.util.ArrayList<>();
+    String pageToken = "";
+    boolean hasMore = true;
     
-    HttpHeaders headers = new HttpHeaders();
-    headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
-    headers.setBearerAuth(accessToken);
-    
-    HttpEntity<String> entity = new HttpEntity<>(headers);
-    
-    try {
-      ResponseEntity<LarkNodesResponse> response = restTemplate.exchange(
-          url,
-          HttpMethod.GET,
-          entity,
-          LarkNodesResponse.class
+    while (hasMore) {
+      String accessToken = tokenService.getAccessToken(session, false);
+      String url = String.format(
+          "https://open.larksuite.com/open-apis/wiki/v2/spaces/%s/nodes?parent_node_token=%s&page_size=50",
+          LARK_SPACE_ID, nodeToken
       );
+      if (!pageToken.isEmpty()) {
+        url += "&page_token=" + pageToken;
+      }
       
-      // Log response Ä‘á»ƒ debug
-      log.info("=== API Response - Get Child Nodes by Node Token ===");
-      log.info("URL: {}", url);
-      log.info("Parent Node Token: {}", nodeToken);
-      log.info("HTTP Status: {}", response.getStatusCode());
+      HttpHeaders headers = new HttpHeaders();
+      headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+      headers.setBearerAuth(accessToken);
+      
+      HttpEntity<String> entity = new HttpEntity<>(headers);
+      
+      ResponseEntity<LarkNodesResponse> response = restTemplate.exchange(
+          url, HttpMethod.GET, entity, LarkNodesResponse.class
+      );
       
       if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
         LarkNodesResponse body = response.getBody();
-        log.info("Response Code: {}", body.getCode());
-        log.info("Response Message: {}", body.getMsg());
-        
         if (body.getCode() == 0 && body.getData() != null) {
-          List<LarkNode> nodes = body.getData().getItems();
-          log.info("Number of child nodes: {}", nodes.size());
-          
-          // Log tá»«ng child node
-          for (int i = 0; i < nodes.size(); i++) {
-            LarkNode node = nodes.get(i);
-            log.info("Child Node [{}]: Title='{}', BaseID(obj_token)='{}', NodeToken='{}'", 
-                i + 1, node.getTitle(), node.getObjToken(), node.getNodeToken());
-          }
-          
-          log.info("=== End API Response ===");
-          return nodes;
+          childNodes.addAll(body.getData().getItems());
+          hasMore = body.getData().isHasMore();
+          pageToken = body.getData().getPageToken();
         } else {
-          log.warn("API returned error code: {}, message: {}", body.getCode(), body.getMsg());
+          break;
         }
+      } else {
+        break;
       }
-      log.warn("Failed to get child nodes: HTTP {}", response.getStatusCode());
-      return Collections.emptyList();
-    } catch (RestClientException e) {
-      log.error("Error calling Lark Wiki API: {}", e.getMessage(), e);
-      return Collections.emptyList();
     }
+    return childNodes;
   }
   
   /**
-   * Get all nodes and their child nodes
+   * Get all nodes and their child nodes with pagination support
    */
   public List<LarkNode> getAllNodesWithChildren(HttpSession session) throws Exception {
     List<LarkNode> allNodes = getAllNodes(session);
     
-    // For each node, get its child nodes
+    // For each node, get its child nodes (recursive or at least 1 level deep)
     for (LarkNode node : allNodes) {
       if (node.getNodeToken() != null && !node.getNodeToken().isEmpty()) {
         try {
@@ -239,92 +162,27 @@ public class LarkWikiService {
   }
   
   /**
-   * Get child nodes using parent node token (old method, kept for backward compatibility)
-   */
-  public List<LarkNode> getChildNodes(HttpSession session) throws Exception {
-    String parentNodeToken = getParentNodeToken(session);
-    if (parentNodeToken == null || parentNodeToken.isEmpty()) {
-      log.warn("Parent node token is null or empty");
-      return Collections.emptyList();
-    }
-    
-    String accessToken = tokenService.getAccessToken(session, false); // Don't force hourly refresh
-    String url = String.format(
-        "https://open.larksuite.com/open-apis/wiki/v2/spaces/%s/nodes?parent_node_token=%s",
-        LARK_SPACE_ID,
-        parentNodeToken
-    );
-    
-    HttpHeaders headers = new HttpHeaders();
-    headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
-    headers.setBearerAuth(accessToken);
-    
-    HttpEntity<String> entity = new HttpEntity<>(headers);
-    
-    try {
-      ResponseEntity<LarkNodesResponse> response = restTemplate.exchange(
-          url,
-          HttpMethod.GET,
-          entity,
-          LarkNodesResponse.class
-      );
-      
-      // Log response Ä‘á»ƒ debug
-      log.info("=== API Response - Get Child Nodes (Base IDs) ===");
-      log.info("URL: {}", url);
-      log.info("HTTP Status: {}", response.getStatusCode());
-      
-      if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
-        LarkNodesResponse body = response.getBody();
-        log.info("Response Code: {}", body.getCode());
-        log.info("Response Message: {}", body.getMsg());
-        
-        if (body.getCode() == 0 && body.getData() != null) {
-          List<LarkNode> nodes = body.getData().getItems();
-          log.info("Number of nodes: {}", nodes.size());
-          
-          // Log tá»«ng node vá»›i Base ID (obj_token)
-          for (int i = 0; i < nodes.size(); i++) {
-            LarkNode node = nodes.get(i);
-            log.info("Node [{}]: Title='{}', BaseID(obj_token)='{}', NodeToken='{}'", 
-                i + 1, node.getTitle(), node.getObjToken(), node.getNodeToken());
-          }
-          
-          log.info("=== End API Response ===");
-          return nodes;
-        } else {
-          log.warn("API returned error code: {}, message: {}", body.getCode(), body.getMsg());
-        }
-      }
-      log.warn("Failed to get child nodes: HTTP {}", response.getStatusCode());
-      return Collections.emptyList();
-    } catch (RestClientException e) {
-      log.error("Error calling Lark Wiki API: {}", e.getMessage(), e);
-      return Collections.emptyList();
-    }
-  }
-  
-  /**
-   * Extract the FIRST phone number from a string (supports Vietnamese phone formats).
-   * Returns null if no phone found.
+   * Extract the FIRST phone number from a string.
+   * Supports: 0xxx..., +84xxx..., 84xxx...
    */
   private String extractFirstPhoneNumber(String text) {
-    if (text == null || text.isEmpty()) {
-      return null;
-    }
+    if (text == null || text.isEmpty()) return null;
 
-    // Pattern to match Vietnamese phone numbers (10-11 digits, may have spaces, dashes, or dots)
-    // Examples: 0123456789, 0912345678, 0987.654.321, 0901-234-567
-    Pattern pattern = Pattern.compile("(?:0|\\+84)(?:3|5|7|8|9)[0-9]{8,9}");
-    Matcher matcher = pattern.matcher(text.replaceAll("[\\s\\.\\-]", ""));
+    // Clean text: remove spaces, dots, dashes
+    String cleaned = text.replaceAll("[\\s\\.\\-]", "");
+    
+    // Pattern: 0..., +84..., or just 84... followed by 9-10 digits
+    Pattern pattern = Pattern.compile("(?:0|\\+84|84)(?:3|5|7|8|9)[0-9]{8,9}");
+    Matcher matcher = pattern.matcher(cleaned);
 
     if (matcher.find()) {
       String phone = matcher.group();
-      // Normalize: remove +84, replace with 0
+      // Normalize to 0... format
       if (phone.startsWith("+84")) {
         phone = "0" + phone.substring(3);
+      } else if (phone.startsWith("84")) {
+        phone = "0" + phone.substring(2);
       }
-      // Remove all non-digit characters for comparison
       return phone.replaceAll("[^0-9]", "");
     }
 
@@ -335,7 +193,16 @@ public class LarkWikiService {
    * Get phone number from POS user (from phone_number field or extract from name)
    */
   private String getPosUserPhone(PosUser posUser) {
-    // First try phone_number field
+    // 1. HIGHEST PRIORITY: Extract from name (Display phone used for mapping)
+    String name = posUser.getName();
+    if (name != null) {
+      String phoneFromName = extractFirstPhoneNumber(name);
+      if (phoneFromName != null && !phoneFromName.isEmpty()) {
+        return phoneFromName;
+      }
+    }
+
+    // 2. FALLBACK: Use official phone_number field
     if (posUser.getUser() != null && posUser.getUser().getPhoneNumber() != null) {
       String phone = posUser.getUser().getPhoneNumber();
       if (phone != null) {
@@ -352,12 +219,6 @@ public class LarkWikiService {
           return phone;
         }
       }
-    }
-
-    // If not found, try to extract from name
-    String name = posUser.getName();
-    if (name != null) {
-      return extractFirstPhoneNumber(name);
     }
 
     return null;
@@ -404,50 +265,71 @@ public class LarkWikiService {
       log.info("Total POS users: {}", posUsers.size());
 
       for (PosUser posUser : posUsers) {
-        String posUserPhone = getPosUserPhone(posUser);
+        // Collect all potential phone numbers for this POS user
+        java.util.Set<String> posUserPhones = new java.util.HashSet<>();
+        
+        // 1. Phone from POS phone_number field
+        String fieldPhone = getPosUserPhone(posUser); 
+        if (fieldPhone != null && !fieldPhone.isEmpty()) posUserPhones.add(fieldPhone);
+        
+        // 2. Phone extracted from POS Display Name (Stronger signal for mapping)
+        String namePhone = extractFirstPhoneNumber(posUser.getName());
+        if (namePhone != null && !namePhone.isEmpty()) posUserPhones.add(namePhone);
+
         String posUserName = posUser.getName();
         String posUserNameNorm = normalizeVietnameseName(posUserName);
 
-        log.debug("POS User: {} - Phone: {}", posUserName, posUserPhone);
+        log.debug("POS User: {} - Candidate Phones: {}", posUserName, posUserPhones);
 
         LarkNode matchedNode = null;
         String matchReason = "";
 
-        // === Strategy 1: Exact phone match from TITLE only ===
-        if (posUserPhone != null && !posUserPhone.isEmpty()) {
-          matchedNode = allLarkNodes.stream()
-              .filter(node -> {
-                if (node.getTitle() == null) return false;
-                String nodePhone = extractFirstPhoneNumber(node.getTitle());
-                return posUserPhone.equals(nodePhone);
-              })
-              .findFirst()
-              .orElse(null);
-
-          if (matchedNode != null) {
-            matchReason = "phone_in_title";
-            log.info("  [PHONE_TITLE] Matched '{}' with node '{}' (reason: phone '{}' found in title)",
-                posUserName, matchedNode.getTitle(), posUserPhone);
-          }
+        // === Strategy 1: Exact phone match from TITLE only (Try all candidate phones) ===
+        if (!posUserPhones.isEmpty()) {
+            for (String pPhone : posUserPhones) {
+                matchedNode = allLarkNodes.stream()
+                    .filter(node -> {
+                        if (node.getTitle() == null) return false;
+                        String nodePhone = extractFirstPhoneNumber(node.getTitle());
+                        return pPhone.equals(nodePhone);
+                    })
+                    .findFirst()
+                    .orElse(null);
+                
+                if (matchedNode != null) {
+                    matchReason = "phone_in_title";
+                    log.info("  [PHONE_TITLE] Matched '{}' with node '{}' (reason: candidate phone '{}' found in title)",
+                        posUserName, matchedNode.getTitle(), pPhone);
+                    break;
+                }
+            }
         }
 
         // === Strategy 2: Phone match from FULL content (title + body) ===
-        if (matchedNode == null && posUserPhone != null && !posUserPhone.isEmpty()) {
+        if (matchedNode == null && !posUserPhones.isEmpty()) {
           for (LarkNode node : allLarkNodes) {
             String fullContent = getNodeFullContent(node, session);
-            java.util.Set<String> phones = extractAllPhoneNumbers(fullContent);
-            if (phones.contains(posUserPhone)) {
-              // Make sure it's not just a title match (already checked above)
-              String titlePhone = extractFirstPhoneNumber(node.getTitle());
-              if (!posUserPhone.equals(titlePhone)) {
-                matchedNode = node;
-                matchReason = "phone_in_body";
-                log.info("  [PHONE_BODY] Matched '{}' with node '{}' (reason: phone '{}' found in body, not title)",
-                    posUserName, node.getTitle(), posUserPhone);
-                break;
-              }
+            java.util.Set<String> larkPhones = extractAllPhoneNumbers(fullContent);
+            
+            for (String pPhone : posUserPhones) {
+                if (larkPhones.contains(pPhone)) {
+                    // Make sure it's not just a title match (already checked above)
+                    String titlePhone = extractFirstPhoneNumber(node.getTitle());
+                    if (!pPhone.equals(titlePhone)) {
+                        matchedNode = node;
+                        matchReason = "phone_in_body";
+                        log.info("  [PHONE_BODY] Matched '{}' with node '{}' (reason: candidate phone '{}' found in body)",
+                            posUserName, node.getTitle(), pPhone);
+                        break;
+                    }
+                }
             }
+            if (matchedNode != null) break;
           }
+        }
+
+        if (matchedNode == null && posUserPhones.isEmpty()) {
+          log.debug("No phone numbers found for POS user: {}", posUserName);
         }
 
         // === Strategy 3: Fuzzy name match ===
@@ -498,7 +380,7 @@ public class LarkWikiService {
         if (matchedNode != null) {
           matchedMap.put(posUser, matchedNode);
         } else {
-          log.info("  [NO_MATCH] No Lark node found for POS user: {} (phone={})", posUserName, posUserPhone);
+          log.info("  [NO_MATCH] No Lark node found for POS user: {} (phones={})", posUserName, posUserPhones);
         }
       }
 
