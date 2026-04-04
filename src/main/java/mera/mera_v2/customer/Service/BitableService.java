@@ -682,9 +682,14 @@ public class BitableService {
 
         if (hasMore && (pageToken == null || pageToken.isBlank())) break;
 
+      } catch (HttpClientErrorException e) {
+        // Nếu lỗi 400 (Bad Request) hoặc 403 (Forbidden) thì thường là do Base bị lỗi hoặc không có quyền.
+        // Chỉ log warn để tránh làm rối log hệ thống khi quét qua nhiều bases.
+        log.warn("ℹ️ Cannot list tables for base {}: {} (Code: {})", appToken, e.getStatusText(), e.getStatusCode());
+        return Collections.emptyList();
       } catch (RestClientException e) {
-        log.error("Error calling Bitable list tables API: {}", e.getMessage(), e);
-        throw new RuntimeException("Failed to call Bitable list tables API: " + e.getMessage(), e);
+        log.error("❌ Unexpected error calling Bitable list tables API for base {}: {}", appToken, e.getMessage());
+        return Collections.emptyList();
       }
     }
     return all;
@@ -887,29 +892,17 @@ public class BitableService {
   private String extractText(Object v) {
     if (v == null) return "";
     if (v instanceof String s) return s;
-    if (v instanceof Number n) return String.valueOf(n);
-
-    if (v instanceof Map<?, ?> map) {
-      Object name = map.get("name");
-      if (name != null) return String.valueOf(name);
-      Object text = map.get("text");
-      if (text != null) return String.valueOf(text);
-      Object value = map.get("value");
-      if (value != null) return String.valueOf(value);
-    }
-
     if (v instanceof List<?> list) {
-      StringBuilder sb = new StringBuilder();
-      for (Object it : list) {
-        String part = extractText(it);
-        if (!part.isBlank()) {
-          if (!sb.isEmpty()) sb.append(", ");
-          sb.append(part);
-        }
-      }
-      return sb.toString();
+        java.util.stream.Stream<String> stream = list.stream().map(this::extractText).filter(s -> !s.isBlank());
+        return stream.collect(java.util.stream.Collectors.joining(", "));
     }
-
+    if (v instanceof java.util.Map<?, ?> map) {
+        Object text = map.get("text");
+        if (text != null) return String.valueOf(text);
+        Object name = map.get("name");
+        if (name != null) return String.valueOf(name);
+        return map.toString();
+    }
     return String.valueOf(v);
   }
 

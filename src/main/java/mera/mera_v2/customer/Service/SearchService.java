@@ -141,7 +141,7 @@ public class SearchService {
 
     private Map<String, Object> fetchCustomerInfo(String phone) throws Exception {
         String url = UriComponentsBuilder.fromUriString(baseUrl + "/shops/" + shopId + "/customers")
-                .queryParam("page_size", 1)
+                .queryParam("page_size", 20) // Lấy nhiều hơn 1 để tìm match chính xác
                 .queryParam("search", phone)
                 .queryParam("api_key", apiKey)
                 .toUriString();
@@ -152,12 +152,38 @@ public class SearchService {
 
         if (!dataNode.isArray() || dataNode.isEmpty()) return null;
 
+        // Tìm customer khớp chính xác số điện thoại
         JsonNode c = dataNode.get(0);
+        boolean foundExact = false;
+        for (JsonNode item : dataNode) {
+            JsonNode phones = item.path("phone_numbers");
+            if (phones.isArray()) {
+                for (JsonNode p : phones) {
+                    if (p.asText().replaceAll("\\D", "").contains(phone)) {
+                        c = item;
+                        foundExact = true;
+                        break;
+                    }
+                }
+            }
+            if (foundExact) break;
+        }
+
         Map<String, Object> info = new HashMap<>();
         info.put("customerId", asText(c, "customer_id"));
         info.put("name", asText(c, "name"));
-        info.put("phone", extractPhone(c.path("phone_numbers")));
-        info.put("fullAddress", asText(c, "full_address"));
+        info.put("phone", extractPhone(c.path("phone_numbers"), phone));
+        String address = null;
+        JsonNode addrNode = c.path("shop_customer_addresses");
+        if (addrNode.isArray() && !addrNode.isEmpty()) {
+            JsonNode firstAddr = addrNode.get(0);
+            address = asText(firstAddr, "full_address");
+            if (address == null || address.isBlank()) address = asText(firstAddr, "address");
+        }
+        
+        if (address == null || address.isBlank()) address = asText(c, "full_address");
+        if (address == null || address.isBlank()) address = asText(c, "address");
+        info.put("fullAddress", address);
         info.put("succeedOrderCount", c.path("succeed_order_count").asInt(0));
 
         List<Map<String, Object>> posNotes = new ArrayList<>();
@@ -170,7 +196,8 @@ public class SearchService {
                 posNotes.add(note);
             }
         }
-        info.put("posNotes", posNotes);
+        log.info("✅ Found POS Customer: {} (ID: {}, Phone: {})", info.get("name"), info.get("customerId"), info.get("phone"));
+        log.info("📊 Full Data from POS: {}", c.toString());
         return info;
     }
 
@@ -254,7 +281,11 @@ public class SearchService {
                 List<BitableRecord> customers = bitableService.searchCustomerByPhone(session, config.getBaseId(), config.getKhachHangTableId(), phone, null);
                 if (customers != null && !customers.isEmpty()) {
                     String recordId = customers.get(0).getRecordId();
-                    log.info("✅ Found customer record {} in base {}", recordId, config.getBaseId());
+                    String larkCustomerName = extractText(customers.get(0).getFields().get("Họ và tên"));
+                    if (larkCustomerName.isEmpty()) larkCustomerName = extractText(customers.get(0).getFields().get("Tên khách hàng"));
+                    
+                    log.info("✅ Found Lark Customer in Base {}: {} (RecordID: {})", config.getLarkName(), larkCustomerName, recordId);
+                    log.info("📊 Full Fields from Lark: {}", customers.get(0).getFields());
                     
                     if (config.getTraoDoiTableId().isEmpty()) {
                         log.warn("⚠️ Missing Trao Đổi table ID for base {}", config.getBaseId());
@@ -262,7 +293,17 @@ public class SearchService {
                     }
 
                     // 2. Tìm các bản ghi Trao đổi liên kết với record_id này
-                    List<BitableRecord> exchanges = bitableService.searchRecordsByCustomerId(session, config.getBaseId(), config.getTraoDoiTableId(), recordId, null, TRAO_DOI_VIEW_ID);
+                    // Thử tìm với View ID trước, nếu không được (hoặc không có view đó) thì tìm không View
+                    List<BitableRecord> exchanges = null;
+                    try {
+                        exchanges = bitableService.searchRecordsByCustomerId(session, config.getBaseId(), config.getTraoDoiTableId(), recordId, null, TRAO_DOI_VIEW_ID);
+                    } catch (Exception e) {
+                        log.debug("View ID search failed for base {}, trying without view ID", config.getBaseId());
+                    }
+
+                    if (exchanges == null || exchanges.isEmpty()) {
+                        exchanges = bitableService.searchRecordsByCustomerId(session, config.getBaseId(), config.getTraoDoiTableId(), recordId, null, null);
+                    }
                     
                     if (exchanges != null && !exchanges.isEmpty()) {
                         log.info("📥 Found {} exchanges in base {}", exchanges.size(), config.getBaseId());
@@ -272,9 +313,9 @@ public class SearchService {
                                 Map<String, Object> ex = new HashMap<>();
                                 
                                 // Tìm kiếm linh hoạt field name
-                                Object contentVal = findValue(f, List.of("Nội dung", "Nội dung trao đổi", "Trao đổi", "Content"));
+                                Object contentVal = findValue(f, List.of("Nội dung", "Nội dung trao đổi", "Trao đổi", "Content", "Ghi chú", "Lưu ý", "Note"));
                                 Object dateVal = findValue(f, List.of("Ngày", "Ngày tạo", "Thời gian", "Date", "Created At"));
-                                Object personVal = findValue(f, List.of("Người thực hiện", "Nhân viên", "Người tạo", "Person", "User"));
+                                Object personVal = findValue(f, List.of("Người thực hiện", "Nhân viên", "Người tạo", "Person", "User", "Sale"));
                                 
                                 ex.put("content", extractText(contentVal));
                                 ex.put("date", extractText(dateVal));
@@ -295,17 +336,33 @@ public class SearchService {
 
         CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
         
-        // Sắp xếp theo ngày mới nhất
+        // Sắp xếp theo ngày mới nhất (parse date để sort chính xác)
         return allExchanges.stream()
-                .sorted((a, b) -> ((String) b.getOrDefault("date", "")).compareTo((String) a.getOrDefault("date", "")))
+                .sorted((a, b) -> parseAndCompareDates((String) b.getOrDefault("date", ""), (String) a.getOrDefault("date", "")))
                 .collect(Collectors.toList());
+    }
+
+    private int parseAndCompareDates(String d1, String d2) {
+        if (d1 == null || d1.isEmpty()) return 1;
+        if (d2 == null || d2.isEmpty()) return -1;
+        try {
+            // Thử parse ISO format trước (2024-03-01...)
+            if (d1.contains("-") && d1.indexOf("-") < 5) {
+                return d1.compareTo(d2);
+            }
+            // Thử parse Vietnam format (dd/MM/yyyy...)
+            java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd/MM/yyyy");
+            return sdf.parse(d1).compareTo(sdf.parse(d2));
+        } catch (Exception e) {
+            return d1.compareTo(d2);
+        }
     }
 
     /**
      * Tự động nạp cấu hình UserConfigDto vào session nếu chưa có.
      * Copy logic từ authenController.loadAndCacheData
      */
-    private void ensureUserConfigsStored(HttpSession session) {
+    public void ensureUserConfigsStored(HttpSession session) {
         if (session.getAttribute(SESSION_USER_CONFIGS) != null) return;
         
         log.info("ℹ️ SESSION_USER_CONFIGS missing. Loading in background...");
@@ -324,11 +381,12 @@ public class SearchService {
                     try {
                         List<BitableTable> tables = bitableService.getTablesByBaseId(session, baseId);
                         for (BitableTable table : tables) {
-                            String tableName = table.getName() == null ? "" : table.getName().trim();
+                            String tableName = table.getName() == null ? "" : table.getName().trim().toLowerCase();
                             String tableId = table.getTableId();
-                            if (tableName.equalsIgnoreCase("Khách Hàng")) userConfig.setKhachHangTableId(tableId);
-                            else if (tableName.equalsIgnoreCase("Lịch Hẹn")) userConfig.setLichHenTableId(tableId);
-                            else if (tableName.equalsIgnoreCase("Trao Đổi")) userConfig.setTraoDoiTableId(tableId);
+                            
+                            if (tableName.contains("khách hàng")) userConfig.setKhachHangTableId(tableId);
+                            else if (tableName.contains("lịch hẹn") || tableName.contains("lịch làm")) userConfig.setLichHenTableId(tableId);
+                            else if (tableName.contains("trao đổi") || tableName.contains("nhật ký")) userConfig.setTraoDoiTableId(tableId);
                         }
                     } catch (Exception e) {
                         log.warn("Failed to get tables for baseId {}: {}", baseId, e.getMessage());
@@ -361,9 +419,19 @@ public class SearchService {
         return node.get(field).asText();
     }
 
-    private String extractPhone(JsonNode phonesNode) {
-        if (phonesNode.isArray() && !phonesNode.isEmpty()) return phonesNode.get(0).asText();
-        return "-";
+    private String extractPhone(JsonNode phonesNode, String searchedPhone) {
+        if (!phonesNode.isArray() || phonesNode.isEmpty()) return "-";
+        
+        // Ưu tiên trả về số điện thoại đã search nếu nó nằm trong danh sách
+        for (JsonNode p : phonesNode) {
+            String pVal = p.asText();
+            if (pVal.replaceAll("\\D", "").contains(searchedPhone)) {
+                return pVal;
+            }
+        }
+        
+        // Fallback về số đầu tiên
+        return phonesNode.get(0).asText();
     }
 
     private String formatNoteDate(JsonNode ca) {
@@ -384,11 +452,15 @@ public class SearchService {
         if (v == null) return "";
         if (v instanceof String s) return s;
         if (v instanceof List<?> list) {
-             return list.stream().map(Object::toString).collect(Collectors.joining(", "));
+             return list.stream()
+                 .map(this::extractText)
+                 .filter(s -> !s.isBlank())
+                 .collect(Collectors.joining(", "));
         }
         if (v instanceof Map<?,?> map) {
-            if (map.containsKey("text")) return map.get("text").toString();
-            if (map.containsKey("name")) return map.get("name").toString();
+            if (map.containsKey("text")) return String.valueOf(map.get("text"));
+            if (map.containsKey("name")) return String.valueOf(map.get("name"));
+            return map.toString();
         }
         return v.toString();
     }
