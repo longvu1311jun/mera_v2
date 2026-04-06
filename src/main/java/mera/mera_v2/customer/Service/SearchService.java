@@ -90,6 +90,7 @@ public class SearchService {
             fallback.put("name", "Khách hàng (Lark)");
             fallback.put("phone", phone);
             fallback.put("succeedOrderCount", orders.size());
+            fallback.put("posNotes", Collections.emptyList());
             // Thử lấy tên từ node của Lark nếu có thể
             try {
                 larkWikiService.getAllNodesWithChildren(session).stream()
@@ -196,6 +197,7 @@ public class SearchService {
                 posNotes.add(note);
             }
         }
+        info.put("posNotes", posNotes);
         log.info("✅ Found POS Customer: {} (ID: {}, Phone: {})", info.get("name"), info.get("customerId"), info.get("phone"));
         log.info("📊 Full Data from POS: {}", c.toString());
         return info;
@@ -320,6 +322,7 @@ public class SearchService {
                                 ex.put("content", extractText(contentVal));
                                 ex.put("date", extractText(dateVal));
                                 ex.put("person", extractText(personVal));
+                                ex.put("source", config.getLarkName()); // Thêm tên Base nguồn
                                 allExchanges.add(ex);
                             }
                         }

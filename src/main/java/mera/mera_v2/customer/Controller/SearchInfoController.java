@@ -22,6 +22,19 @@ public class SearchInfoController {
   private static final Logger log = LoggerFactory.getLogger(SearchInfoController.class);
   private final SearchService searchService;
 
+  @GetMapping("/init-search")
+  public ResponseEntity<?> initSearch(jakarta.servlet.http.HttpSession session) {
+    try {
+      log.info("🚀 Pre-loading search configs for session...");
+      searchService.ensureUserConfigsStored(session);
+      return ResponseEntity.ok(Map.of("message", "Configs loaded successfully"));
+    } catch (Exception ex) {
+      log.error("❌ Error pre-loading search configs", ex);
+      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+          .body(Map.of("error", "Lỗi cấu hình: " + ex.getMessage()));
+    }
+  }
+
   /**
    * Search for customer and order info by phone number.
    * Expects phone parameter: /api/search-info?phone=0984859009
