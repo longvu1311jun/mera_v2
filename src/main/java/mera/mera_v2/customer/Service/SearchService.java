@@ -9,7 +9,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import mera.mera_v2.lark.wiki.LarkWikiService;
@@ -142,33 +144,53 @@ public class SearchService {
 
     private Map<String, Object> fetchCustomerInfo(String phone) throws Exception {
         String url = UriComponentsBuilder.fromUriString(baseUrl + "/shops/" + shopId + "/customers")
-                .queryParam("page_size", 20) // Lấy nhiều hơn 1 để tìm match chính xác
+                .queryParam("page_size", 20)
                 .queryParam("search", phone)
                 .queryParam("api_key", apiKey)
                 .toUriString();
 
-        ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, HttpEntity.EMPTY, String.class);
+        HttpHeaders headers = new HttpHeaders();
+        headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+        headers.set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
+        HttpEntity<String> entity = new HttpEntity<>(headers);
+
+        ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
         JsonNode root = objectMapper.readTree(response.getBody());
         JsonNode dataNode = root.path("data");
 
         if (!dataNode.isArray() || dataNode.isEmpty()) return null;
 
-        // Tìm customer khớp chính xác số điện thoại
-        JsonNode c = dataNode.get(0);
-        boolean foundExact = false;
+        // BƯỚC 1: Tìm ID khách hàng
+        JsonNode firstMatch = dataNode.get(0);
         for (JsonNode item : dataNode) {
             JsonNode phones = item.path("phone_numbers");
             if (phones.isArray()) {
                 for (JsonNode p : phones) {
                     if (p.asText().replaceAll("\\D", "").contains(phone)) {
-                        c = item;
-                        foundExact = true;
+                        firstMatch = item;
                         break;
                     }
                 }
             }
-            if (foundExact) break;
         }
+
+        String actualId = asText(firstMatch, "customer_id");
+        if (actualId == null) actualId = asText(firstMatch, "id");
+        
+        log.info("🔍 Step 1: Found ID {} for phone {}. Fetching full details...", actualId, phone);
+
+        // BƯỚC 2: Gọi trực tiếp API chi tiết khách hàng để lấy FULL NOTES
+        String detailUrl = UriComponentsBuilder.fromUriString(baseUrl + "/shops/" + shopId + "/customers/" + actualId)
+                .queryParam("api_key", apiKey)
+                .toUriString();
+        
+        ResponseEntity<String> detailRes = restTemplate.exchange(detailUrl, HttpMethod.GET, entity, String.class);
+        JsonNode detailRoot = objectMapper.readTree(detailRes.getBody());
+        
+        // Pancake trả về bọc trong field "data" cho endpoint chi tiết
+        JsonNode c = detailRoot.has("data") ? detailRoot.get("data") : detailRoot;
+        
+        log.info("📊 Processing detailed customer data: {}", c.toString());
 
         Map<String, Object> info = new HashMap<>();
         info.put("customerId", asText(c, "customer_id"));
@@ -194,6 +216,11 @@ public class SearchService {
                 Map<String, Object> note = new HashMap<>();
                 note.put("message", asText(n, "message"));
                 note.put("createdAt", formatNoteDate(n.get("created_at")));
+                
+                // Trích xuất tên người tạo từ created_by.fb_name
+                JsonNode creator = n.path("created_by");
+                note.put("userName", asText(creator, "fb_name"));
+                
                 posNotes.add(note);
             }
         }
@@ -290,7 +317,15 @@ public class SearchService {
                     log.info("📊 Full Fields from Lark: {}", customers.get(0).getFields());
                     
                     if (config.getTraoDoiTableId().isEmpty()) {
-                        log.warn("⚠️ Missing Trao Đổi table ID for base {}", config.getBaseId());
+                        log.info("ℹ️ Virtual exchange for Base {}", config.getLarkName());
+                        Map<String, Object> virtualEx = new HashMap<>();
+                        virtualEx.put("content", "⚠️ Khách hàng nằm trong Base [" + config.getLarkName() + "]");
+                        virtualEx.put("date", "-");
+                        virtualEx.put("person", "System");
+                        virtualEx.put("source", config.getLarkName());
+                        synchronized (allExchanges) {
+                            allExchanges.add(virtualEx);
+                        }
                         return;
                     }
 
@@ -327,7 +362,15 @@ public class SearchService {
                             }
                         }
                     } else {
-                        log.debug("ℹ️ No exchanges found for customer {} in base {}", recordId, config.getBaseId());
+                        log.info("ℹ️ Customer exists but no exchanges in Base {}. Adding placeholder.", config.getLarkName());
+                        Map<String, Object> virtualEx = new HashMap<>();
+                        virtualEx.put("content", "⚠️ Khách hàng nằm trong Base [" + config.getLarkName() + "] (Chưa có nhật ký)");
+                        virtualEx.put("date", "-");
+                        virtualEx.put("person", "System");
+                        virtualEx.put("source", config.getLarkName());
+                        synchronized (allExchanges) {
+                            allExchanges.add(virtualEx);
+                        }
                     }
                 } else {
                     log.debug("ℹ️ No customer found with phone {} in base {}", phone, config.getBaseId());
@@ -381,27 +424,49 @@ public class SearchService {
                 
                 String baseId = userConfig.getBaseId();
                 if (baseId != null && !baseId.isBlank()) {
-                    try {
-                        List<BitableTable> tables = bitableService.getTablesByBaseId(session, baseId);
-                        for (BitableTable table : tables) {
-                            String tableName = table.getName() == null ? "" : table.getName().trim().toLowerCase();
-                            String tableId = table.getTableId();
-                            
-                            if (tableName.contains("khách hàng")) userConfig.setKhachHangTableId(tableId);
-                            else if (tableName.contains("lịch hẹn") || tableName.contains("lịch làm")) userConfig.setLichHenTableId(tableId);
-                            else if (tableName.contains("trao đổi") || tableName.contains("nhật ký")) userConfig.setTraoDoiTableId(tableId);
-                        }
-                    } catch (Exception e) {
-                        log.warn("Failed to get tables for baseId {}: {}", baseId, e.getMessage());
-                    }
+                    loadTableConfigs(session, userConfig);
                 }
                 userConfigs.add(userConfig);
             }
             
+            // --- THÊM 3 BASE ĐẶC BIỆT: TỪ CHỐI CHĂM, ĐƠN HOÀN, HỦY ---
+            List<String> specialTitles = List.of("TỪ CHỐI CHĂM", "Đơn hoàn", "Hủy");
+            List<mera.mera_v2.model.LarkNode> allNodes = larkWikiService.getAllNodesWithChildren(session);
+            for (mera.mera_v2.model.LarkNode node : allNodes) {
+                if (node.getObjToken() == null) continue;
+                String title = node.getTitle() == null ? "" : node.getTitle().trim().toUpperCase();
+                
+                // Nếu tiêu đề base chứa 1 trong các từ khóa đặc biệt & chưa có trong list hiện tại
+                if (specialTitles.stream().anyMatch(st -> title.contains(st.toUpperCase()))) {
+                    boolean alreadyExists = userConfigs.stream().anyMatch(uc -> node.getObjToken().equals(uc.getBaseId()));
+                    if (!alreadyExists) {
+                        UserConfigDto specialConfig = new UserConfigDto(null, node);
+                        loadTableConfigs(session, specialConfig);
+                        userConfigs.add(specialConfig);
+                    }
+                }
+            }
+            
             session.setAttribute(SESSION_USER_CONFIGS, userConfigs);
-            log.info("✅ SESSION_USER_CONFIGS loaded successfully: {} configs", userConfigs.size());
+            log.info("✅ SESSION_USER_CONFIGS loaded successfully: {} total configs", userConfigs.size());
         } catch (Exception e) {
             log.error("❌ Failed to background-load user configs", e);
+        }
+    }
+
+    private void loadTableConfigs(HttpSession session, UserConfigDto config) {
+        try {
+            List<BitableTable> tables = bitableService.getTablesByBaseId(session, config.getBaseId());
+            for (BitableTable table : tables) {
+                String tableName = table.getName() == null ? "" : table.getName().trim().toLowerCase();
+                String tableId = table.getTableId();
+                
+                if (tableName.contains("khách hàng")) config.setKhachHangTableId(tableId);
+                else if (tableName.contains("lịch hẹn") || tableName.contains("lịch làm")) config.setLichHenTableId(tableId);
+                else if (tableName.contains("trao đổi") || tableName.contains("nhật ký")) config.setTraoDoiTableId(tableId);
+            }
+        } catch (Exception e) {
+            log.warn("Failed to get tables for baseId {}: {}", config.getBaseId(), e.getMessage());
         }
     }
 

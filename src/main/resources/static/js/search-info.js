@@ -117,12 +117,15 @@ function renderDashboard(data) {
         if (customer.posNotes.length > 0) {
             posNotesWrap.innerHTML = customer.posNotes.map(n => `
                  <div class="bg-slate-50 p-2 rounded border border-slate-100 text-xs text-slate-600 mb-2">
-                    <p class="font-medium">${n.message}</p>
-                    <p class="text-[10px] text-slate-400 mt-1">${n.createdAt}</p>
+                    <p class="font-medium text-slate-800">${n.message}</p>
+                    <div class="flex justify-between items-center mt-1.5 pt-1 border-t border-slate-100/50">
+                        <span class="text-[9px] font-bold text-slate-400 italic">${n.userName || 'Hệ thống'}</span>
+                        <span class="text-[9px] text-slate-400">${n.createdAt}</span>
+                    </div>
                  </div>
             `).join('');
         } else {
-            posNotesWrap.innerHTML = '<p class="text-[11px] text-slate-400 italic">Không có ghi chú từ POS</p>';
+            posNotesWrap.innerHTML = '<p class="text-[11px] text-slate-400 italic text-center py-4">Không có ghi chú từ POS</p>';
         }
     }
 

@@ -114,21 +114,29 @@
                 const isKHMissing = !c.khachHangTableId;
                 const isTDMissing = !c.traoDoiTableId;
                 const isLHMissing = !c.lichHenTableId;
+                
+                // Trạng thái cho base hệ thống (không cần đủ 3 bảng)
+                const isSystemBase = !c.posUser; 
+                
+                let isReady = !isBaseMissing && !isKHMissing;
+                if (!isSystemBase) {
+                    isReady = isReady && !isTDMissing && !isLHMissing;
+                }
 
                 const statusColor = isBaseMissing ? 'bg-rose-100 text-rose-600' : 
-                                  (isKHMissing || isTDMissing || isLHMissing ? 'bg-amber-100 text-amber-600' : 'bg-emerald-100 text-emerald-600');
+                                   (!isReady ? 'bg-amber-100 text-amber-600' : 'bg-emerald-100 text-emerald-600');
                 
                 const statusText = isBaseMissing ? 'Lỗi Base' : 
-                                 (isKHMissing || isTDMissing || isLHMissing ? 'Thiếu Bảng' : 'Hoàn tất');
+                                 (!isReady ? 'Thiếu Bảng' : 'Hoàn tất');
 
                 return `
-                    <tr class="hover:bg-slate-50 transition">
+                    <tr class="hover:bg-slate-50 transition ${isSystemBase ? 'bg-slate-50/50' : ''}">
                         <td class="px-6 py-4">
-                            <div class="font-bold text-slate-800">${c.posName || 'N/A'}</div>
-                            <div class="text-[11px] text-slate-400 mt-0.5">${c.larkName || 'Chưa khớp Lark'}</div>
+                            <div class="font-bold text-slate-800">${c.posName || (isSystemBase ? c.larkName : 'N/A')}</div>
+                            <div class="text-[11px] text-slate-400 mt-0.5">${isSystemBase ? '<span class="text-indigo-500 font-bold">SYSTEM BASE</span>' : (c.larkName || 'Chưa khớp Lark')}</div>
                         </td>
                         <td class="px-6 py-4">
-                            <code class="text-[11px] font-mono ${isBaseMissing ? 'text-rose-400 italic' : 'text-slate-500 bg-slate-100 px-2 py-0.5 rounded'}">
+                            <code class="text-[11px] font-mono ${isBaseMissing ? 'text-rose-400 italic' : 'text-slate-500 bg-white border border-slate-200 px-2 py-0.5 rounded shadow-sm'}">
                                 ${c.baseId || 'Missing'}
                             </code>
                         </td>
@@ -136,10 +144,10 @@
                             ${renderId(c.khachHangTableId)}
                         </td>
                         <td class="px-6 py-4">
-                            ${renderId(c.traoDoiTableId)}
+                            ${isSystemBase ? '<span class="text-slate-300 italic text-xs">Phần khách hàng (Ghi đè)</span>' : renderId(c.traoDoiTableId)}
                         </td>
                         <td class="px-6 py-4">
-                            ${renderId(c.lichHenTableId)}
+                            ${isSystemBase ? '<span class="text-slate-300 italic text-xs">-</span>' : renderId(c.lichHenTableId)}
                         </td>
                         <td class="px-6 py-4 text-center">
                             <span class="inline-flex items-center px-2.5 py-1 text-[10px] font-bold rounded-full uppercase tracking-wider ${statusColor}">
