@@ -75,9 +75,9 @@
             <p class="text-lg">Nhập số điện thoại để bắt đầu tra cứu thông tin 360</p>
         </div>
 
-        <div id="dashboardContent" class="grid grid-cols-1 lg:grid-cols-[330px_1fr_400px] gap-6 h-full opacity-0 transition-opacity duration-300 hidden">
+        <div id="dashboardContent" class="grid grid-cols-1 lg:grid-cols-[330px_1fr_400px] gap-6 h-full min-h-0 opacity-0 transition-opacity duration-300 hidden">
             <!-- CỘT 1: PROFILE & TỔNG HỢP -->
-            <div class="flex flex-col gap-5 overflow-y-auto no-scrollbar pb-10">
+          <div class="flex flex-col gap-5 overflow-y-auto no-scrollbar pb-10 min-h-0 h-full">
                 <!-- Profile Card -->
                 <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex-none">
                     <div class="h-24 bg-gradient-to-r from-brand-600 to-teal-400"></div>
@@ -127,7 +127,7 @@
             </div>
 
             <!-- CỘT 2: LỊCH SỬ ĐƠN HÀNG -->
-            <div class="flex flex-col bg-white rounded-2xl shadow-sm border border-slate-200 h-full overflow-hidden">
+          <div class="flex flex-col bg-white rounded-2xl shadow-sm border border-slate-200 h-full overflow-hidden min-h-0">
                 <div class="px-6 py-4 border-b border-slate-100 bg-white sticky top-0 z-10 flex justify-between items-center gap-4">
                     <h3 class="font-bold text-lg text-slate-800 flex items-center gap-2">
                         <i class="fa-solid fa-clock-rotate-left text-brand-500"></i>
@@ -147,7 +147,7 @@
             </div>
 
             <!-- CỘT 3: NHẬT KÝ CHĂM SÓC -->
-            <div class="flex flex-col h-full gap-5">
+          <div class="flex flex-col h-full gap-5 min-h-0">
                 <!-- POS Notes (Ghi chú POS) -->
                 <div class="flex flex-col bg-white rounded-2xl shadow-sm border border-slate-200 h-[350px] overflow-hidden flex-none">
                     <div class="px-5 py-3 border-b border-slate-100 flex justify-between items-center">
@@ -162,15 +162,15 @@
                 </div>
 
                 <!-- Lark Exchanges (Nhật ký chăm sóc) -->
-                <div class="flex flex-col bg-white rounded-2xl shadow-sm border border-slate-200 h-full overflow-hidden">
+            <div class="flex flex-col bg-white rounded-2xl shadow-sm border border-slate-200 h-full overflow-hidden min-h-0">
                     <div class="px-5 py-4 border-b border-slate-100 bg-white sticky top-0 z-10">
                         <h3 class="font-bold text-sm text-slate-800 flex items-center gap-2">
                             <i class="fa-solid fa-comments text-brand-500"></i>
                             Nhật ký trao đổi (Lark)
                         </h3>
                     </div>
-                    
-                    <div id="exchangeHistoryWrap" class="p-5 overflow-y-auto no-scrollbar flex-1 bg-slate-50/20">
+
+              <div id="exchangeHistoryWrap" class="p-5 overflow-y-auto no-scrollbar flex-1 bg-slate-50/20 min-h-0">
                         <div class="relative timeline-line">
                             <!-- Data from JS -->
                              <div id="timelineContent"></div>
