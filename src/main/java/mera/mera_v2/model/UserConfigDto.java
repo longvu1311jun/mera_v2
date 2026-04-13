@@ -3,6 +3,9 @@ package mera.mera_v2.model;
 public class UserConfigDto {
   private PosUser posUser;
   private LarkNode larkNode;
+
+  // Override posName cho các base đặc biệt (Từ chối chăm, Hoàn, Hủy)
+  private String specialPosName;
   
   public UserConfigDto(PosUser posUser, LarkNode larkNode) {
     this.posUser = posUser;
@@ -26,7 +29,12 @@ public class UserConfigDto {
   }
   
   public String getPosName() {
+    if (specialPosName != null) return specialPosName;
     return posUser != null ? posUser.getName() : "";
+  }
+
+  public void setPosName(String name) {
+    this.specialPosName = name;
   }
   
   public String getLarkName() {
@@ -65,3 +73,4 @@ public class UserConfigDto {
     this.traoDoiTableId = traoDoiTableId;
   }
 }
+

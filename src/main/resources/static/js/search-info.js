@@ -131,8 +131,47 @@ function renderDashboard(data) {
 
     const exchangeHistoryWrap = document.getElementById('exchangeHistoryWrap');
     if (exchangeHistoryWrap) {
-        if (exchanges && exchanges.length > 0) {
-            exchangeHistoryWrap.innerHTML = exchanges.map((ex, idx) => `
+        // Tách warning đặc biệt và nhật ký thường
+        const warnings = (exchanges || []).filter(ex => ex.type === 'special_warning');
+        const normalExchanges = (exchanges || []).filter(ex => ex.type !== 'special_warning');
+
+        let html = '';
+
+        // Render warning banners (Từ chối chăm / Hoàn / Hủy)
+        if (warnings.length > 0) {
+            html += warnings.map(w => {
+                const tableName = w.tableName || w.content || '';
+                let iconClass = 'fa-circle-exclamation';
+                let colorClass = 'bg-red-50 border-red-300 text-red-700';
+                let badgeClass = 'bg-red-100 text-red-700 border-red-200';
+                let dotClass = 'bg-red-500';
+
+                if (tableName.toLowerCase().includes('hoàn')) {
+                    iconClass = 'fa-rotate-left';
+                    colorClass = 'bg-amber-50 border-amber-300 text-amber-700';
+                    badgeClass = 'bg-amber-100 text-amber-700 border-amber-200';
+                    dotClass = 'bg-amber-500';
+                } else if (tableName.toLowerCase().includes('hủy')) {
+                    iconClass = 'fa-ban';
+                    colorClass = 'bg-rose-50 border-rose-300 text-rose-700';
+                    badgeClass = 'bg-rose-100 text-rose-700 border-rose-200';
+                    dotClass = 'bg-rose-500';
+                }
+
+                return `
+                <div class="flex items-start gap-3 px-1 pb-3 mb-3 border-b border-slate-100 last:border-0">
+                    <span class="mt-0.5 w-2 h-2 rounded-full ${dotClass} flex-shrink-0 mt-2"></span>
+                    <div class="flex-1 ${colorClass} border rounded-xl px-3 py-2.5 flex items-center gap-2.5 shadow-sm">
+                        <i class="fa-solid ${iconClass} text-sm flex-shrink-0"></i>
+                        <p class="text-sm font-semibold leading-snug">${w.content || 'Khách hàng nằm trong bảng ' + tableName}</p>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        // Render nhật ký trao đổi thường
+        if (normalExchanges.length > 0) {
+            html += normalExchanges.map((ex, idx) => `
                 <div class="relative pl-8 mb-6 last:mb-0">
                     <div class="absolute left-0 top-1 w-6 h-6 bg-white border-2 ${idx === 0 ? 'border-brand-500' : 'border-slate-300'} rounded-full flex items-center justify-center z-10 shadow-sm">
                         <i class="fa-solid ${idx === 0 ? 'fa-check text-brand-500' : 'fa-clock text-slate-300'} text-[10px]"></i>
@@ -149,9 +188,11 @@ function renderDashboard(data) {
                     </div>
                 </div>
             `).join('');
-        } else {
-            exchangeHistoryWrap.innerHTML = '<div class="text-center py-4 text-slate-400 text-xs italic">Chưa có nhật ký từ Lark</div>';
+        } else if (warnings.length === 0) {
+            html = '<div class="text-center py-4 text-slate-400 text-xs italic">Chưa có nhật ký từ Lark</div>';
         }
+
+        exchangeHistoryWrap.innerHTML = `<div class="relative timeline-line">${html}</div>`;
     }
 }
 

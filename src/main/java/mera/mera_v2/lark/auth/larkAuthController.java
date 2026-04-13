@@ -403,6 +403,17 @@ public class larkAuthController {
    * Endpoint Ä‘á»ƒ lÃ m má»›i token thá»§ cÃ´ng
    * GET /token/refresh
    */
+  /**
+   * Đăng xuất: xóa session và redirect về trang đăng nhập
+   * GET /lark/logout
+   */
+  @GetMapping("/logout")
+  public String logout(HttpSession session) {
+    session.invalidate();
+    log.info("✅ Người dùng đã đăng xuất, session đã bị xóa");
+    return "redirect:/lark";
+  }
+
   @GetMapping("/token/refresh")
   public String manualRefreshToken(HttpSession session, RedirectAttributes redirectAttributes) {
     log.info("Manual token refresh requested");

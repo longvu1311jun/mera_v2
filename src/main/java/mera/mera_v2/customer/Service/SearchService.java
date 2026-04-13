@@ -306,6 +306,11 @@ public class SearchService {
                     return;
                 }
                 
+                // Kiểm tra base đặc biệt (Từ chối chăm / Hoàn / Hủy)
+                String posName = config.getPosName() != null ? config.getPosName() : "";
+                boolean isSpecialBase = posName.startsWith("__SPECIAL__:");
+                String specialTableName = isSpecialBase ? posName.substring("__SPECIAL__:".length()) : null;
+                
                 // 1. Tìm bản ghi khách hàng để lấy record_id
                 List<BitableRecord> customers = bitableService.searchCustomerByPhone(session, config.getBaseId(), config.getKhachHangTableId(), phone, null);
                 if (customers != null && !customers.isEmpty()) {
@@ -315,6 +320,22 @@ public class SearchService {
                     
                     log.info("✅ Found Lark Customer in Base {}: {} (RecordID: {})", config.getLarkName(), larkCustomerName, recordId);
                     log.info("📊 Full Fields from Lark: {}", customers.get(0).getFields());
+                    
+                    // Nếu là base đặc biệt → tạo warning riêng, không cần tìm trao đổi
+                    if (isSpecialBase) {
+                        log.info("⚠️ Customer found in SPECIAL base: {}", specialTableName);
+                        Map<String, Object> warningEx = new HashMap<>();
+                        warningEx.put("type", "special_warning");
+                        warningEx.put("tableName", specialTableName);
+                        warningEx.put("content", "Khách hàng nằm trong bảng " + specialTableName);
+                        warningEx.put("date", "-");
+                        warningEx.put("person", "System");
+                        warningEx.put("source", config.getLarkName());
+                        synchronized (allExchanges) {
+                            allExchanges.add(warningEx);
+                        }
+                        return;
+                    }
                     
                     if (config.getTraoDoiTableId().isEmpty()) {
                         log.info("ℹ️ Virtual exchange for Base {}", config.getLarkName());
@@ -441,6 +462,8 @@ public class SearchService {
                     boolean alreadyExists = userConfigs.stream().anyMatch(uc -> node.getObjToken().equals(uc.getBaseId()));
                     if (!alreadyExists) {
                         UserConfigDto specialConfig = new UserConfigDto(null, node);
+                        // Đánh dấu là special base để frontend xử lý riêng
+                        specialConfig.setPosName("__SPECIAL__:" + (node.getTitle() != null ? node.getTitle().trim() : title));
                         loadTableConfigs(session, specialConfig);
                         userConfigs.add(specialConfig);
                     }
