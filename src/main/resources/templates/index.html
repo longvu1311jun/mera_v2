@@ -203,6 +203,608 @@
                 </div>
             </div>
 
+            <!-- ========== FEATURE MAP SECTION ========== -->
+            <div class="mb-10">
+                <div class="flex items-center justify-between mb-6">
+                    <div>
+                        <h2 class="text-xl font-extrabold">🗺️ Chức Năng & Đường Dẫn Hệ Thống</h2>
+                        <p class="text-slate-500 text-xs mt-1">Toàn bộ các tính năng và API endpoints trong dự án MeraGroup v2</p>
+                    </div>
+                    <span class="text-[11px] bg-indigo-600/20 text-indigo-300 border border-indigo-500/30 px-3 py-1 rounded-full font-semibold">v2.0</span>
+                </div>
+
+                <style>
+                    .feature-group { margin-bottom: 2rem; }
+                    .feature-group-title {
+                        font-size: 11px;
+                        font-weight: 700;
+                        text-transform: uppercase;
+                        letter-spacing: 0.08em;
+                        color: #64748b;
+                        margin-bottom: 0.75rem;
+                        padding-left: 4px;
+                        border-left: 3px solid #6366f1;
+                        padding-left: 10px;
+                    }
+                    .feature-grid {
+                        display: grid;
+                        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+                        gap: 12px;
+                    }
+                    .feature-card {
+                        background: rgba(30, 30, 45, 0.5);
+                        border: 1px solid rgba(255,255,255,0.05);
+                        border-radius: 14px;
+                        padding: 16px 18px;
+                        transition: all 0.25s ease;
+                        cursor: default;
+                        position: relative;
+                        overflow: hidden;
+                    }
+                    .feature-card::before {
+                        content: '';
+                        position: absolute;
+                        inset: 0;
+                        background: linear-gradient(135deg, rgba(99,102,241,0.06) 0%, transparent 60%);
+                        opacity: 0;
+                        transition: opacity 0.25s;
+                        border-radius: 14px;
+                    }
+                    .feature-card:hover {
+                        border-color: rgba(99,102,241,0.35);
+                        transform: translateY(-3px);
+                        box-shadow: 0 8px 24px rgba(99,102,241,0.12);
+                    }
+                    .feature-card:hover::before { opacity: 1; }
+                    .feature-card a.card-link {
+                        position: absolute;
+                        inset: 0; z-index: 0;
+                        border-radius: 14px;
+                    }
+                    .feature-card .card-content { position: relative; z-index: 1; }
+                    .route-badge {
+                        display: inline-flex;
+                        align-items: center;
+                        gap: 5px;
+                        font-size: 10px;
+                        font-weight: 700;
+                        padding: 2px 8px;
+                        border-radius: 6px;
+                        font-family: monospace;
+                        letter-spacing: 0.03em;
+                    }
+                    .badge-get { background: rgba(34,197,94,0.15); color: #4ade80; border: 1px solid rgba(34,197,94,0.25); }
+                    .badge-post { background: rgba(251,191,36,0.15); color: #fbbf24; border: 1px solid rgba(251,191,36,0.25); }
+                    .badge-page { background: rgba(99,102,241,0.15); color: #a3a6ff; border: 1px solid rgba(99,102,241,0.3); }
+                    .badge-api { background: rgba(168,85,247,0.15); color: #c084fc; border: 1px solid rgba(168,85,247,0.25); }
+                    .path-text {
+                        font-family: 'Courier New', monospace;
+                        font-size: 12px;
+                        color: #c7d0e8;
+                        word-break: break-all;
+                        margin-top: 4px;
+                    }
+                    .copy-btn {
+                        position: absolute;
+                        top: 10px; right: 10px;
+                        background: rgba(99,102,241,0.15);
+                        border: 1px solid rgba(99,102,241,0.2);
+                        border-radius: 7px;
+                        padding: 3px 8px;
+                        font-size: 10px;
+                        color: #a3a6ff;
+                        cursor: pointer;
+                        opacity: 0;
+                        transition: opacity 0.2s;
+                        z-index: 2;
+                    }
+                    .feature-card:hover .copy-btn { opacity: 1; }
+                    .copy-btn:hover { background: rgba(99,102,241,0.3); }
+                </style>
+
+                <!-- GROUP 1: MENU CHÍNH -->
+                <div class="feature-group">
+                    <div class="feature-group-title">📌 Menu Chính — Trang Giao Diện</div>
+                    <div class="feature-grid">
+                        <div class="feature-card">
+                            <a href="/" class="card-link"></a>
+                            <button class="copy-btn" onclick="copyPath(event,'/')">copy</button>
+                            <div class="card-content">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <span class="text-xl">🏠</span>
+                                    <span class="font-bold text-sm">Dashboard / Trang Chủ</span>
+                                    <span class="route-badge badge-page">PAGE</span>
+                                </div>
+                                <div class="path-text">GET /</div>
+                                <p class="text-[11px] text-slate-500 mt-2">Trang chính. Nếu chưa đăng nhập → login Lark OAuth. Nếu đã đăng nhập → dashboard tổng quan.</p>
+                            </div>
+                        </div>
+
+                        <div class="feature-card">
+                            <a href="/saleReport" class="card-link"></a>
+                            <button class="copy-btn" onclick="copyPath(event,'/saleReport')">copy</button>
+                            <div class="card-content">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <span class="text-xl">📊</span>
+                                    <span class="font-bold text-sm">Báo Cáo Sale 1</span>
+                                    <span class="route-badge badge-page">PAGE</span>
+                                </div>
+                                <div class="path-text">GET /saleReport</div>
+                                <p class="text-[11px] text-slate-500 mt-2">Thống kê tin nhắn, đơn chốt, tỉ lệ hủy của từng tư vấn viên. Hỗ trợ export Excel.</p>
+                            </div>
+                        </div>
+
+                        <div class="feature-card">
+                            <a href="/stats" class="card-link"></a>
+                            <button class="copy-btn" onclick="copyPath(event,'/stats')">copy</button>
+                            <div class="card-content">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <span class="text-xl">📈</span>
+                                    <span class="font-bold text-sm">Thống Kê Lịch Hẹn</span>
+                                    <span class="route-badge badge-page">PAGE</span>
+                                </div>
+                                <div class="path-text">GET /stats</div>
+                                <p class="text-[11px] text-slate-500 mt-2">KPI lịch hẹn CSKH: tổng khách, tổng lịch, hoàn thành, muộn/quá hạn.</p>
+                            </div>
+                        </div>
+
+                        <div class="feature-card">
+                            <a href="/logs" class="card-link"></a>
+                            <button class="copy-btn" onclick="copyPath(event,'/logs')">copy</button>
+                            <div class="card-content">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <span class="text-xl">📝</span>
+                                    <span class="font-bold text-sm">Logs Realtime</span>
+                                    <span class="route-badge badge-page">PAGE</span>
+                                </div>
+                                <div class="path-text">GET /logs</div>
+                                <p class="text-[11px] text-slate-500 mt-2">Xem log hệ thống realtime — webhook events, sync jobs, token refresh.</p>
+                            </div>
+                        </div>
+
+                        <div class="feature-card">
+                            <a href="/report" class="card-link"></a>
+                            <button class="copy-btn" onclick="copyPath(event,'/report')">copy</button>
+                            <div class="card-content">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <span class="text-xl">📋</span>
+                                    <span class="font-bold text-sm">Report (Legacy)</span>
+                                    <span class="route-badge badge-page">PAGE</span>
+                                </div>
+                                <div class="path-text">GET /report</div>
+                                <p class="text-[11px] text-slate-500 mt-2">Báo cáo cũ lấy từ Lark Bitable — tóm tắt Sales Summary theo bảng.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- GROUP 2: TRA CỨU & POS -->
+                <div class="feature-group">
+                    <div class="feature-group-title">🔎 Tra Cứu & POS</div>
+                    <div class="feature-grid">
+                        <div class="feature-card">
+                            <a href="/search-info" class="card-link"></a>
+                            <button class="copy-btn" onclick="copyPath(event,'/search-info')">copy</button>
+                            <div class="card-content">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <span class="text-xl">🔎</span>
+                                    <span class="font-bold text-sm">Tìm Khách Hàng 360°</span>
+                                    <span class="route-badge badge-page">PAGE</span>
+                                </div>
+                                <div class="path-text">GET /search-info</div>
+                                <p class="text-[11px] text-slate-500 mt-2">Tra cứu khách hàng theo SĐT từ Pancake POS + Lark Bitable. Hiển thị đơn hàng, ghi chú, lịch hẹn.</p>
+                            </div>
+                        </div>
+
+                        <div class="feature-card">
+                            <a href="/searchInfo" class="card-link"></a>
+                            <button class="copy-btn" onclick="copyPath(event,'/searchInfo')">copy</button>
+                            <div class="card-content">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <span class="text-xl">🕵️</span>
+                                    <span class="font-bold text-sm">Tra Cứu Của SALE</span>
+                                    <span class="route-badge badge-page">PAGE</span>
+                                </div>
+                                <div class="path-text">GET /searchInfo</div>
+                                <p class="text-[11px] text-slate-500 mt-2">Giao diện tra cứu dành riêng cho Sale — tìm thông tin khách từ Bitable.</p>
+                            </div>
+                        </div>
+
+                        <div class="feature-card">
+                            <a href="/tra_cuu_khach_hang" class="card-link"></a>
+                            <button class="copy-btn" onclick="copyPath(event,'/tra_cuu_khach_hang')">copy</button>
+                            <div class="card-content">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <span class="text-xl">🔍</span>
+                                    <span class="font-bold text-sm">Tra Cứu Khách Hàng (v1)</span>
+                                    <span class="route-badge badge-page">PAGE</span>
+                                </div>
+                                <div class="path-text">GET /tra_cuu_khach_hang</div>
+                                <p class="text-[11px] text-slate-500 mt-2">Tìm kiếm khách hàng song song trên nhiều Base Lark theo SĐT.</p>
+                            </div>
+                        </div>
+
+                        <div class="feature-card">
+                            <a href="/pancake-orders" class="card-link"></a>
+                            <button class="copy-btn" onclick="copyPath(event,'/pancake-orders')">copy</button>
+                            <div class="card-content">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <span class="text-xl">📦</span>
+                                    <span class="font-bold text-sm">Danh Sách Đơn POS</span>
+                                    <span class="route-badge badge-page">PAGE</span>
+                                </div>
+                                <div class="path-text">GET /pancake-orders</div>
+                                <p class="text-[11px] text-slate-500 mt-2">Xem danh sách đơn hàng từ Pancake POS đã đồng bộ vào DB nội bộ.</p>
+                            </div>
+                        </div>
+
+                        <div class="feature-card">
+                            <a href="/test-api.html" class="card-link"></a>
+                            <button class="copy-btn" onclick="copyPath(event,'/test-api.html')">copy</button>
+                            <div class="card-content">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <span class="text-xl">🧪</span>
+                                    <span class="font-bold text-sm">Công Cụ Sync POS</span>
+                                    <span class="route-badge badge-page">PAGE</span>
+                                </div>
+                                <div class="path-text">GET /test-api.html</div>
+                                <p class="text-[11px] text-slate-500 mt-2">UI để force sync đơn hàng từ Pancake POS vào DB theo khoảng thời gian tùy chọn.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- GROUP 3: HỆ THỐNG & CẤU HÌNH -->
+                <div class="feature-group">
+                    <div class="feature-group-title">⚙️ Hệ Thống & Cấu Hình</div>
+                    <div class="feature-grid">
+                        <div class="feature-card">
+                            <a href="/config" class="card-link"></a>
+                            <button class="copy-btn" onclick="copyPath(event,'/config')">copy</button>
+                            <div class="card-content">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <span class="text-xl">⚙️</span>
+                                    <span class="font-bold text-sm">Cấu Hình Webhook</span>
+                                    <span class="route-badge badge-page">PAGE</span>
+                                </div>
+                                <div class="path-text">GET /config</div>
+                                <p class="text-[11px] text-slate-500 mt-2">Quản lý webhook status 1 & 6, xem danh sách Base/Table CSKH, token Lark.</p>
+                            </div>
+                        </div>
+
+                        <div class="feature-card">
+                            <a href="/lark/token" class="card-link"></a>
+                            <button class="copy-btn" onclick="copyPath(event,'/lark/token')">copy</button>
+                            <div class="card-content">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <span class="text-xl">🔑</span>
+                                    <span class="font-bold text-sm">Token & Base Info</span>
+                                    <span class="route-badge badge-page">PAGE</span>
+                                </div>
+                                <div class="path-text">GET /lark/token</div>
+                                <p class="text-[11px] text-slate-500 mt-2">Xem user access token, refresh token, app token, danh sách Bitable tables đã kết nối.</p>
+                            </div>
+                        </div>
+
+                        <div class="feature-card">
+                            <a href="/lark" class="card-link"></a>
+                            <button class="copy-btn" onclick="copyPath(event,'/lark')">copy</button>
+                            <div class="card-content">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <span class="text-xl">🦅</span>
+                                    <span class="font-bold text-sm">Lark Login Page</span>
+                                    <span class="route-badge badge-page">PAGE</span>
+                                </div>
+                                <div class="path-text">GET /lark</div>
+                                <p class="text-[11px] text-slate-500 mt-2">Trang đăng nhập riêng của Lark OAuth — dành cho cấu hình /lark/oauth/callback.</p>
+                            </div>
+                        </div>
+
+                        <div class="feature-card">
+                            <a href="/lark/logout" class="card-link"></a>
+                            <button class="copy-btn" onclick="copyPath(event,'/lark/logout')">copy</button>
+                            <div class="card-content">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <span class="text-xl">🚪</span>
+                                    <span class="font-bold text-sm">Đăng Xuất</span>
+                                    <span class="route-badge badge-get">GET</span>
+                                </div>
+                                <div class="path-text">GET /lark/logout</div>
+                                <p class="text-[11px] text-slate-500 mt-2">Xóa session, đăng xuất người dùng → redirect về /search-config.</p>
+                            </div>
+                        </div>
+
+                        <div class="feature-card">
+                            <a href="/lark/token/refresh" class="card-link"></a>
+                            <button class="copy-btn" onclick="copyPath(event,'/lark/token/refresh')">copy</button>
+                            <div class="card-content">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <span class="text-xl">🔄</span>
+                                    <span class="font-bold text-sm">Làm Mới Token Thủ Công</span>
+                                    <span class="route-badge badge-get">GET</span>
+                                </div>
+                                <div class="path-text">GET /lark/token/refresh</div>
+                                <p class="text-[11px] text-slate-500 mt-2">Kích hoạt TokenRefreshScheduler làm mới token ngay lập tức → redirect về /token.</p>
+                            </div>
+                        </div>
+
+                        <div class="feature-card">
+                            <a href="/admin" class="card-link"></a>
+                            <button class="copy-btn" onclick="copyPath(event,'/admin')">copy</button>
+                            <div class="card-content">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <span class="text-xl">🛡️</span>
+                                    <span class="font-bold text-sm">Admin Dashboard</span>
+                                    <span class="route-badge badge-page">PAGE</span>
+                                </div>
+                                <div class="path-text">GET /admin</div>
+                                <p class="text-[11px] text-slate-500 mt-2">Trang quản trị — tương tự trang chủ nhưng dành cho admin, kiểm tra token.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- GROUP 4: API ENDPOINTS -->
+                <div class="feature-group">
+                    <div class="feature-group-title">🔌 API Endpoints (JSON)</div>
+                    <div class="feature-grid">
+                        <div class="feature-card">
+                            <button class="copy-btn" onclick="copyPath(event,'/api/search-info?phone=0900000000')">copy</button>
+                            <div class="card-content">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <span class="text-xl">📡</span>
+                                    <span class="font-bold text-sm">Search Info 360°</span>
+                                    <span class="route-badge badge-api">API</span>
+                                    <span class="route-badge badge-get">GET</span>
+                                </div>
+                                <div class="path-text">GET /api/search-info?phone=...</div>
+                                <p class="text-[11px] text-slate-500 mt-2">Tìm kiếm thông tin 360° khách hàng qua SĐT: Pancake POS + Lark Bitable.</p>
+                            </div>
+                        </div>
+
+                        <div class="feature-card">
+                            <button class="copy-btn" onclick="copyPath(event,'/api/saleReport/data?range=CurrentMonth')">copy</button>
+                            <div class="card-content">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <span class="text-xl">📊</span>
+                                    <span class="font-bold text-sm">Sale Report Data</span>
+                                    <span class="route-badge badge-api">API</span>
+                                    <span class="route-badge badge-get">GET</span>
+                                </div>
+                                <div class="path-text">GET /api/saleReport/data?range=</div>
+                                <p class="text-[11px] text-slate-500 mt-2">Trả JSON thống kê sale (CurrentMonth / LastMonth). Có cache session + disk.</p>
+                            </div>
+                        </div>
+
+                        <div class="feature-card">
+                            <button class="copy-btn" onclick="copyPath(event,'/api/stats/data?customerMonth=CurrentMonth')">copy</button>
+                            <div class="card-content">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <span class="text-xl">📈</span>
+                                    <span class="font-bold text-sm">Stats Data</span>
+                                    <span class="route-badge badge-api">API</span>
+                                    <span class="route-badge badge-get">GET</span>
+                                </div>
+                                <div class="path-text">GET /api/stats/data?customerMonth=</div>
+                                <p class="text-[11px] text-slate-500 mt-2">Dữ liệu thống kê lịch hẹn nhân viên: totalKhach, totalLich, totalHoanThanh.</p>
+                            </div>
+                        </div>
+
+                        <div class="feature-card">
+                            <button class="copy-btn" onclick="copyPath(event,'/api/orders/sync')">copy</button>
+                            <div class="card-content">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <span class="text-xl">🔄</span>
+                                    <span class="font-bold text-sm">Sync POS Orders</span>
+                                    <span class="route-badge badge-api">API</span>
+                                    <span class="route-badge badge-post">POST</span>
+                                </div>
+                                <div class="path-text">POST /api/orders/sync</div>
+                                <p class="text-[11px] text-slate-500 mt-2">Đồng bộ đơn hàng từ Pancake POS vào DB. Body: startDate, endDate, status, pageSize.</p>
+                            </div>
+                        </div>
+
+                        <div class="feature-card">
+                            <button class="copy-btn" onclick="copyPath(event,'/api/orders/preview')">copy</button>
+                            <div class="card-content">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <span class="text-xl">👁️</span>
+                                    <span class="font-bold text-sm">Preview POS Orders</span>
+                                    <span class="route-badge badge-api">API</span>
+                                    <span class="route-badge badge-post">POST</span>
+                                </div>
+                                <div class="path-text">POST /api/orders/preview</div>
+                                <p class="text-[11px] text-slate-500 mt-2">Xem trước danh sách đơn từ Pancake API mà không lưu vào DB.</p>
+                            </div>
+                        </div>
+
+                        <div class="feature-card">
+                            <button class="copy-btn" onclick="copyPath(event,'/api/tra_cuu_khach_hang?phoneNumber=0900000000')">copy</button>
+                            <div class="card-content">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <span class="text-xl">🔍</span>
+                                    <span class="font-bold text-sm">Tra Cứu KH API</span>
+                                    <span class="route-badge badge-api">API</span>
+                                    <span class="route-badge badge-get">GET</span>
+                                </div>
+                                <div class="path-text">GET /api/tra_cuu_khach_hang?phoneNumber=</div>
+                                <p class="text-[11px] text-slate-500 mt-2">API JSON tra cứu khách hàng song song trên nhiều Lark Base theo SĐT.</p>
+                            </div>
+                        </div>
+
+                        <div class="feature-card">
+                            <button class="copy-btn" onclick="copyPath(event,'/api/sync_tu_choi_cham')">copy</button>
+                            <div class="card-content">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <span class="text-xl">🚫</span>
+                                    <span class="font-bold text-sm">Sync Từ Chối Chăm</span>
+                                    <span class="route-badge badge-api">API</span>
+                                    <span class="route-badge badge-get">GET</span>
+                                </div>
+                                <div class="path-text">GET /api/sync_tu_choi_cham</div>
+                                <p class="text-[11px] text-slate-500 mt-2">Đồng bộ khách hàng có "Tên Liệu Trình" = "Từ chối chăm" sang bảng đích.</p>
+                            </div>
+                        </div>
+
+                        <div class="feature-card">
+                            <button class="copy-btn" onclick="copyPath(event,'/api/sync_dang_cham')">copy</button>
+                            <div class="card-content">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <span class="text-xl">💆</span>
+                                    <span class="font-bold text-sm">Sync Đang Chăm</span>
+                                    <span class="route-badge badge-api">API</span>
+                                    <span class="route-badge badge-get">GET</span>
+                                </div>
+                                <div class="path-text">GET /api/sync_dang_cham</div>
+                                <p class="text-[11px] text-slate-500 mt-2">Đồng bộ khách hàng có "Tên Liệu Trình" = "Đang chăm" sang bảng đích.</p>
+                            </div>
+                        </div>
+
+                        <div class="feature-card">
+                            <button class="copy-btn" onclick="copyPath(event,'/api/exchanges?phone=0900000000')">copy</button>
+                            <div class="card-content">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <span class="text-xl">💬</span>
+                                    <span class="font-bold text-sm">Lịch Sử Trao Đổi</span>
+                                    <span class="route-badge badge-api">API</span>
+                                    <span class="route-badge badge-get">GET</span>
+                                </div>
+                                <div class="path-text">GET /api/exchanges?phone=</div>
+                                <p class="text-[11px] text-slate-500 mt-2">Lấy lịch sử trao đổi của khách từ Bitable table "Trao Đổi" theo SĐT.</p>
+                            </div>
+                        </div>
+
+                        <div class="feature-card">
+                            <button class="copy-btn" onclick="copyPath(event,'/api/config/status')">copy</button>
+                            <div class="card-content">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <span class="text-xl">🔧</span>
+                                    <span class="font-bold text-sm">Webhook Config Status</span>
+                                    <span class="route-badge badge-api">API</span>
+                                    <span class="route-badge badge-get">GET</span>
+                                </div>
+                                <div class="path-text">GET /api/config/status</div>
+                                <p class="text-[11px] text-slate-500 mt-2">Kiểm tra trạng thái webhook status1 & status6 (bật/tắt).</p>
+                            </div>
+                        </div>
+
+                        <div class="feature-card">
+                            <button class="copy-btn" onclick="copyPath(event,'/saleReport/export?range=CurrentMonth')">copy</button>
+                            <div class="card-content">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <span class="text-xl">📥</span>
+                                    <span class="font-bold text-sm">Export Sale Excel</span>
+                                    <span class="route-badge badge-api">API</span>
+                                    <span class="route-badge badge-get">GET</span>
+                                </div>
+                                <div class="path-text">GET /saleReport/export?range=</div>
+                                <p class="text-[11px] text-slate-500 mt-2">Xuất file Excel (.xlsx) báo cáo sale tháng hiện tại hoặc tháng trước.</p>
+                            </div>
+                        </div>
+
+                        <div class="feature-card">
+                            <button class="copy-btn" onclick="copyPath(event,'/api/orders/sync/health')">copy</button>
+                            <div class="card-content">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <span class="text-xl">❤️</span>
+                                    <span class="font-bold text-sm">Health Check</span>
+                                    <span class="route-badge badge-api">API</span>
+                                    <span class="route-badge badge-get">GET</span>
+                                </div>
+                                <div class="path-text">GET /api/orders/sync/health</div>
+                                <p class="text-[11px] text-slate-500 mt-2">Kiểm tra OrderSyncController và các service bean có hoạt động không.</p>
+                            </div>
+                        </div>
+
+                        <div class="feature-card">
+                            <button class="copy-btn" onclick="copyPath(event,'/updateTTC')">copy</button>
+                            <div class="card-content">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <span class="text-xl">⚡</span>
+                                    <span class="font-bold text-sm">Shortcut Sync TTC</span>
+                                    <span class="route-badge badge-api">API</span>
+                                    <span class="route-badge badge-get">GET</span>
+                                </div>
+                                <div class="path-text">GET /updateTTC</div>
+                                <p class="text-[11px] text-slate-500 mt-2">Shortcut URL để chạy nhanh sync "Từ chối chăm" — alias của /api/sync_tu_choi_cham.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- OAUTH ROUTES -->
+                <div class="feature-group">
+                    <div class="feature-group-title">🔐 OAuth & Xác Thực</div>
+                    <div class="feature-grid">
+                        <div class="feature-card">
+                            <div class="card-content">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <span class="text-xl">🔐</span>
+                                    <span class="font-bold text-sm">OAuth Callback</span>
+                                    <span class="route-badge badge-get">GET</span>
+                                </div>
+                                <div class="path-text">GET /oauth/callback</div>
+                                <p class="text-[11px] text-slate-500 mt-2">Lark OAuth callback sau khi người dùng authorize → lưu token → redirect về /.</p>
+                            </div>
+                        </div>
+                        <div class="feature-card">
+                            <div class="card-content">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <span class="text-xl">🔒</span>
+                                    <span class="font-bold text-sm">Lark OAuth Callback</span>
+                                    <span class="route-badge badge-get">GET</span>
+                                </div>
+                                <div class="path-text">GET /lark/oauth/callback</div>
+                                <p class="text-[11px] text-slate-500 mt-2">Callback của Lark OAuth flow thứ 2 → tự động lấy App Token, Base IDs, Table IDs.</p>
+                            </div>
+                        </div>
+                        <div class="feature-card">
+                            <div class="card-content">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <span class="text-xl">🔄</span>
+                                    <span class="font-bold text-sm">Config Refresh</span>
+                                    <span class="route-badge badge-post">POST</span>
+                                </div>
+                                <div class="path-text">POST /config/refresh</div>
+                                <p class="text-[11px] text-slate-500 mt-2">Làm mới toàn bộ dữ liệu config: All Bases, User Configs, Sale Tables.</p>
+                            </div>
+                        </div>
+                        <div class="feature-card">
+                            <div class="card-content">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <span class="text-xl">♻️</span>
+                                    <span class="font-bold text-sm">Sale Report Refresh</span>
+                                    <span class="route-badge badge-post">POST</span>
+                                </div>
+                                <div class="path-text">POST /saleReport/refresh</div>
+                                <p class="text-[11px] text-slate-500 mt-2">Xóa cache sale report (session + disk) → tải lại dữ liệu mới từ Lark.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- ========== END FEATURE MAP ========== -->
+
+            <script>
+            function copyPath(event, path) {
+                event.preventDefault();
+                event.stopPropagation();
+                const fullPath = window.location.origin + path;
+                navigator.clipboard.writeText(fullPath).then(() => {
+                    const btn = event.target;
+                    const orig = btn.textContent;
+                    btn.textContent = '✓ ok';
+                    btn.style.background = 'rgba(34,197,94,0.2)';
+                    btn.style.color = '#4ade80';
+                    setTimeout(() => {
+                        btn.textContent = orig;
+                        btn.style.background = '';
+                        btn.style.color = '';
+                    }, 1500);
+                });
+            }
+            </script>
+
             <!-- Dashboard Grid -->
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 

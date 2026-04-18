@@ -411,7 +411,7 @@ public class larkAuthController {
   public String logout(HttpSession session) {
     session.invalidate();
     log.info("✅ Người dùng đã đăng xuất, session đã bị xóa");
-    return "redirect:/lark";
+    return "redirect:/search-config";
   }
 
   @GetMapping("/token/refresh")
