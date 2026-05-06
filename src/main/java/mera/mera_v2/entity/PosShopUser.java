@@ -22,9 +22,6 @@ public class PosShopUser {
     @Column(name = "user_id", length = 64, nullable = false)
     private String userId;
 
-    @Column(name = "department_id")
-    private Long departmentId;
-
     @Column(name = "role", length = 64)
     private String role;
 
@@ -71,7 +68,7 @@ public class PosShopUser {
     @JoinColumn(name = "user_id", referencedColumnName = "id", insertable = false, updatable = false)
     private PosUser posUser;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "department_id", referencedColumnName = "id", insertable = false, updatable = false)
+    @ManyToOne(fetch = FetchType.LAZY, cascade = CascadeType.PERSIST)
+    @JoinColumn(name = "department_id", referencedColumnName = "id", insertable = true, updatable = true)
     private PosDepartment department;
 }
