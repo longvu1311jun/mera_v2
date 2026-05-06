@@ -25,6 +25,9 @@ public class PosOrderWebhook {
     @JsonProperty("id")
     private Long id;
     
+    @JsonProperty("shop_id")
+    private Long shopId;
+    
     @JsonProperty("type")
     private String type;
     

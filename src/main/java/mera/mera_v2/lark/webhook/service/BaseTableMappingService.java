@@ -89,60 +89,52 @@ public class BaseTableMappingService {
         }
         return null;
     }
-    
+
     /**
-     * Tìm Base ID và Table ID dựa trên Base Name (CSKH name)
-     * So sánh bằng số điện thoại (SDT) trong tên thay vì so sánh toàn bộ tên
-     * @param baseName Tên Base (tên CSKH)
+     * Tìm Base ID và Table ID dựa trên Base Name (CSKH name).
+     * So sánh bằng số điện thoại (SDT) trong tên - giống như logic /search-info.
+     * @param baseName Tên Base (tên CSKH, format: "Nguyễn Vân Anh - 0369895624")
      * @return Optional chứa BaseTableMapping nếu tìm thấy
      */
     public Optional<BaseTableMapping> findMappingByBaseName(String baseName) {
         if (baseName == null || baseName.isBlank()) {
             return Optional.empty();
         }
-        
+
         String trimmedName = baseName.trim();
         String phoneFromInput = extractPhoneNumber(trimmedName);
-        
-        log.debug("🔍 Searching for mapping with base name: '{}'", trimmedName);
+
+        log.debug("🔍 [BaseTableMapping] Searching for mapping with base name: '{}'", trimmedName);
         log.debug("   Extracted phone number: {}", phoneFromInput != null ? phoneFromInput : "(not found)");
-        
+
         if (phoneFromInput == null || phoneFromInput.isBlank()) {
             log.warn("⚠️ Cannot extract phone number from base name: '{}'", trimmedName);
             // Fallback: thử exact match nếu không tìm được SDT
             for (BaseTableMapping mapping : baseTableMappings) {
                 String mappingBaseName = mapping.getBaseName() != null ? mapping.getBaseName().trim() : null;
                 if (mappingBaseName != null && trimmedName.equalsIgnoreCase(mappingBaseName)) {
-                    log.info("✅ Found exact mapping (fallback) for base name '{}': baseId={}, tableId={}", 
+                    log.info("✅ [BaseTableMapping] Found exact mapping (fallback) for base name '{}': baseId={}, tableId={}",
                             trimmedName, mapping.getBaseId(), mapping.getTableId());
                     return Optional.of(mapping);
                 }
             }
             return Optional.empty();
         }
-        
-        // Tìm match bằng SDT
+
+        // Tìm match bằng SDT (giống /search-info)
         for (BaseTableMapping mapping : baseTableMappings) {
             String mappingBaseName = mapping.getBaseName() != null ? mapping.getBaseName().trim() : null;
             if (mappingBaseName != null) {
                 String phoneFromMapping = extractPhoneNumber(mappingBaseName);
                 if (phoneFromMapping != null && phoneFromMapping.equals(phoneFromInput)) {
-                    log.info("✅ Found mapping by phone number '{}' for base name '{}': baseId={}, tableId={}", 
+                    log.info("✅ [BaseTableMapping] Found mapping by phone '{}' for base '{}': baseId={}, tableId={}",
                             phoneFromInput, trimmedName, mapping.getBaseId(), mapping.getTableId());
                     return Optional.of(mapping);
                 }
             }
         }
-        
-        log.warn("⚠️ No mapping found for base name: '{}' (phone: '{}')", trimmedName, phoneFromInput);
-        log.debug("Available base names with phones in mappings: {}", 
-                baseTableMappings.stream()
-                    .map(m -> {
-                        String name = m.getBaseName() != null ? m.getBaseName().trim() : "null";
-                        String phone = extractPhoneNumber(name);
-                        return "'" + name + "' (phone: " + (phone != null ? phone : "N/A") + ")";
-                    })
-                    .collect(java.util.stream.Collectors.joining(", ")));
+
+        log.warn("⚠️ [BaseTableMapping] No mapping found for base name: '{}' (phone: '{}')", trimmedName, phoneFromInput);
         return Optional.empty();
     }
     

@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mapping CSKH - Base | Mera V2</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-light: #818cf8;
+            --secondary: #a855f7;
+            --accent: #f43f5e;
+            --bg: #0f172a;
+            --card-bg: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --success: #22c55e;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --glass: rgba(30, 41, 59, 0.7);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg);
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.15) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(168, 85, 247, 0.15) 0px, transparent 50%);
+            color: var(--text-main);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            animation: fadeIn 0.8s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(to right, #818cf8, #c084fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border-radius: 12px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-reload {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+        }
+
+        .btn-reload:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
+        }
+
+        .btn-reload:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-refresh {
+            background: var(--card-bg);
+            color: var(--text-main);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .btn-refresh:hover {
+            border-color: var(--primary);
+            color: var(--primary-light);
+        }
+
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-muted);
+            text-decoration: none;
+            font-weight: 500;
+            padding: 10px 20px;
+            border-radius: 12px;
+            background: var(--glass);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s;
+        }
+
+        .back-btn:hover {
+            color: var(--primary-light);
+            border-color: var(--primary);
+        }
+
+        /* Stats */
+        .stats {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: var(--glass);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 20px 30px;
+            flex: 1;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary-light);
+        }
+
+        .stat-label {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        /* Table */
+        .table-container {
+            background: var(--glass);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            overflow: hidden;
+        }
+
+        .table-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .table-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 14px 16px;
+            text-align: left;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        td {
+            padding: 16px;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            font-size: 0.9rem;
+        }
+
+        tr:hover td {
+            background: rgba(99, 102, 241, 0.05);
+        }
+
+        .pos-name {
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        .pos-phone {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+
+        .base-name {
+            font-weight: 500;
+            color: var(--primary-light);
+        }
+
+        .base-id {
+            font-family: monospace;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .table-id {
+            font-family: monospace;
+            font-size: 0.8rem;
+            background: rgba(99, 102, 241, 0.1);
+            padding: 4px 8px;
+            border-radius: 6px;
+            color: var(--primary-light);
+        }
+
+        .table-id.missing {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--danger);
+        }
+
+        .dept-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 99px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            background: rgba(168, 85, 247, 0.1);
+            color: var(--secondary);
+            border: 1px solid rgba(168, 85, 247, 0.2);
+        }
+
+        /* Empty state */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-muted);
+        }
+
+        .empty-state svg {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        .empty-state p {
+            font-size: 1.1rem;
+            margin-bottom: 20px;
+        }
+
+        /* Toast */
+        #toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: var(--success);
+            color: white;
+            padding: 16px 32px;
+            border-radius: 16px;
+            font-weight: 600;
+            box-shadow: 0 10px 30px rgba(34, 197, 94, 0.3);
+            transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 1000;
+        }
+
+        #toast.show { transform: translateX(-50%) translateY(0); }
+        #toast.error { background: var(--danger); box-shadow: 0 10px 30px rgba(239, 68, 68, 0.3); }
+        #toast.warning { background: var(--warning); }
+
+        /* Loading overlay */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(15, 23, 42, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 999;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s;
+        }
+
+        .loading-overlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .loading-content {
+            text-align: center;
+            color: var(--text-main);
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(99, 102, 241, 0.2);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 1024px) {
+            .header { flex-direction: column; gap: 20px; text-align: center; }
+            .stats { flex-wrap: wrap; }
+            .stat-card { flex: 1 1 200px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-content">
+            <div class="spinner"></div>
+            <p>Đang load và mapping dữ liệu...</p>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="header">
+            <h1>📊 Mapping CSKH - Base</h1>
+            <a href="/" class="back-btn">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="19" y1="12" x2="5" y2="12"></line>
+                    <polyline points="12 19 5 12 12 5"></polyline>
+                </svg>
+                Quay về
+            </a>
+        </div>
+
+        <!-- Success/Error Messages -->
+        <div th:if="${success}" id="toast" class="show" th:text="${success}"></div>
+        <div th:if="${error}" id="toast" class="show error" th:text="${error}"></div>
+
+        <!-- Stats -->
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-value" th:text="${#lists.size(mappings)}">0</div>
+                <div class="stat-label">Tổng mappings</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" th:text="${#lists.size(mappings)}">0</div>
+                <div class="stat-label">Đã map table</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">
+                    <span th:text="${#lists.size(mappings.?[khachHangTableId != null])}">0</span>
+                </div>
+                <div class="stat-label">Có table KH</div>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="header-actions" style="margin-bottom: 20px;">
+            <button class="btn btn-reload" id="reloadBtn" onclick="reloadMappings()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M23 4v6h-6"></path>
+                    <path d="M1 20v-6h6"></path>
+                    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                </svg>
+                Load & Mapping
+            </button>
+        </div>
+
+        <!-- Table -->
+        <div class="table-container">
+            <div class="table-header">
+                <div class="table-title">Danh sách Mapping</div>
+            </div>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>STT</th>
+                            <th>Tên POS</th>
+                            <th>SĐT</th>
+                            <th>Phòng ban</th>
+                            <th>Tên Base</th>
+                            <th>Base ID</th>
+                            <th>Table KH</th>
+                            <th>Table Trao đổi</th>
+                            <th>Table Lịch hẹn</th>
+                            <th>View ID</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <th:block th:if="${not #lists.isEmpty(mappings)}">
+                            <tr th:each="m, iter : ${mappings}">
+                                <td th:text="${iter.index + 1}">1</td>
+                                <td>
+                                    <div class="pos-name" th:text="${m.posName}">Nguyễn Văn A</div>
+                                </td>
+                                <td>
+                                    <div class="pos-phone" th:text="${m.posPhone != null ? m.posPhone : '-'}">0369895624</div>
+                                </td>
+                                <td>
+                                    <span class="dept-badge" th:text="${m.departmentName != null ? m.departmentName : '-'}">SALE 2 NT</span>
+                                </td>
+                                <td>
+                                    <div class="base-name" th:text="${m.larkBaseName != null ? m.larkBaseName : '-'}">Nguyễn Văn A - 0369895624</div>
+                                </td>
+                                <td>
+                                    <div class="base-id" th:text="${m.larkBaseId != null ? m.larkBaseId : '-'}">FtrzbnSfkajsSfsjHMXlGdlpgLf</div>
+                                </td>
+                                <td>
+                                    <span class="table-id" th:classappend="${m.khachHangTableId == null ? 'missing' : ''}" th:text="${m.khachHangTableId != null ? m.khachHangTableId : 'Chưa có'}">tblxxx</span>
+                                </td>
+                                <td>
+                                    <span class="table-id" th:classappend="${m.traoDoiTableId == null ? 'missing' : ''}" th:text="${m.traoDoiTableId != null ? m.traoDoiTableId : 'Chưa có'}">tblxxx</span>
+                                </td>
+                                <td>
+                                    <span class="table-id" th:classappend="${m.lichHenTableId == null ? 'missing' : ''}" th:text="${m.lichHenTableId != null ? m.lichHenTableId : 'Chưa có'}">tblxxx</span>
+                                </td>
+                                <td>
+                                    <span class="table-id" th:text="${m.viewId != null ? m.viewId : '-'}">vewxxx</span>
+                                </td>
+                            </tr>
+                        </th:block>
+                        <th:block th:if="${#lists.isEmpty(mappings)}">
+                            <tr>
+                                <td colspan="10">
+                                    <div class="empty-state">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                            <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                                        </svg>
+                                        <p>Chưa có mapping nào.</p>
+                                        <button class="btn btn-reload" onclick="reloadMappings()">
+                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <path d="M23 4v6h-6"></path>
+                                                <path d="M1 20v-6h6"></path>
+                                                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                                            </svg>
+                                            Load & Mapping ngay
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        </th:block>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function showLoading() {
+            document.getElementById('loadingOverlay').classList.add('show');
+            document.getElementById('reloadBtn').disabled = true;
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingOverlay').classList.remove('show');
+            document.getElementById('reloadBtn').disabled = false;
+        }
+
+        function reloadMappings() {
+            showLoading();
+            document.getElementById('loadingOverlay').querySelector('p').textContent = 'Đang load và mapping dữ liệu từ POS + Lark Wiki...';
+            
+            // Submit the form to reload mappings
+            fetch('/admin/cskh-mapping/reload', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+            })
+            .then(response => {
+                if (response.redirected) {
+                    window.location.href = response.url;
+                } else {
+                    window.location.reload();
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                hideLoading();
+                showToast('Có lỗi xảy ra: ' + error.message, 'error');
+            });
+        }
+
+        function showToast(message, type) {
+            const toast = document.getElementById('toast');
+            if (!toast) return;
+            toast.textContent = message;
+            toast.className = 'show ' + (type || '');
+            setTimeout(() => toast.classList.remove('show'), 4000);
+        }
+
+        // Auto-hide toast
+        setTimeout(() => {
+            const toast = document.getElementById('toast');
+            if (toast) toast.classList.remove('show');
+        }, 4000);
+    </script>
+</body>
+</html>
