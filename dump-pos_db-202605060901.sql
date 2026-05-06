@@ -3,7 +3,7 @@
 --
 -- Host: 100.70.133.122    Database: pos_db
 -- ------------------------------------------------------
--- Server version	11.8.5-MariaDB-ubu2404
+-- Server version	11.8.6-MariaDB-ubu2404
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
@@ -45,7 +45,7 @@ CREATE TABLE `audit_logs` (
   KEY `idx_status` (`status`),
   KEY `idx_resource` (`resource`),
   KEY `idx_ip_address` (`ip_address`)
-) ENGINE=InnoDB AUTO_INCREMENT=9703 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Bảng lưu audit log các thao tác của người dùng';
+) ENGINE=InnoDB AUTO_INCREMENT=9941 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Bảng lưu audit log các thao tác của người dùng';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -251,13 +251,15 @@ CREATE TABLE `customers` (
   `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   `lt_real` decimal(10,2) DEFAULT NULL COMMENT 'Số lần mua thực tế thuộc combo (LT thực tế) - có thể là 0.5 cho combo 1/2',
   `lt_tay` decimal(10,2) DEFAULT NULL COMMENT 'LT người nhập (đối soát)',
+  `lt_adjustment` decimal(10,2) DEFAULT 0.00,
   `note` text DEFAULT NULL COMMENT 'Ghi chú đối soát LT',
   `lt_lark` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `idx_shop` (`shop_id`),
   KEY `idx_fb_id` (`fb_id`),
   KEY `idx_referral` (`referral_code`),
-  KEY `idx_customers_lt_real` (`lt_real`)
+  KEY `idx_customers_lt_real` (`lt_real`),
+  KEY `idx_lt_tay` (`lt_tay`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Khách hàng';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -504,7 +506,7 @@ CREATE TABLE `order_status_histories` (
   KEY `idx_status_history_order_id` (`order_id`),
   KEY `idx_status_history_updated_at` (`updated_at`),
   CONSTRAINT `fk_status_order` FOREIGN KEY (`order_id`) REFERENCES `orders` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=3053969 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Lịch sử thay đổi trạng thái đơn hàng';
+) ENGINE=InnoDB AUTO_INCREMENT=3359460 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Lịch sử thay đổi trạng thái đơn hàng';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -640,6 +642,7 @@ CREATE TABLE `orders` (
   KEY `idx_orders_shipping_full_name` (`shipping_full_name`),
   KEY `idx_orders_shipping_phone_number` (`shipping_phone_number`),
   KEY `idx_orders_tick` (`tick`),
+  KEY `idx_bill_phone` (`bill_phone_number`),
   CONSTRAINT `fk_order_cust` FOREIGN KEY (`customer_id`) REFERENCES `customers` (`id`) ON DELETE SET NULL,
   CONSTRAINT `fk_order_warehouse` FOREIGN KEY (`warehouse_id`) REFERENCES `warehouses` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Đơn hàng';
@@ -969,4 +972,4 @@ CREATE TABLE `warehouses` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*M!100616 SET NOTE_VERBOSITY=@OLD_NOTE_VERBOSITY */;
 
--- Dump completed on 2026-04-09 16:11:32
+-- Dump completed on 2026-05-06  9:01:35

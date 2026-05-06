@@ -84,6 +84,10 @@
 
             <div class="pt-4 text-[10px] uppercase font-bold text-slate-500 mb-2 px-1">Tra cứu & POS</div>
             
+            <a href="/dongbo" class="sidebar-item">
+                <span class="mr-3">🔄</span> Đồng Bộ
+            </a>
+            
             <a href="/search-info" class="sidebar-item">
                 <span class="mr-3">🔎</span> Tìm Khách Hàng
             </a>
@@ -116,13 +120,18 @@
         </nav>
 
         <div class="mt-auto pt-6 border-t border-[#242434]" th:if="${isAuthenticated}">
-            <div class="flex items-center gap-3">
+            <div class="flex items-center gap-3 mb-4">
                 <div class="w-10 h-10 bg-slate-700 rounded-full flex items-center justify-center text-sm font-bold">AD</div>
                 <div class="flex-1 min-w-0">
                     <p class="text-sm font-semibold truncate" th:text="${userName ?: 'Admin User'}"></p>
                     <p class="text-[10px] text-slate-500" th:text="'Hết hạn: ' + ${#strings.substring(tokenExpiresAt, 11, 16)}"></p>
                 </div>
             </div>
+            <a href="/lark/logout" id="sidebar-logout-btn"
+               onclick="return confirm('Bạn có chắc muốn đăng xuất không?')"
+               class="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-xs font-bold text-red-400 border border-red-500/30 bg-red-500/10 hover:bg-red-500/20 hover:border-red-400/50 transition-all duration-200">
+                <span>🚪</span> Đăng Xuất
+            </a>
         </div>
     </aside>
 
@@ -142,13 +151,18 @@
                 </a>
             </div>
             
-            <div class="flex items-center gap-6" th:if="${isAuthenticated}">
+            <div class="flex items-center gap-4" th:if="${isAuthenticated}">
                 <div class="relative">
                     <span class="absolute -top-1 -right-1 w-3 h-3 bg-red-500 border-2 border-[#0d0d18] rounded-full"></span>
                     <span class="text-xl">🔔</span>
                 </div>
                 <a href="/config" class="px-5 py-2 glass-card text-sm font-bold border-none hover:bg-white hover:text-black">
                     Tải Báo Cáo
+                </a>
+                <a href="/lark/logout" id="header-logout-btn"
+                   onclick="return confirm('Bạn có chắc muốn đăng xuất không?')"
+                   class="flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold text-red-400 border border-red-500/30 bg-red-500/10 hover:bg-red-500/20 hover:border-red-400/60 transition-all duration-200">
+                    <span>🚪</span> Đăng Xuất
                 </a>
             </div>
         </header>
@@ -435,6 +449,20 @@
                                 </div>
                                 <div class="path-text">GET /pancake-orders</div>
                                 <p class="text-[11px] text-slate-500 mt-2">Xem danh sách đơn hàng từ Pancake POS đã đồng bộ vào DB nội bộ.</p>
+                            </div>
+                        </div>
+
+                        <div class="feature-card">
+                            <a href="/dongbo" class="card-link"></a>
+                            <button class="copy-btn" onclick="copyPath(event,'/dongbo')">copy</button>
+                            <div class="card-content">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <span class="text-xl">🔄</span>
+                                    <span class="font-bold text-sm">Đồng Bộ Dữ Liệu</span>
+                                    <span class="route-badge badge-page">PAGE</span>
+                                </div>
+                                <div class="path-text">GET /dongbo</div>
+                                <p class="text-[11px] text-slate-500 mt-2">Trang quản lý đồng bộ: đơn hàng, sản phẩm, khách hàng, nhân viên từ POS/Lark.</p>
                             </div>
                         </div>
 
@@ -860,10 +888,11 @@
                             <span>🚀</span> Lối tắt nhanh
                         </h3>
                         <div class="space-y-3">
+                            <a href="/dongbo" class="block p-3 rounded-xl bg-white/5 hover:bg-white/10 transition text-sm font-semibold text-indigo-400">🔄 Đồng bộ dữ liệu</a>
                             <a href="/searchCustomer" class="block p-3 rounded-xl bg-white/5 hover:bg-white/10 transition text-sm">🔍 Tìm kiếm số điện thoại</a>
                             <a href="/pancake-orders" class="block p-3 rounded-xl bg-white/5 hover:bg-white/10 transition text-sm">🛒 Kiểm tra đơn Pancake</a>
                             <a href="/config" class="block p-3 rounded-xl bg-white/5 hover:bg-white/10 transition text-sm">⚡ Cài đặt Webhook Status</a>
-                            <a href="/test-api.html" class="block p-3 rounded-xl bg-white/5 hover:bg-white/10 transition text-sm text-indigo-400">🧪 Force Sync Tool</a>
+                            <a href="/test-api.html" class="block p-3 rounded-xl bg-white/5 hover:bg-white/10 transition text-sm">🧪 Force Sync Tool</a>
                         </div>
                     </div>
 
