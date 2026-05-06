@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đồng Bộ Dữ Liệu - MeraGroup</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: #0d0d18;
+            color: #e9e6f7;
+        }
+        .glass-card {
+            background: rgba(30, 30, 45, 0.6);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            transition: all 0.3s ease;
+        }
+        .glass-card:hover {
+            border-color: rgba(99, 102, 241, 0.4);
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(99, 102, 241, 0.1);
+        }
+        .sync-card {
+            background: rgba(30, 30, 45, 0.5);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 16px;
+            padding: 24px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .sync-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            border-radius: 16px 16px 0 0;
+        }
+        .sync-card.orders::before { background: linear-gradient(90deg, #4f90d9, #6366f1); }
+        .sync-card.products::before { background: linear-gradient(90deg, #10b981, #059669); }
+        .sync-card.customers::before { background: linear-gradient(90deg, #f59e0b, #d97706); }
+        .sync-card.employees::before { background: linear-gradient(90deg, #8b5cf6, #7c3aed); }
+        .sync-card.history::before { background: linear-gradient(90deg, #ec4899, #db2777); }
+
+        .sync-card:hover {
+            border-color: rgba(99,102,241,0.3);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+        }
+        .btn-sync {
+            background: linear-gradient(135deg, #6366F1 0%, #8b5cf6 100%);
+            transition: all 0.2s ease;
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-weight: 600;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        .btn-sync:hover:not(:disabled) {
+            transform: scale(1.02);
+            box-shadow: 0 0 20px rgba(99, 102, 241, 0.4);
+        }
+        .btn-sync:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        .btn-preview {
+            background: rgba(255,255,255,0.1);
+            transition: all 0.2s ease;
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-weight: 600;
+            color: #a3a6ff;
+            border: 1px solid rgba(99,102,241,0.3);
+            cursor: pointer;
+        }
+        .btn-preview:hover:not(:disabled) {
+            background: rgba(99,102,241,0.2);
+        }
+        .result-box {
+            background: #1a1a2e;
+            border-radius: 12px;
+            padding: 16px;
+            font-family: 'Consolas', monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            margin-top: 16px;
+        }
+        .loading::after {
+            content: '';
+            display: inline-block;
+            animation: spin 1s linear infinite;
+            border: 2px solid #fff;
+            border-top-color: transparent;
+            border-radius: 50%;
+            width: 14px;
+            height: 14px;
+            vertical-align: middle;
+            margin-left: 8px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .status-pending { background: rgba(251,191,36,0.2); color: #fbbf24; }
+        .status-success { background: rgba(34,197,94,0.2); color: #4ade80; }
+        .status-error { background: rgba(239,68,68,0.2); color: #f87171; }
+        .error-box {
+            background: rgba(239,68,68,0.1);
+            border: 1px solid rgba(239,68,68,0.3);
+            border-radius: 8px;
+            padding: 12px 16px;
+            color: #f87171;
+            font-size: 13px;
+            margin-top: 12px;
+            display: none;
+        }
+        .error-box.visible { display: block; }
+        input[type="date"], select {
+            padding: 8px 12px;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            background: rgba(255,255,255,0.05);
+            color: #e9e6f7;
+            font-size: 14px;
+        }
+        input[type="date"]:focus, select:focus {
+            outline: none;
+            border-color: #6366f1;
+        }
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        .stat-item:last-child { border-bottom: none; }
+        .stat-label { color: #888; font-size: 13px; }
+        .stat-value { font-weight: 600; color: #e9e6f7; }
+    </style>
+</head>
+<body class="min-h-screen">
+
+    <!-- Header -->
+    <header class="bg-[#13131F] border-b border-[#242434] px-8 py-4">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center gap-4">
+                <a href="/" class="text-gray-400 hover:text-white transition">🏠 Dashboard</a>
+                <span class="text-gray-600">/</span>
+                <span class="text-white font-semibold">Đồng Bộ Dữ Liệu</span>
+            </div>
+            <div class="flex items-center gap-4">
+                <span class="text-sm text-gray-400">MeraGroup v2.0</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="p-8 max-w-7xl mx-auto">
+        
+        <!-- Page Title -->
+        <div class="mb-8">
+            <h1 class="text-3xl font-extrabold mb-2">🔄 Đồng Bộ Dữ Liệu</h1>
+            <p class="text-gray-400">Đồng bộ dữ liệu từ Pancake POS vào database theo thời gian tùy chọn</p>
+        </div>
+
+        <!-- Sync Options Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+            
+            <!-- Orders Sync -->
+            <div class="sync-card orders">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="w-12 h-12 rounded-xl bg-blue-500/20 flex items-center justify-center text-2xl">📦</div>
+                    <div>
+                        <h3 class="font-bold text-lg">Đơn Hàng</h3>
+                        <p class="text-xs text-gray-400">Pancake Orders</p>
+                    </div>
+                </div>
+                
+                <div class="space-y-3 mb-4">
+                    <div>
+                        <label class="text-xs text-gray-400 mb-1 block">updateStatus</label>
+                        <select id="orders-updateStatus" class="w-full">
+                            <option value="inserted_at">inserted_at</option>
+                            <option value="updated_at">updated_at</option>
+                        </select>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="text-xs text-gray-400 mb-1 block">Start Date</label>
+                            <input type="date" id="orders-startDate" class="w-full" value="2026-05-01">
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-400 mb-1 block">End Date</label>
+                            <input type="date" id="orders-endDate" class="w-full" value="2026-05-05">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="text-xs text-gray-400 mb-1 block">Status</label>
+                            <select id="orders-status" class="w-full">
+                                <option value="">Tất cả</option>
+                                <option value="0">0 - Mới tạo</option>
+                                <option value="1">1 - Chờ xác nhận</option>
+                                <option value="2">2 - Đã xác nhận</option>
+                                <option value="3">3 - Hoàn thành</option>
+                                <option value="4">4 - Đã hủy</option>
+                                <option value="5">5 - Trả hàng</option>
+                                <option value="6">6 - Đang giao</option>
+                                <option value="7">7 - Giao thất bại</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-400 mb-1 block">Page Size</label>
+                            <input type="number" id="orders-pageSize" class="w-full" value="200" min="1" max="500">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex gap-2">
+                    <button class="btn-preview flex-1" onclick="previewOrders()">👁️ Preview</button>
+                    <button class="btn-sync flex-1" id="btn-orders-sync" onclick="syncOrders()">🔄 Sync</button>
+                </div>
+
+                <div class="error-box" id="orders-error"></div>
+                
+                <div id="orders-result" class="hidden">
+                    <div class="mt-4 p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
+                        <div class="flex items-center gap-2 mb-2">
+                            <span class="status-badge status-success">✓ Thành công</span>
+                        </div>
+                        <div class="space-y-1 text-sm" id="orders-stats"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Products Sync -->
+            <div class="sync-card products">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="w-12 h-12 rounded-xl bg-green-500/20 flex items-center justify-center text-2xl">🏷️</div>
+                    <div>
+                        <h3 class="font-bold text-lg">Sản Phẩm</h3>
+                        <p class="text-xs text-gray-400">Pancake Products</p>
+                    </div>
+                </div>
+                
+                <div class="space-y-3 mb-4">
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="text-xs text-gray-400 mb-1 block">Start Date</label>
+                            <input type="date" id="products-startDate" class="w-full" value="2026-05-01">
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-400 mb-1 block">End Date</label>
+                            <input type="date" id="products-endDate" class="w-full" value="2026-05-05">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex gap-2">
+                    <button class="btn-preview flex-1" onclick="previewProducts()">👁️ Preview</button>
+                    <button class="btn-sync flex-1" id="btn-products-sync" onclick="syncProducts()">🔄 Sync</button>
+                </div>
+
+                <div class="error-box" id="products-error"></div>
+                
+                <div id="products-result" class="hidden">
+                    <div class="mt-4 p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
+                        <div class="flex items-center gap-2 mb-2">
+                            <span class="status-badge status-success">✓ Thành công</span>
+                        </div>
+                        <div class="space-y-1 text-sm" id="products-stats"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Customers Sync -->
+            <div class="sync-card customers">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="w-12 h-12 rounded-xl bg-yellow-500/20 flex items-center justify-center text-2xl">👥</div>
+                    <div>
+                        <h3 class="font-bold text-lg">Khách Hàng</h3>
+                        <p class="text-xs text-gray-400">Pancake Customers</p>
+                    </div>
+                </div>
+                
+                <div class="space-y-3 mb-4">
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="text-xs text-gray-400 mb-1 block">Start Date</label>
+                            <input type="date" id="customers-startDate" class="w-full" value="2026-05-01">
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-400 mb-1 block">End Date</label>
+                            <input type="date" id="customers-endDate" class="w-full" value="2026-05-05">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex gap-2">
+                    <button class="btn-preview flex-1" onclick="previewCustomers()">👁️ Preview</button>
+                    <button class="btn-sync flex-1" id="btn-customers-sync" onclick="syncCustomers()">🔄 Sync</button>
+                </div>
+
+                <div class="error-box" id="customers-error"></div>
+                
+                <div id="customers-result" class="hidden">
+                    <div class="mt-4 p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
+                        <div class="flex items-center gap-2 mb-2">
+                            <span class="status-badge status-success">✓ Thành công</span>
+                        </div>
+                        <div class="space-y-1 text-sm" id="customers-stats"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Employees Sync -->
+            <div class="sync-card employees">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="w-12 h-12 rounded-xl bg-purple-500/20 flex items-center justify-center text-2xl">👔</div>
+                    <div>
+                        <h3 class="font-bold text-lg">Nhân Viên</h3>
+                        <p class="text-xs text-gray-400">POS Pancake Users</p>
+                    </div>
+                </div>
+                
+                <div class="space-y-3 mb-4">
+                    <p class="text-sm text-gray-400 mb-2">Đồng bộ danh sách nhân viên từ POS Pancake: pos_users, pos_shop_users, phòng ban, nhóm sale.</p>
+                </div>
+
+                <div class="flex gap-2">
+                    <button class="btn-sync flex-1" id="btn-employees-sync" onclick="syncEmployees()">🔄 Sync Nhân Viên</button>
+                </div>
+
+                <div class="error-box" id="employees-error"></div>
+                
+                <div id="employees-result" class="hidden">
+                    <div class="mt-4 p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
+                        <div class="flex items-center gap-2 mb-2">
+                            <span class="status-badge status-success">✓ Thành công</span>
+                        </div>
+                        <div class="space-y-1 text-sm" id="employees-stats"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lark Sync -->
+            <div class="sync-card history">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="w-12 h-12 rounded-xl bg-pink-500/20 flex items-center justify-center text-2xl">🦅</div>
+                    <div>
+                        <h3 class="font-bold text-lg">Lịch Sử Trao Đổi</h3>
+                        <p class="text-xs text-gray-400">Lark Bitable</p>
+                    </div>
+                </div>
+                
+                <div class="space-y-3 mb-4">
+                    <p class="text-sm text-gray-400 mb-2">Đồng bộ lịch sử trao đổi khách hàng từ Lark Bitable.</p>
+                    <div>
+                        <label class="text-xs text-gray-400 mb-1 block">Số Điện Thoại</label>
+                        <input type="text" id="history-phone" class="w-full" placeholder="0901234567">
+                    </div>
+                </div>
+
+                <div class="flex gap-2">
+                    <button class="btn-preview flex-1" onclick="previewHistory()">👁️ Preview</button>
+                    <button class="btn-sync flex-1" id="btn-history-sync" onclick="syncHistory()">🔄 Sync</button>
+                </div>
+
+                <div class="error-box" id="history-error"></div>
+                
+                <div id="history-result" class="hidden">
+                    <div class="mt-4 p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
+                        <div class="flex items-center gap-2 mb-2">
+                            <span class="status-badge status-success">✓ Thành công</span>
+                        </div>
+                        <div class="space-y-1 text-sm" id="history-stats"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="sync-card" style="border: 1px dashed rgba(99,102,241,0.3);">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="w-12 h-12 rounded-xl bg-indigo-500/20 flex items-center justify-center text-2xl">⚡</div>
+                    <div>
+                        <h3 class="font-bold text-lg">Thao Tác Nhanh</h3>
+                        <p class="text-xs text-gray-400">Shortcuts</p>
+                    </div>
+                </div>
+                
+                <div class="space-y-3">
+                    <button onclick="syncTuChoiCham()" class="w-full p-3 rounded-xl bg-orange-500/10 hover:bg-orange-500/20 border border-orange-500/30 text-left transition">
+                        <span class="text-orange-400 font-semibold">🚫 Từ Chối Chăm</span>
+                        <p class="text-xs text-gray-400 mt-1">Sync khách từ chối chăm sóc</p>
+                    </button>
+                    <button onclick="syncDangCham()" class="w-full p-3 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 text-left transition">
+                        <span class="text-blue-400 font-semibold">💆 Đang Chăm</span>
+                        <p class="text-xs text-gray-400 mt-1">Sync khách đang chăm sóc</p>
+                    </button>
+                </div>
+
+                <div class="error-box" id="quick-error"></div>
+                <div id="quick-result" class="hidden">
+                    <div class="mt-4 p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
+                        <span class="status-badge status-success">✓ Hoàn tất</span>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="glass-card p-6">
+            <h2 class="text-xl font-bold mb-4">📋 Hoạt Động Gần Đây</h2>
+            <div id="activity-log" class="space-y-3">
+                <p class="text-gray-500 text-sm">Chưa có hoạt động nào. Bắt đầu đồng bộ để xem lịch sử.</p>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        let activityLog = [];
+
+        function addActivity(type, message, stats) {
+            const now = new Date().toLocaleTimeString('vi-VN');
+            activityLog.unshift({ time: now, type, message, stats });
+            if (activityLog.length > 10) activityLog.pop();
+            renderActivity();
+        }
+
+        function renderActivity() {
+            const container = document.getElementById('activity-log');
+            if (activityLog.length === 0) {
+                container.innerHTML = '<p class="text-gray-500 text-sm">Chưa có hoạt động nào. Bắt đầu đồng bộ để xem lịch sử.</p>';
+                return;
+            }
+            container.innerHTML = activityLog.map(item => `
+                <div class="flex items-start gap-4 p-3 bg-white/5 rounded-lg">
+                    <span class="text-xl">${item.type}</span>
+                    <div class="flex-1">
+                        <div class="flex items-center justify-between">
+                            <span class="font-semibold">${item.message}</span>
+                            <span class="text-xs text-gray-500">${item.time}</span>
+                        </div>
+                        ${item.stats ? `<div class="text-xs text-gray-400 mt-1">${item.stats}</div>` : ''}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function showError(id, message) {
+            const el = document.getElementById(id);
+            el.textContent = message;
+            el.classList.add('visible');
+        }
+
+        function hideError(id) {
+            document.getElementById(id).classList.remove('visible');
+        }
+
+        function showResult(id, statsId, stats) {
+            document.getElementById(id).classList.remove('hidden');
+            document.getElementById(statsId).innerHTML = stats;
+        }
+
+        function setLoading(btnId, loading) {
+            const btn = document.getElementById(btnId);
+            if (loading) {
+                btn.disabled = true;
+                btn.innerHTML = '<span class="loading"></span>Đang xử lý...';
+            } else {
+                btn.disabled = false;
+                btn.textContent = '🔄 Sync';
+            }
+        }
+
+        // Sync Orders
+        function syncOrders() {
+            const startDate = document.getElementById('orders-startDate').value;
+            const endDate = document.getElementById('orders-endDate').value;
+            const status = document.getElementById('orders-status').value;
+            const pageSize = parseInt(document.getElementById('orders-pageSize').value) || 200;
+            const updateStatus = document.getElementById('orders-updateStatus').value;
+
+            if (!startDate || !endDate) {
+                showError('orders-error', 'Vui lòng chọn ngày bắt đầu và kết thúc');
+                return;
+            }
+
+            hideError('orders-error');
+            setLoading('btn-orders-sync', true);
+
+            const body = { startDate, endDate, pageSize, updateStatus };
+            if (status) body.status = status;
+
+            fetch('/api/orders/sync', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.error) {
+                    showError('orders-error', data.error);
+                } else {
+                    const stats = `
+                        <div class="stat-item"><span class="stat-label">Tổng orders (API):</span><span class="stat-value">${data.totalOrdersFromApi ?? 0}</span></div>
+                        <div class="stat-item"><span class="stat-label">Orders mới:</span><span class="stat-value text-green-400">${data.insertedOrders ?? 0}</span></div>
+                        <div class="stat-item"><span class="stat-label">Orders cập nhật:</span><span class="stat-value text-blue-400">${data.updatedOrders ?? 0}</span></div>
+                        <div class="stat-item"><span class="stat-label">Customers mới:</span><span class="stat-value text-yellow-400">${data.insertedCustomers ?? 0}</span></div>
+                    `;
+                    showResult('orders-result', 'orders-stats', stats);
+                    addActivity('📦', 'Sync Đơn Hàng', `${data.insertedOrders} mới, ${data.updatedOrders} cập nhật`);
+                }
+            })
+            .catch(err => showError('orders-error', 'Lỗi: ' + err.message))
+            .finally(() => setLoading('btn-orders-sync', false));
+        }
+
+        // Preview Orders
+        function previewOrders() {
+            const startDate = document.getElementById('orders-startDate').value;
+            const endDate = document.getElementById('orders-endDate').value;
+            const pageSize = parseInt(document.getElementById('orders-pageSize').value) || 200;
+
+            if (!startDate || !endDate) {
+                showError('orders-error', 'Vui lòng chọn ngày bắt đầu và kết thúc');
+                return;
+            }
+
+            hideError('orders-error');
+            setLoading('btn-orders-sync', true);
+
+            fetch('/api/orders/preview', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ startDate, endDate, pageSize })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.error) {
+                    showError('orders-error', data.error);
+                } else {
+                    const stats = `
+                        <div class="stat-item"><span class="stat-label">Tổng orders (API):</span><span class="stat-value">${data.totalOrders ?? 0}</span></div>
+                        <div class="stat-item"><span class="stat-label">Trang hiện tại:</span><span class="stat-value">${data.currentPage ?? 1}</span></div>
+                    `;
+                    showResult('orders-result', 'orders-stats', stats);
+                    addActivity('👁️', 'Preview Đơn Hàng', `${data.totalOrders} orders sẽ được sync`);
+                }
+            })
+            .catch(err => showError('orders-error', 'Lỗi: ' + err.message))
+            .finally(() => setLoading('btn-orders-sync', false));
+        }
+
+        // Sync Products
+        function syncProducts() {
+            const startDate = document.getElementById('products-startDate').value;
+            const endDate = document.getElementById('products-endDate').value;
+
+            if (!startDate || !endDate) {
+                showError('products-error', 'Vui lòng chọn ngày bắt đầu và kết thúc');
+                return;
+            }
+
+            hideError('products-error');
+            setLoading('btn-products-sync', true);
+
+            fetch('/api/products/sync', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ startDate, endDate })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.error) {
+                    showError('products-error', data.error);
+                } else {
+                    const stats = `
+                        <div class="stat-item"><span class="stat-label">Sản phẩm mới:</span><span class="stat-value text-green-400">${data.inserted ?? 0}</span></div>
+                        <div class="stat-item"><span class="stat-label">Sản phẩm cập nhật:</span><span class="stat-value text-blue-400">${data.updated ?? 0}</span></div>
+                    `;
+                    showResult('products-result', 'products-stats', stats);
+                    addActivity('🏷️', 'Sync Sản Phẩm', `${data.inserted} mới, ${data.updated} cập nhật`);
+                }
+            })
+            .catch(err => {
+                showError('products-error', 'API chưa được triển khai: ' + err.message);
+            })
+            .finally(() => setLoading('btn-products-sync', false));
+        }
+
+        function previewProducts() {
+            showError('products-error', 'Preview products: API chưa được triển khai');
+        }
+
+        // Sync Customers
+        function syncCustomers() {
+            const startDate = document.getElementById('customers-startDate').value;
+            const endDate = document.getElementById('customers-endDate').value;
+
+            if (!startDate || !endDate) {
+                showError('customers-error', 'Vui lòng chọn ngày bắt đầu và kết thúc');
+                return;
+            }
+
+            hideError('customers-error');
+            setLoading('btn-customers-sync', true);
+
+            fetch('/api/customers/sync', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ startDate, endDate })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.error) {
+                    showError('customers-error', data.error);
+                } else {
+                    const stats = `
+                        <div class="stat-item"><span class="stat-label">Khách hàng mới:</span><span class="stat-value text-green-400">${data.inserted ?? 0}</span></div>
+                        <div class="stat-item"><span class="stat-label">Khách hàng cập nhật:</span><span class="stat-value text-blue-400">${data.updated ?? 0}</span></div>
+                    `;
+                    showResult('customers-result', 'customers-stats', stats);
+                    addActivity('👥', 'Sync Khách Hàng', `${data.inserted} mới, ${data.updated} cập nhật`);
+                }
+            })
+            .catch(err => {
+                showError('customers-error', 'API chưa được triển khai: ' + err.message);
+            })
+            .finally(() => setLoading('btn-customers-sync', false));
+        }
+
+        function previewCustomers() {
+            showError('customers-error', 'Preview customers: API chưa được triển khai');
+        }
+
+        // Sync Employees
+        function syncEmployees() {
+            hideError('employees-error');
+            setLoading('btn-employees-sync', true);
+
+            fetch('/api/employees/sync', {
+                method: 'GET',
+                headers: { 'Content-Type': 'application/json' }
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.error) {
+                    showError('employees-error', data.error);
+                } else {
+                    const stats = `
+                        <div class="stat-item"><span class="stat-label">Tổng nhân viên (API):</span><span class="stat-value">${data.totalFromApi ?? 0}</span></div>
+                        <div class="stat-item"><span class="stat-label">PosUsers mới:</span><span class="stat-value text-green-400">${data.insertedUsers ?? 0}</span></div>
+                        <div class="stat-item"><span class="stat-label">PosUsers cập nhật:</span><span class="stat-value text-blue-400">${data.updatedUsers ?? 0}</span></div>
+                        <div class="stat-item"><span class="stat-label">Phòng ban mới:</span><span class="stat-value text-purple-400">${data.insertedDepartments ?? 0}</span></div>
+                        <div class="stat-item"><span class="stat-label">Nhóm Sale mới:</span><span class="stat-value text-yellow-400">${data.insertedSaleGroups ?? 0}</span></div>
+                        <div class="stat-item"><span class="stat-label">Thành viên nhóm mới:</span><span class="stat-value text-pink-400">${data.insertedSaleGroupMembers ?? 0}</span></div>
+                    `;
+                    showResult('employees-result', 'employees-stats', stats);
+                    addActivity('👔', 'Sync Nhân Viên POS', `${data.totalFromApi} nhân viên từ API`);
+                }
+            })
+            .catch(err => {
+                showError('employees-error', 'Lỗi: ' + err.message);
+            })
+            .finally(() => setLoading('btn-employees-sync', false));
+        }
+
+        function previewEmployees() {
+            syncEmployees();
+        }
+
+        // Sync History
+        function syncHistory() {
+            const phone = document.getElementById('history-phone').value;
+            hideError('history-error');
+
+            if (!phone) {
+                showError('history-error', 'Vui lòng nhập số điện thoại');
+                return;
+            }
+
+            setLoading('btn-history-sync', true);
+
+            fetch('/api/exchanges?phone=' + phone, {
+                method: 'GET',
+                headers: { 'Content-Type': 'application/json' }
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.error) {
+                    showError('history-error', data.error);
+                } else {
+                    const count = Array.isArray(data) ? data.length : 1;
+                    const stats = `<div class="stat-item"><span class="stat-label">Lịch sử trao đổi:</span><span class="stat-value">${count} bản ghi</span></div>`;
+                    showResult('history-result', 'history-stats', stats);
+                    addActivity('🦅', 'Tra cứu Lịch Sử', `${count} bản ghi cho ${phone}`);
+                }
+            })
+            .catch(err => {
+                showError('history-error', 'Lỗi: ' + err.message);
+            })
+            .finally(() => setLoading('btn-history-sync', false));
+        }
+
+        function previewHistory() {
+            const phone = document.getElementById('history-phone').value;
+            if (!phone) {
+                showError('history-error', 'Vui lòng nhập số điện thoại');
+                return;
+            }
+            syncHistory();
+        }
+
+        // Quick Actions
+        function syncTuChoiCham() {
+            hideError('quick-error');
+            document.getElementById('quick-result').classList.add('hidden');
+            
+            fetch('/api/sync_tu_choi_cham', { method: 'GET' })
+            .then(r => r.json())
+            .then(data => {
+                if (data.error) {
+                    showError('quick-error', data.error);
+                } else {
+                    document.getElementById('quick-result').classList.remove('hidden');
+                    addActivity('🚫', 'Sync Từ Chối Chăm', 'Hoàn tất');
+                }
+            })
+            .catch(err => showError('quick-error', 'Lỗi: ' + err.message));
+        }
+
+        function syncDangCham() {
+            hideError('quick-error');
+            document.getElementById('quick-result').classList.add('hidden');
+            
+            fetch('/api/sync_dang_cham', { method: 'GET' })
+            .then(r => r.json())
+            .then(data => {
+                if (data.error) {
+                    showError('quick-error', data.error);
+                } else {
+                    document.getElementById('quick-result').classList.remove('hidden');
+                    addActivity('💆', 'Sync Đang Chăm', 'Hoàn tất');
+                }
+            })
+            .catch(err => showError('quick-error', 'Lỗi: ' + err.message));
+        }
+    </script>
+</body>
+</html>
