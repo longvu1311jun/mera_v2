@@ -25,6 +25,9 @@ public class PosOrderWebhook {
     @JsonProperty("id")
     private Long id;
     
+    @JsonProperty("inserted_at")
+    private String insertedAt;
+    
     @JsonProperty("shop_id")
     private Long shopId;
     
@@ -138,6 +141,9 @@ public class PosOrderWebhook {
         
         @JsonProperty("conversation_link")
         private String conversationLink;
+        
+        @JsonProperty("inserted_at")
+        private String insertedAt;
         
         // Fallback fields
         @JsonProperty("name")

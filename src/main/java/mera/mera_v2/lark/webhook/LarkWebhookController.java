@@ -217,33 +217,8 @@ public class LarkWebhookController {
             if (autoCreateRecord) {
                 createBitableRecord(webhookData);
             }
-        } else if (status == 6) {
-            log.info("Status = 6: Xoa ban ghi");
-
-            CompletableFuture<Void> deleteFuture = CompletableFuture.runAsync(() -> {
-                try {
-                    processStatus6Delete(webhookData);
-                } catch (Exception e) {
-                    log.error("Failed to process status 6 delete: {}", e.getMessage(), e);
-                }
-            }, executorService);
-
-            CompletableFuture<Void> updateFuture = CompletableFuture.runAsync(() -> {
-                try {
-                    processStatus6UpdateSalesTables(webhookData);
-                } catch (Exception e) {
-                    log.error("Failed to process status 6 update sales tables: {}", e.getMessage(), e);
-                }
-            }, executorService);
-
-            CompletableFuture.allOf(deleteFuture, updateFuture).whenComplete((result, throwable) -> {
-                if (throwable != null) {
-                    log.error("Error in status 6 parallel processing: {}", throwable.getMessage());
-                } else {
-                    log.info("Status 6 parallel processing completed");
-                }
-            });
         }
+        // Status = 6 da duoc bo xu ly
     }
 
     private void logLatestAccountHistory(PosOrderWebhook orderWebhook) {
@@ -460,89 +435,40 @@ public class LarkWebhookController {
         
         log.info("CSKH Name: {}", cskhName != null ? cskhName : "(null)");
 
-        // Tim Base ID va Table ID tu DB mapping (phone-based matching)
-        String appToken = getDefaultBaseId();
-        String targetTableId = getDefaultTableId();
+        // Lay Base ID va Table ID tu mapping CSKH (tu /admin/cskh-mapping)
+        String appToken = null;
+        String targetTableId = null;
+        String viewId = null;
 
-        log.info("Default Base ID: {}, Default Table ID: {}", appToken, targetTableId);
-
-        if (cskhName != null && !cskhName.isBlank()) {
-            // Try CskhBaseMappingService first (DB-based mapping)
-            if (cskhBaseMappingService != null) {
-                CskhBaseMappingService.CskhMappingResult result = cskhBaseMappingService.findMappingResultByPhone(cskhName);
-                if (result != null && result.getBaseId() != null) {
-                    appToken = result.getBaseId();
-                    if (result.getKhachHangTableId() != null && !result.getKhachHangTableId().isBlank()) {
-                        targetTableId = result.getKhachHangTableId();
-                    }
-                    log.info("✅ Found mapping via DB for CSKH '{}': Base ID={}, Table ID={}, Base Name={}",
-                            cskhName, appToken, targetTableId, result.getBaseName());
-                } else {
-                    log.warn("⚠️ No mapping in DB for CSKH '{}', trying in-memory services", cskhName);
-                    // Fallback to SellerBaseMappingService
-                    if (sellerBaseMappingService != null) {
-                        java.util.Optional<String> baseIdOpt = sellerBaseMappingService.findBaseIdBySellerName(cskhName);
-                        if (baseIdOpt.isPresent()) {
-                            appToken = baseIdOpt.get();
-                            log.info("✅ Found Base ID via SellerBaseMappingService for CSKH '{}': Base ID={}", cskhName, appToken);
-                        } else if (baseTableMappingService != null) {
-                            java.util.Optional<mera.mera_v2.lark.webhook.dto.BaseTableMapping> mapping =
-                                    baseTableMappingService.findMappingByBaseName(cskhName);
-                            if (mapping.isPresent()) {
-                                appToken = mapping.get().getBaseId();
-                                if (mapping.get().getTableId() != null && !mapping.get().getTableId().isBlank()) {
-                                    targetTableId = mapping.get().getTableId();
-                                }
-                                log.info("✅ Found mapping via BaseTableMappingService for CSKH '{}': Base ID={}, Table ID={}", cskhName, appToken, targetTableId);
-                            } else {
-                                log.warn("⚠️ No mapping found for CSKH name '{}', using default Base", cskhName);
-                            }
-                        }
-                    } else if (baseTableMappingService != null) {
-                        java.util.Optional<mera.mera_v2.lark.webhook.dto.BaseTableMapping> mapping =
-                                baseTableMappingService.findMappingByBaseName(cskhName);
-                        if (mapping.isPresent()) {
-                            appToken = mapping.get().getBaseId();
-                            if (mapping.get().getTableId() != null && !mapping.get().getTableId().isBlank()) {
-                                targetTableId = mapping.get().getTableId();
-                            }
-                            log.info("✅ Found mapping via BaseTableMappingService for CSKH '{}': Base ID={}, Table ID={}", cskhName, appToken, targetTableId);
-                        } else {
-                            log.warn("⚠️ No mapping found for CSKH name '{}', using default", cskhName);
-                        }
-                    }
-                }
-            } else if (sellerBaseMappingService != null) {
-                java.util.Optional<String> baseIdOpt = sellerBaseMappingService.findBaseIdBySellerName(cskhName);
-                if (baseIdOpt.isPresent()) {
-                    appToken = baseIdOpt.get();
-                    log.info("✅ Found Base ID via SellerBaseMappingService for CSKH '{}': Base ID={}", cskhName, appToken);
-                } else if (baseTableMappingService != null) {
-                    java.util.Optional<mera.mera_v2.lark.webhook.dto.BaseTableMapping> mapping =
-                            baseTableMappingService.findMappingByBaseName(cskhName);
-                    if (mapping.isPresent()) {
-                        appToken = mapping.get().getBaseId();
-                        if (mapping.get().getTableId() != null && !mapping.get().getTableId().isBlank()) {
-                            targetTableId = mapping.get().getTableId();
-                        }
-                        log.info("✅ Found mapping for CSKH '{}': Base ID={}, Table ID={}", cskhName, appToken, targetTableId);
-                    } else {
-                        log.warn("⚠️ No mapping found for CSKH name '{}', using default Base", cskhName);
-                    }
-                }
-            } else if (baseTableMappingService != null) {
-                java.util.Optional<mera.mera_v2.lark.webhook.dto.BaseTableMapping> mapping =
-                        baseTableMappingService.findMappingByBaseName(cskhName);
-                if (mapping.isPresent()) {
-                    appToken = mapping.get().getBaseId();
-                    if (mapping.get().getTableId() != null && !mapping.get().getTableId().isBlank()) {
-                        targetTableId = mapping.get().getTableId();
-                    }
-                    log.info("✅ Found mapping for CSKH '{}': Base ID={}, Table ID={}", cskhName, appToken, targetTableId);
-                } else {
-                    log.warn("⚠️ No mapping found for CSKH name '{}', using default", cskhName);
-                }
+        if (cskhName != null && !cskhName.isBlank() && cskhBaseMappingService != null) {
+            // Trich xuat phone tu ten CSKH (vi du: "Hà Quang Vượng Sale 2 NT 0968420624" -> "0968420624")
+            String cskhPhone = extractPhoneFromName(cskhName);
+            log.info("Extracted phone from CSKH name '{}': {}", cskhName, cskhPhone);
+            
+            CskhBaseMappingService.CskhMappingResult result = null;
+            if (cskhPhone != null) {
+                result = cskhBaseMappingService.findMappingResultByPhone(cskhPhone);
             }
+            
+            if (result != null && result.getBaseId() != null) {
+                appToken = result.getBaseId();
+                targetTableId = result.getKhachHangTableId();
+                viewId = result.getViewId();
+                log.info("✅ Found mapping for CSKH '{}' (phone={}): Base ID={}, Table ID={}, View ID={}, Base Name={}",
+                        cskhName, cskhPhone, appToken, targetTableId, viewId, result.getBaseName());
+            } else {
+                log.error("❌ No mapping found for CSKH '{}' (phone={}). Cannot create record without table ID.", cskhName, cskhPhone);
+                return;
+            }
+        } else {
+            log.error("❌ CSKH name is null or CskhBaseMappingService is not available. Cannot create record.");
+            return;
+        }
+
+        // Kiem tra table ID hop le
+        if (targetTableId == null || targetTableId.isBlank()) {
+            log.error("❌ Table ID is null or blank for CSKH '{}'. Cannot create record.", cskhName);
+            return;
         }
 
         // Map sang Bitable fields
@@ -554,23 +480,22 @@ public class LarkWebhookController {
             throw new IllegalStateException("User access token is not available. Please login at /token first.");
         }
         
-        // ============ KIEM TRA SO DIEN THOAI TRUOC KHI TAO ============
+        // Kiem tra so dien thoai trung lap
         String phoneNumber = posToBitableMapper.getDienThoai(orderWebhook);
         if (phoneNumber != null && !phoneNumber.isBlank()) {
             log.info("Checking if phone number already exists in Lark Bitable: {}", phoneNumber);
             
-            // Normalize phone number de so sanh
             String normalizedPhone = phoneNumber.replaceAll("[^0-9]", "");
             log.info("Normalized phone: {}", normalizedPhone);
             
             try {
-                String viewId = getDefaultViewId() != null ? getDefaultViewId() : "vew5Ou4Kee";
+                String searchViewId = viewId != null ? viewId : "vew5Ou4Kee";
                 boolean phoneExists = bitableService.checkPhoneExists(
                         appToken, 
                         targetTableId, 
                         userAccessToken, 
                         phoneNumber,
-                        viewId
+                        searchViewId
                 );
                 
                 if (phoneExists) {
@@ -594,7 +519,6 @@ public class LarkWebhookController {
                     ? response.getData().getRecord().getRecordId() 
                     : "unknown";
             log.info("Created Bitable record successfully: recordId={}", recordId);
-            // BO QUA GUI TIN NHAN LARK SAU KHI TAO BAN GHI
         } else {
             throw new RuntimeException(String.format("Bitable error: code=%d, msg=%s", 
                     response.getCode(), response.getMsg()));
@@ -921,6 +845,28 @@ public class LarkWebhookController {
                 log.warn("Error getting View ID from DB config: {}", e.getMessage());
             }
         }
+        return null;
+    }
+
+    /**
+     * Trich xuat so dien thoai tu ten CSKH
+     * Ví dụ: "Hà Quang Vượng Sale 2 NT 0968420624" -> "0968420624"
+     */
+    private String extractPhoneFromName(String text) {
+        if (text == null || text.isEmpty()) return null;
+        java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("(?:\\+84|0)[\\s\\.\\-]*[35789][0-9\\s\\.\\-]{7,10}");
+        java.util.regex.Matcher matcher = pattern.matcher(text);
+        if (matcher.find()) {
+            String raw = matcher.group();
+            String phone = raw.replaceAll("[^0-9]", "");
+            if (phone.startsWith("84") && phone.length() > 9) phone = "0" + phone.substring(2);
+            else if (!phone.startsWith("0") && phone.length() == 9) phone = "0" + phone;
+            if (phone.length() == 10 && phone.matches("0[35789].*")) return phone;
+        }
+        // Fallback: tim 10 so lien tiep
+        java.util.regex.Pattern simplePattern = java.util.regex.Pattern.compile("[0-9]{10}");
+        java.util.regex.Matcher simpleMatcher = simplePattern.matcher(text.replaceAll("[^0-9]", ""));
+        if (simpleMatcher.find()) return simpleMatcher.group();
         return null;
     }
 }

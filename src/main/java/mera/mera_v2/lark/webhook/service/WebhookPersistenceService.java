@@ -22,6 +22,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -139,7 +142,8 @@ public class WebhookPersistenceService {
             } else {
                 customer = new Customer();
                 customer.setId(customerId);
-                customer.setInsertedAt(LocalDateTime.now());
+                // Parse inserted_at from webhook data
+                customer.setInsertedAt(parseWebhookDateTime(webhook.getInsertedAt()));
                 result.setSaved(true);
                 log.info("   Customer: Tao moi customer ID={}", customerId);
             }
@@ -234,7 +238,8 @@ public class WebhookPersistenceService {
             } else {
                 order = new Order();
                 order.setId(orderId);
-                order.setInsertedAt(LocalDateTime.now());
+                // Parse inserted_at from webhook data
+                order.setInsertedAt(parseWebhookDateTime(webhook.getInsertedAt()));
                 result.setSaved(true);
                 log.info("   Order: Tạo mới order ID={}", orderId);
             }
@@ -456,7 +461,7 @@ public class WebhookPersistenceService {
 
                     LocalDateTime updatedAt;
                     if (histItem.getUpdatedAt() != null) {
-                        updatedAt = parseDateTime(histItem.getUpdatedAt());
+                        updatedAt = parseWebhookDateTime(histItem.getUpdatedAt());
                     } else {
                         updatedAt = LocalDateTime.now();
                     }
@@ -615,10 +620,43 @@ public class WebhookPersistenceService {
     }
 
     private LocalDateTime parseDateTime(String value) {
-        if (value == null) return LocalDateTime.now();
+        if (value == null || value.isBlank()) return LocalDateTime.now();
         try {
+            // Try parsing with various formats
+            DateTimeFormatter[] formatters = {
+                DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSSSS"),
+                DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS"),
+                DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss"),
+                DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+            };
+            for (DateTimeFormatter fmt : formatters) {
+                try {
+                    return LocalDateTime.parse(value, fmt);
+                } catch (DateTimeParseException ignored) {}
+            }
+            // Try ISO format
             return LocalDateTime.parse(value);
         } catch (Exception e) {
+            log.warn("Cannot parse datetime '{}', using now", value);
+            return LocalDateTime.now();
+        }
+    }
+
+    /**
+     * Parse datetime from webhook data (already in correct timezone)
+     */
+    private LocalDateTime parseWebhookDateTime(String value) {
+        if (value == null || value.isBlank()) return LocalDateTime.now();
+        try {
+            // Handle timestamps with microseconds: 2025-12-25T02:10:11.020365
+            String cleanValue = value;
+            int dotIndex = cleanValue.indexOf('.');
+            if (dotIndex > 0) {
+                cleanValue = cleanValue.substring(0, Math.min(dotIndex + 4, cleanValue.length()));
+            }
+            return LocalDateTime.parse(cleanValue);
+        } catch (Exception e) {
+            log.warn("Cannot parse webhook datetime '{}', using now", value);
             return LocalDateTime.now();
         }
     }
