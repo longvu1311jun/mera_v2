@@ -300,6 +300,15 @@ public class Order {
     @Column(name = "partner_tracking_id", length = 255)
     private String partnerTrackingId;
 
+    @Column(name = "account", length = 255)
+    private String account;
+
+    @Column(name = "account_name", length = 255)
+    private String accountName;
+
+    @Column(name = "order_link", columnDefinition = "TEXT")
+    private String orderLink;
+
     @Column(name = "raw_data", columnDefinition = "LONGTEXT")
     private String rawData;
 

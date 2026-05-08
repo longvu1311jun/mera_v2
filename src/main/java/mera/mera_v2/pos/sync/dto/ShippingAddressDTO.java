@@ -32,4 +32,19 @@ public class ShippingAddressDTO {
   @JsonAlias({"commnue_name", "commune_name"})
   @JsonProperty("commune_name")
   private String communeName;
+
+  @JsonProperty("province_id")
+  private String provinceId;
+
+  @JsonProperty("district_id")
+  private String districtId;
+
+  @JsonProperty("commune_id")
+  private String communeId;
+
+  @JsonProperty("country_code")
+  private String countryCode;
+
+  @JsonProperty("post_code")
+  private String postCode;
 }

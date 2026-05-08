@@ -480,17 +480,15 @@ public class LarkWebhookController {
             throw new IllegalStateException("User access token is not available. Please login at /token first.");
         }
         
-        // Kiem tra so dien thoai trung lap
+        // Kiem tra so dien thoai trung lap bang filter API
         String phoneNumber = posToBitableMapper.getDienThoai(orderWebhook);
         if (phoneNumber != null && !phoneNumber.isBlank()) {
             log.info("Checking if phone number already exists in Lark Bitable: {}", phoneNumber);
             
-            String normalizedPhone = phoneNumber.replaceAll("[^0-9]", "");
-            log.info("Normalized phone: {}", normalizedPhone);
-            
             try {
                 String searchViewId = viewId != null ? viewId : "vew5Ou4Kee";
-                boolean phoneExists = bitableService.checkPhoneExists(
+                // Su dung filter API de kiem tra chinh xac hon
+                boolean phoneExists = bitableService.checkPhoneExistsWithFilter(
                         appToken, 
                         targetTableId, 
                         userAccessToken, 

@@ -95,6 +95,253 @@ public class PosOrderWebhook {
     @JsonProperty("tags")
     private java.util.List<Tag> tags;
 
+    // === Page & Account ===
+    @JsonProperty("page_id")
+    private String pageId;
+
+    @JsonProperty("account_name")
+    private String accountName;
+
+    // === Warehouse ===
+    @JsonProperty("warehouse_id")
+    private String warehouseId;
+
+    private WarehouseInfo warehouseInfo;
+
+    // === Page Info ===
+    private PageInfo page;
+
+    // === Money Fields ===
+    @JsonProperty("total_price")
+    private Double totalPrice;
+
+    @JsonProperty("total_price_after_sub_discount")
+    private Double totalPriceAfterSubDiscount;
+
+    @JsonProperty("total_discount")
+    private Double totalDiscount;
+
+    @JsonProperty("cod")
+    private Double cod;
+
+    @JsonProperty("prepaid")
+    private Double prepaid;
+
+    @JsonProperty("shipping_fee")
+    private Double shippingFee;
+
+    private Double surcharge;
+
+    private Double tax;
+
+    @JsonProperty("money_to_collect")
+    private Double moneyToCollect;
+
+    private Double cash;
+
+    @JsonProperty("transfer_money")
+    private Double transferMoney;
+
+    @JsonProperty("charged_by_momo")
+    private Double chargedByMomo;
+
+    @JsonProperty("charged_by_card")
+    private Double chargedByCard;
+
+    @JsonProperty("charged_by_qrpay")
+    private Double chargedByQrpay;
+
+    @JsonProperty("exchange_payment")
+    private Double exchangePayment;
+
+    @JsonProperty("exchange_value")
+    private Double exchangeValue;
+
+    @JsonProperty("partner_fee")
+    private Double partnerFee;
+
+    @JsonProperty("fee_marketplace")
+    private Double feeMarketplace;
+
+    @JsonProperty("buyer_total_amount")
+    private Double buyerTotalAmount;
+
+    @JsonProperty("levera_point")
+    private Double leveraPoint;
+
+    // === User IDs ===
+    @JsonProperty("creator_id")
+    private String creatorId;
+
+    @JsonProperty("assigning_seller_id")
+    private String assigningSellerId;
+
+    @JsonProperty("assigning_care_id")
+    private String assigningCareId;
+
+    @JsonProperty("last_editor_id")
+    private String lastEditorId;
+
+    @JsonProperty("marketer_id")
+    private String marketerId;
+
+    @JsonProperty("ad_id")
+    private String adId;
+
+    // === Tracking & Link ===
+    @JsonProperty("order_link")
+    private String orderLink;
+
+    @JsonProperty("tracking_link")
+    private String trackingLink;
+
+    @JsonProperty("link")
+    private String link;
+
+    // === Reason ===
+    @JsonProperty("returned_reason")
+    private String returnedReason;
+
+    @JsonProperty("returned_reason_name")
+    private String returnedReasonName;
+
+    // === Boolean Flags ===
+    @JsonProperty("is_livestream")
+    private Boolean isLivestream;
+
+    @JsonProperty("is_live_shopping")
+    private Boolean isLiveShopping;
+
+    @JsonProperty("is_exchange_order")
+    private Boolean isExchangeOrder;
+
+    @JsonProperty("is_free_shipping")
+    private Boolean isFreeShipping;
+
+    @JsonProperty("is_smc")
+    private Boolean isSmc;
+
+    @JsonProperty("is_calculation_tax")
+    private Boolean isCalculationTax;
+
+    @JsonProperty("customer_pay_fee")
+    private Boolean customerPayFee;
+
+    @JsonProperty("received_at_shop")
+    private Boolean receivedAtShop;
+
+    // === Note ===
+    private String note;
+
+    @JsonProperty("note_print")
+    private String notePrint;
+
+    // === UTM Fields ===
+    @JsonProperty("p_utm_source")
+    private String pUtmSource;
+
+    @JsonProperty("p_utm_medium")
+    private String pUtmMedium;
+
+    @JsonProperty("p_utm_campaign")
+    private String pUtmCampaign;
+
+    @JsonProperty("p_utm_content")
+    private String pUtmContent;
+
+    @JsonProperty("p_utm_term")
+    private String pUtmTerm;
+
+    @JsonProperty("p_utm_id")
+    private String pUtmId;
+
+    // === Times ===
+    @JsonProperty("time_assign_seller")
+    private String timeAssignSeller;
+
+    @JsonProperty("time_assign_care")
+    private String timeAssignCare;
+
+    @JsonProperty("time_send_partner")
+    private String timeSendPartner;
+
+    // === Bill Info ===
+    @JsonProperty("bill_full_name")
+    private String billFullName;
+
+    @JsonProperty("bill_phone_number")
+    private String billPhoneNumber;
+
+    @JsonProperty("bill_email")
+    private String billEmail;
+
+    // === Conversation ===
+    @JsonProperty("conversation_id")
+    private String conversationId;
+
+    @JsonProperty("post_id")
+    private String postId;
+
+    @JsonProperty("order_sources")
+    private Integer orderSources;
+
+    @JsonProperty("sub_status")
+    private String subStatus;
+
+    @JsonProperty("items_length")
+    private Integer itemsLength;
+
+    // === Creator object (for extracting info) ===
+    private CreatorInfo creator;
+
+    // === Last Editor object ===
+    @JsonProperty("last_editor")
+    private CreatorInfo lastEditor;
+
+    @Data
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public static class WarehouseInfo {
+        private String id;
+        private String name;
+        private String phoneNumber;
+        private String address;
+        private String fullAddress;
+
+        @JsonProperty("commune_id")
+        private String communeId;
+
+        @JsonProperty("district_id")
+        private String districtId;
+
+        @JsonProperty("province_id")
+        private String provinceId;
+    }
+
+    @Data
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public static class PageInfo {
+        @JsonProperty("id")
+        private String id;
+
+        private String name;
+        private String username;
+    }
+
+    @Data
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public static class CreatorInfo {
+        private String id;
+        private String name;
+        private String email;
+        private String phoneNumber;
+
+        @JsonProperty("fb_id")
+        private String fbId;
+
+        @JsonProperty("avatar_url")
+        private String avatarUrl;
+    }
+
     @Data
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class Tag {
@@ -196,22 +443,42 @@ public class PosOrderWebhook {
     public static class ShippingAddress {
         @JsonProperty("full_name")
         private String fullName;
-        
+
         @JsonProperty("phone_number")
         private String phoneNumber;
-        
+
         @JsonProperty("full_address")
         private String fullAddress;
-        
+
         @JsonProperty("province_name")
         private String provinceName;
-        
-        @JsonProperty("address")
+
+        @JsonProperty("district_name")
+        private String districtName;
+
+        @JsonProperty("commune_name")
+        private String communeName;
+
+        @JsonProperty("province_id")
+        private String provinceId;
+
+        @JsonProperty("district_id")
+        private String districtId;
+
+        @JsonProperty("commune_id")
+        private String communeId;
+
+        @JsonProperty("country_code")
+        private String countryCode;
+
+        @JsonProperty("post_code")
+        private String postCode;
+
         private String address;
-        
+
         @JsonProperty("new")
         private ShippingAddress newAddress;
-        
+
         @JsonProperty("old")
         private ShippingAddress oldAddress;
     }

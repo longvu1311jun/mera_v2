@@ -162,6 +162,77 @@ public class LarkBitableService {
     }
     
     /**
+     * Kiểm tra số điện thoại đã tồn tại trong bảng chưa (sử dụng filter API)
+     * Sử dụng API search với filter để kiểm tra chính xác hơn
+     * @return true nếu số điện thoại đã tồn tại, false nếu chưa hoặc có lỗi
+     */
+    public boolean checkPhoneExistsWithFilter(
+            String appToken,
+            String tableId,
+            String userAccessToken,
+            String phoneNumber,
+            String viewId
+    ) {
+        if (phoneNumber == null || phoneNumber.isBlank()) {
+            log.warn("⚠️ Phone number is null or blank, cannot check");
+            return false;
+        }
+        
+        log.info("🔍 Checking phone with filter API: {}", phoneNumber);
+        
+        try {
+            // Tạo filter condition đúng cấu trúc như curl API
+            BitableSearchRequest.Condition condition = BitableSearchRequest.Condition.builder()
+                    .fieldName("Điện thoại")
+                    .operator("is")
+                    .value(List.of(phoneNumber))
+                    .build();
+            
+            BitableSearchRequest.ChildFilter childFilter = BitableSearchRequest.ChildFilter.builder()
+                    .conditions(List.of(condition))
+                    .conjunction("or")
+                    .build();
+            
+            BitableSearchRequest.Filter filter = BitableSearchRequest.Filter.builder()
+                    .children(List.of(childFilter))
+                    .conjunction("and")
+                    .build();
+            
+            // Tạo search request
+            BitableSearchRequest searchRequest = BitableSearchRequest.builder()
+                    .automaticFields(false)
+                    .fieldNames(List.of("Điện thoại"))
+                    .viewId(viewId)
+                    .pageSize(1) // Chỉ cần kiểm tra có tồn tại không, không cần lấy tất cả
+                    .filter(filter)
+                    .build();
+            
+            BitableSearchResponse response = searchRecords(appToken, tableId, userAccessToken, searchRequest);
+            
+            // Kiểm tra response
+            if (response.getData() != null) {
+                int total = response.getData().getTotal() != null ? response.getData().getTotal() : 0;
+                boolean exists = total > 0;
+                
+                if (exists) {
+                    log.info("✅ Phone '{}' EXISTS in Bitable table (total: {})", phoneNumber, total);
+                } else {
+                    log.info("✅ Phone '{}' NOT found in Bitable table", phoneNumber);
+                }
+                
+                return exists;
+            }
+            
+            log.warn("⚠️ Empty response when checking phone: {}", phoneNumber);
+            return false;
+            
+        } catch (Exception e) {
+            log.error("❌ Error checking phone with filter: {}", e.getMessage(), e);
+            return false;
+        }
+    }
+    
+    /**
      * Kiểm tra số điện thoại đã tồn tại trong bảng chưa
      * @param appToken Base ID
      * @param tableId Table ID

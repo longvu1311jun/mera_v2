@@ -19,6 +19,7 @@ import mera.mera_v2.repository.OrderItemRepository;
 import mera.mera_v2.repository.OrderRepository;
 import mera.mera_v2.repository.OrderStatusHistoryRepository;
 import mera.mera_v2.repository.ProductVariationRepository;
+import mera.mera_v2.repository.WarehouseRepository;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -51,6 +52,7 @@ public class OrderSyncService {
   private final OrderItemRepository orderItemRepository;
   private final OrderStatusHistoryRepository orderStatusHistoryRepository;
   private final ProductVariationRepository productVariationRepository;
+  private final WarehouseRepository warehouseRepository;
 
   @Lazy
   @org.springframework.beans.factory.annotation.Autowired
@@ -157,7 +159,20 @@ public class OrderSyncService {
             .forEach(pv -> existingVarIds.add(pv.getId()));
       }
 
-      BatchSyncResult batchResult = self.syncPageBatch(orders, existingVarIds);
+      // Collect warehouse IDs and pre-load
+      Set<String> pageWarehouseIds = new HashSet<>();
+      for (OrderApiDto order : orders) {
+        if (order.getWarehouseId() != null && !order.getWarehouseId().isBlank()) {
+          pageWarehouseIds.add(order.getWarehouseId());
+        }
+      }
+      Set<String> existingWarehouseIds = new HashSet<>();
+      if (!pageWarehouseIds.isEmpty()) {
+        warehouseRepository.findAllById(pageWarehouseIds)
+            .forEach(w -> existingWarehouseIds.add(w.getId()));
+      }
+
+      BatchSyncResult batchResult = self.syncPageBatch(orders, existingVarIds, existingWarehouseIds);
 
       insertedCustomers += batchResult.insertedCustomers;
       updatedCustomers += batchResult.updatedCustomers;
@@ -206,11 +221,16 @@ public class OrderSyncService {
 
   @Transactional
   public BatchSyncResult syncPageBatch(List<OrderApiDto> orders) {
-    return syncPageBatch(orders, null);
+    return syncPageBatch(orders, null, null);
   }
 
   @Transactional
   public BatchSyncResult syncPageBatch(List<OrderApiDto> orders, Set<String> existingVariationIds) {
+    return syncPageBatch(orders, existingVariationIds, null);
+  }
+
+  @Transactional
+  public BatchSyncResult syncPageBatch(List<OrderApiDto> orders, Set<String> existingVariationIds, Set<String> existingWarehouseIds) {
     if (orders == null || orders.isEmpty()) {
       return new BatchSyncResult(0, 0, 0, 0, 0, 0, 0, 0, 0, List.of(), List.of());
     }
@@ -314,7 +334,7 @@ public class OrderSyncService {
           order.setId(orderId);
         }
 
-        mapOrder(order, dto, isNewOrder);
+        mapOrder(order, dto, isNewOrder, existingWarehouseIds);
         ordersToSaveMap.put(orderId, order);
 
         if (isNewOrder) {
@@ -457,7 +477,7 @@ public class OrderSyncService {
     return new CustomerSyncResult(customer, isNew);
   }
 
-  private void mapOrder(Order order, OrderApiDto dto, boolean isNew) {
+  private void mapOrder(Order order, OrderApiDto dto, boolean isNew, Set<String> existingWarehouseIds) {
     order.setShopId(dto.getShopId());
     order.setStatus(dto.getStatus() != null ? dto.getStatus() : 0);
     order.setStatusName(dto.getStatusName());
@@ -469,22 +489,76 @@ public class OrderSyncService {
       order.setCreatorId(dto.getCreator().getId());
     }
 
+    // === User IDs ===
+    order.setAssigningSellerId(dto.getAssigningSellerId());
+    order.setAssigningCareId(dto.getAssigningCareId());
+    order.setMarketerId(dto.getMarketerId());
+    order.setLastEditorId(dto.getLastEditorId());
+    order.setPageId(dto.getPageId());
+    order.setAdId(dto.getAdId());
+    order.setAccount(dto.getAccount());
+    order.setSubStatus(dto.getSubStatus());
+
+    // === Warehouse ID - chỉ set nếu tồn tại trong DB ===
+    if (dto.getWarehouseId() != null && !dto.getWarehouseId().isBlank()
+        && existingWarehouseIds != null && existingWarehouseIds.contains(dto.getWarehouseId())) {
+      order.setWarehouseId(dto.getWarehouseId());
+    } else {
+      order.setWarehouseId(null);
+    }
+
+    // === Money fields ===
     if (dto.getTotalPrice() != null) order.setTotalPrice(dto.getTotalPrice());
     if (dto.getTotalPriceAfterSubDiscount() != null) {
       order.setTotalPriceAfterSubDiscount(BigDecimal.valueOf(dto.getTotalPriceAfterSubDiscount()));
     }
+    if (dto.getTotalDiscount() != null) {
+      order.setTotalDiscount(BigDecimal.valueOf(dto.getTotalDiscount()));
+    }
     if (dto.getCod() != null) order.setCod(BigDecimal.valueOf(dto.getCod()));
     if (dto.getPrepaid() != null) order.setPrepaid(BigDecimal.valueOf(dto.getPrepaid()));
     if (dto.getShippingFee() != null) order.setShippingFee(BigDecimal.valueOf(dto.getShippingFee()));
+    if (dto.getSurcharge() != null) order.setSurcharge(BigDecimal.valueOf(dto.getSurcharge()));
+    if (dto.getTax() != null) order.setTax(BigDecimal.valueOf(dto.getTax()));
+    if (dto.getMoneyToCollect() != null) {
+      order.setMoneyToCollect(BigDecimal.valueOf(dto.getMoneyToCollect()));
+    }
+    if (dto.getCash() != null) order.setCash(BigDecimal.valueOf(dto.getCash()));
+    if (dto.getTransferMoney() != null) order.setTransferMoney(BigDecimal.valueOf(dto.getTransferMoney()));
+    if (dto.getChargedByMomo() != null) order.setChargedByMomo(BigDecimal.valueOf(dto.getChargedByMomo()));
+    if (dto.getChargedByCard() != null) order.setChargedByCard(BigDecimal.valueOf(dto.getChargedByCard()));
+    if (dto.getChargedByQrpay() != null) order.setChargedByQrpay(BigDecimal.valueOf(dto.getChargedByQrpay()));
+    if (dto.getExchangePayment() != null) order.setExchangePayment(BigDecimal.valueOf(dto.getExchangePayment()));
+    if (dto.getExchangeValue() != null) order.setExchangeValue(BigDecimal.valueOf(dto.getExchangeValue()));
+    if (dto.getPartnerFee() != null) order.setPartnerFee(BigDecimal.valueOf(dto.getPartnerFee()));
+    if (dto.getFeeMarketplace() != null) order.setFeeMarketplace(BigDecimal.valueOf(dto.getFeeMarketplace()));
+    if (dto.getBuyerTotalAmount() != null) {
+      order.setBuyerTotalAmount(BigDecimal.valueOf(dto.getBuyerTotalAmount()));
+    }
+    if (dto.getLeveraPoint() != null) order.setLeveraPoint(dto.getLeveraPoint().intValue());
 
+    // === Boolean flags ===
+    order.setIsLivestream(boolToInt(dto.getIsLivestream()));
+    order.setIsLiveShopping(boolToInt(dto.getIsLiveShopping()));
+    order.setIsFreeShipping(boolToInt(dto.getIsFreeShipping()));
+    order.setIsSmc(boolToInt(dto.getIsSmc()));
+    order.setIsCalculationTax(dto.getIsCalculationTax());
+    order.setCustomerPayFee(dto.getCustomerPayFee());
+    order.setReceivedAtShop(boolToInt(dto.getReceivedAtShop()));
+    order.setIsExchangeOrder(dto.getIsExchangeOrder());
+
+    // === Bill & Shipping Info ===
     order.setBillFullName(dto.getBillFullName());
     order.setBillPhoneNumber(dto.getBillPhoneNumber());
     order.setBillEmail(dto.getBillEmail());
     order.setNote(dto.getNote());
+    order.setNotePrint(dto.getNotePrint());
+    order.setLink(dto.getLink());
     order.setOrderSources(dto.getOrderSources());
     order.setOrderSourcesName(dto.getOrderSourcesName());
     if (dto.getSystemId() != null) order.setOrderCode(String.valueOf(dto.getSystemId()));
 
+    // === Shipping Address ===
     ShippingAddressDTO addr = dto.getShippingAddress();
     if (addr != null) {
       order.setShippingFullName(addr.getFullName());
@@ -494,10 +568,50 @@ public class OrderSyncService {
       order.setShippingProvinceName(addr.getProvinceName());
       order.setShippingDistrictName(addr.getDistrictName());
       order.setShippingCommuneName(addr.getCommuneName());
+      order.setShippingProvinceId(addr.getProvinceId());
+      order.setShippingDistrictId(addr.getDistrictId());
+      order.setShippingCommuneId(addr.getCommuneId());
     }
+
+    // === Flat shipping address fields (if present in DTO) ===
+    if (dto.getShippingFullName() != null) order.setShippingFullName(dto.getShippingFullName());
+    if (dto.getShippingPhoneNumber() != null) order.setShippingPhoneNumber(dto.getShippingPhoneNumber());
+    if (dto.getShippingFullAddress() != null) order.setShippingFullAddress(dto.getShippingFullAddress());
+    if (dto.getShippingProvinceId() != null) order.setShippingProvinceId(dto.getShippingProvinceId());
+    if (dto.getShippingProvinceName() != null) order.setShippingProvinceName(dto.getShippingProvinceName());
+    if (dto.getShippingDistrictId() != null) order.setShippingDistrictId(dto.getShippingDistrictId());
+    if (dto.getShippingDistrictName() != null) order.setShippingDistrictName(dto.getShippingDistrictName());
+    if (dto.getShippingCommuneId() != null) order.setShippingCommuneId(dto.getShippingCommuneId());
+    if (dto.getShippingCommuneName() != null) order.setShippingCommuneName(dto.getShippingCommuneName());
+    if (dto.getShippingCountryCode() != null) order.setShippingCountryCode(dto.getShippingCountryCode());
+    if (dto.getShippingPostCode() != null) order.setShippingPostCode(dto.getShippingPostCode());
+
+    // === UTM Fields ===
+    order.setPUtmSource(dto.getPUtmSource());
+    order.setPUtmMedium(dto.getPUtmMedium());
+    order.setPUtmCampaign(dto.getPUtmCampaign());
+    order.setPUtmContent(dto.getPUtmContent());
+    order.setPUtmTerm(dto.getPUtmTerm());
+    order.setPUtmId(dto.getPUtmId());
+
+    // === Tracking & Partner ===
+    order.setTrackingLink(dto.getTrackingLink());
+    order.setOrderLink(dto.getOrderLink());
+    order.setReturnedReason(dto.getReturnedReason());
+    order.setReturnedReasonName(dto.getReturnedReasonName());
+    order.setTimeSendPartner(parseDateTime(dto.getTimeSendPartner(), "order.timeSendPartner"));
+
+    // === Conversation ===
+    order.setConversationId(dto.getConversationId());
+    order.setPostId(dto.getPostId());
+    order.setAccountName(dto.getAccountName());
 
     if (isNew) order.setInsertedAt(parseDateTime(dto.getInsertedAt(), "order.insertedAt"));
     order.setUpdatedAt(parseDateTime(dto.getUpdatedAt(), "order.updatedAt"));
+  }
+
+  private Integer boolToInt(Boolean value) {
+    return value != null && value ? 1 : 0;
   }
 
   private void mapOrderItem(OrderItem item, OrderItemApiDto dto, Long orderId, Set<String> existingVariationIds) {

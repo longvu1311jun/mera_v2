@@ -39,6 +39,9 @@ public class BitableSearchRequest {
         
         @JsonProperty("conditions")
         private List<Condition> conditions;
+        
+        @JsonProperty("children")
+        private List<ChildFilter> children;
     }
     
     @Data
@@ -52,5 +55,18 @@ public class BitableSearchRequest {
         
         @JsonProperty("value")
         private List<String> value;
+    }
+    
+    @Data
+    @Builder
+    public static class ChildFilter {
+        @JsonProperty("children")
+        private List<ChildFilter> children;
+        
+        @JsonProperty("conditions")
+        private List<Condition> conditions;
+        
+        @JsonProperty("conjunction")
+        private String conjunction;
     }
 }

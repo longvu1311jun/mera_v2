@@ -22,7 +22,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
@@ -238,26 +237,45 @@ public class WebhookPersistenceService {
             } else {
                 order = new Order();
                 order.setId(orderId);
-                // Parse inserted_at from webhook data
                 order.setInsertedAt(parseWebhookDateTime(webhook.getInsertedAt()));
                 result.setSaved(true);
                 log.info("   Order: Tạo mới order ID={}", orderId);
             }
 
-            // Map order fields
+            // === Basic Info ===
             order.setUpdatedAt(LocalDateTime.now());
             order.setStatus(webhook.getStatus() != null ? webhook.getStatus() : 0);
+            order.setShopId(webhook.getShopId() != null ? webhook.getShopId() : 1546758L);
+            order.setPageId(webhook.getPageId());
+            order.setAdId(webhook.getAdId());
+            order.setAccount(webhook.getAccountName());
 
-            // Shop ID - hardcode for now
-            order.setShopId(1546758L);
-
-            // Customer info - CustomerInfo doesn't have id field, so we use phone-based customer ID
+            // === Customer ===
             String phone = getPhoneNumber(webhook);
             if (phone != null && !phone.isBlank()) {
                 order.setCustomerId("CUST_" + phone.replaceAll("[^0-9]", ""));
             }
 
-            // Shipping address
+            // === User IDs ===
+            if (webhook.getCreator() != null) {
+                order.setCreatorId(webhook.getCreator().getId());
+            }
+            if (webhook.getAssigningSeller() != null) {
+                order.setAssigningSellerId(webhook.getAssigningSeller().getId());
+            }
+            if (webhook.getAssigningCare() != null) {
+                order.setAssigningCareId(webhook.getAssigningCare().getId());
+            }
+            if (webhook.getLastEditor() != null) {
+                order.setLastEditorId(webhook.getLastEditor().getId());
+            }
+            order.setAssigningSellerId(webhook.getAssigningSellerId());
+            order.setAssigningCareId(webhook.getAssigningCareId());
+            order.setMarketerId(webhook.getMarketerId());
+            order.setLastEditorId(webhook.getLastEditorId());
+            order.setWarehouseId(webhook.getWarehouseId());
+
+            // === Shipping Address ===
             PosOrderWebhook.ShippingAddress shippingAddress = getShippingAddress(webhook);
             if (shippingAddress != null) {
                 order.setShippingFullName(shippingAddress.getFullName());
@@ -265,23 +283,100 @@ public class WebhookPersistenceService {
                 order.setShippingAddress(shippingAddress.getAddress());
                 order.setShippingFullAddress(shippingAddress.getFullAddress());
                 order.setShippingProvinceName(shippingAddress.getProvinceName());
+                order.setShippingDistrictName(shippingAddress.getDistrictName());
+                order.setShippingCommuneName(shippingAddress.getCommuneName());
+                order.setShippingProvinceId(shippingAddress.getProvinceId());
+                order.setShippingDistrictId(shippingAddress.getDistrictId());
+                order.setShippingCommuneId(shippingAddress.getCommuneId());
+                order.setShippingCountryCode(shippingAddress.getCountryCode());
+                order.setShippingPostCode(shippingAddress.getPostCode());
             }
 
-            // Assigning seller/care
-            PosOrderWebhook.AssigningSeller seller = webhook.getAssigningSeller();
-            if (seller != null) {
-                order.setAssigningSellerId(seller.getId());
-            }
+            // === Bill Info ===
+            order.setBillFullName(webhook.getBillFullName());
+            order.setBillPhoneNumber(webhook.getBillPhoneNumber());
+            order.setBillEmail(webhook.getBillEmail());
 
-            PosOrderWebhook.AssigningSeller care = webhook.getAssigningCare();
-            if (care != null) {
-                order.setAssigningCareId(care.getId());
+            // === Money Fields ===
+            if (webhook.getTotalPrice() != null) order.setTotalPrice(webhook.getTotalPrice());
+            if (webhook.getTotalPriceAfterSubDiscount() != null) {
+                order.setTotalPriceAfterSubDiscount(BigDecimal.valueOf(webhook.getTotalPriceAfterSubDiscount()));
             }
+            if (webhook.getTotalDiscount() != null) {
+                order.setTotalDiscount(BigDecimal.valueOf(webhook.getTotalDiscount()));
+            }
+            if (webhook.getCod() != null) order.setCod(BigDecimal.valueOf(webhook.getCod()));
+            if (webhook.getPrepaid() != null) order.setPrepaid(BigDecimal.valueOf(webhook.getPrepaid()));
+            if (webhook.getShippingFee() != null) order.setShippingFee(BigDecimal.valueOf(webhook.getShippingFee()));
+            if (webhook.getSurcharge() != null) order.setSurcharge(BigDecimal.valueOf(webhook.getSurcharge()));
+            if (webhook.getTax() != null) order.setTax(BigDecimal.valueOf(webhook.getTax()));
+            if (webhook.getMoneyToCollect() != null) {
+                order.setMoneyToCollect(BigDecimal.valueOf(webhook.getMoneyToCollect()));
+            }
+            if (webhook.getCash() != null) order.setCash(BigDecimal.valueOf(webhook.getCash()));
+            if (webhook.getTransferMoney() != null) order.setTransferMoney(BigDecimal.valueOf(webhook.getTransferMoney()));
+            if (webhook.getChargedByMomo() != null) order.setChargedByMomo(BigDecimal.valueOf(webhook.getChargedByMomo()));
+            if (webhook.getChargedByCard() != null) order.setChargedByCard(BigDecimal.valueOf(webhook.getChargedByCard()));
+            if (webhook.getChargedByQrpay() != null) order.setChargedByQrpay(BigDecimal.valueOf(webhook.getChargedByQrpay()));
+            if (webhook.getExchangePayment() != null) order.setExchangePayment(BigDecimal.valueOf(webhook.getExchangePayment()));
+            if (webhook.getExchangeValue() != null) order.setExchangeValue(BigDecimal.valueOf(webhook.getExchangeValue()));
+            if (webhook.getPartnerFee() != null) order.setPartnerFee(BigDecimal.valueOf(webhook.getPartnerFee()));
+            if (webhook.getFeeMarketplace() != null) order.setFeeMarketplace(BigDecimal.valueOf(webhook.getFeeMarketplace()));
+            if (webhook.getBuyerTotalAmount() != null) {
+                order.setBuyerTotalAmount(BigDecimal.valueOf(webhook.getBuyerTotalAmount()));
+            }
+            if (webhook.getLeveraPoint() != null) order.setLeveraPoint(webhook.getLeveraPoint().intValue());
 
-            // Order sources
+            // === Boolean Flags ===
+            order.setIsLivestream(boolToInt(webhook.getIsLivestream()));
+            order.setIsLiveShopping(boolToInt(webhook.getIsLiveShopping()));
+            order.setIsFreeShipping(boolToInt(webhook.getIsFreeShipping()));
+            order.setIsSmc(boolToInt(webhook.getIsSmc()));
+            order.setIsCalculationTax(webhook.getIsCalculationTax());
+            order.setCustomerPayFee(webhook.getCustomerPayFee());
+            order.setReceivedAtShop(boolToInt(webhook.getReceivedAtShop()));
+            order.setIsExchangeOrder(webhook.getIsExchangeOrder());
+
+            // === Order Sources ===
+            order.setOrderSources(webhook.getOrderSources());
             order.setOrderSourcesName(webhook.getOrderSourcesName());
+            order.setSubStatus(webhook.getSubStatus());
 
-            // Raw data
+            // === Note ===
+            order.setNote(webhook.getNote());
+            order.setNotePrint(webhook.getNotePrint());
+            order.setLink(webhook.getLink());
+
+            // === UTM Fields ===
+            order.setPUtmSource(webhook.getPUtmSource());
+            order.setPUtmMedium(webhook.getPUtmMedium());
+            order.setPUtmCampaign(webhook.getPUtmCampaign());
+            order.setPUtmContent(webhook.getPUtmContent());
+            order.setPUtmTerm(webhook.getPUtmTerm());
+            order.setPUtmId(webhook.getPUtmId());
+
+            // === Tracking & Partner ===
+            order.setTrackingLink(webhook.getTrackingLink());
+            order.setOrderLink(webhook.getOrderLink());
+            order.setReturnedReason(webhook.getReturnedReason());
+            order.setReturnedReasonName(webhook.getReturnedReasonName());
+            if (webhook.getTimeSendPartner() != null) {
+                order.setTimeSendPartner(parseWebhookDateTime(webhook.getTimeSendPartner()));
+            }
+
+            // === Times ===
+            if (webhook.getTimeAssignSeller() != null) {
+                order.setTimeAssignSeller(parseWebhookDateTime(webhook.getTimeAssignSeller()));
+            }
+            if (webhook.getTimeAssignCare() != null) {
+                order.setTimeAssignCare(parseWebhookDateTime(webhook.getTimeAssignCare()));
+            }
+
+            // === Conversation ===
+            order.setConversationId(webhook.getConversationId());
+            order.setPostId(webhook.getPostId());
+
+            // === Raw data ===
             try {
                 order.setRawData(objectMapper.writeValueAsString(webhook));
             } catch (Exception e) {
@@ -295,6 +390,10 @@ public class WebhookPersistenceService {
         }
 
         return result;
+    }
+
+    private Integer boolToInt(Boolean value) {
+        return value != null && value ? 1 : 0;
     }
 
     /**
