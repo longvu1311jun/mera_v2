@@ -14,7 +14,6 @@ import mera.mera_v2.lark.wiki.LarkWikiService;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
-import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
@@ -22,7 +21,6 @@ import org.springframework.web.client.RestTemplate;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -69,40 +67,138 @@ public class CskhBaseMappingService {
             List<PosUser> posUsers = posService.getUsers();
             log.info("Lấy được {} POS users", posUsers.size());
 
+            // Log tất cả POS users để debug
+            log.info("=== DANH SÁCH POS USERS ===");
+            for (PosUser user : posUsers) {
+                String phone = extractPhoneNumber(user.getName());
+                String phoneFromField = user.getUser() != null ? user.getUser().getPhoneNumber() : null;
+                log.info("  - {} | phone_in_name={} | phone_in_field={}", 
+                    user.getName(), phone, phoneFromField);
+            }
+
             // 2. Get Lark nodes (need token)
             List<LarkNode> larkNodes = getLarkNodesWithRetry();
             log.info("Lấy được {} Lark nodes", larkNodes.size());
+
+            // Log tất cả Lark nodes để debug
+            log.info("=== DANH SÁCH LARK NODES ===");
+            for (LarkNode node : larkNodes) {
+                String phone = extractPhoneNumber(node.getTitle());
+                String normalizedTitle = normalizeName(node.getTitle().toLowerCase().trim());
+                log.info("  - '{}' | phone={} | objToken={} | objType={} | normalized='{}'", 
+                    node.getTitle(), phone, node.getObjToken(), node.getObjType(), normalizedTitle);
+                // Log children
+                if (node.getChildNodes() != null) {
+                    for (LarkNode child : node.getChildNodes()) {
+                        String childPhone = extractPhoneNumber(child.getTitle());
+                        String childNormalized = normalizeName(child.getTitle().toLowerCase().trim());
+                        log.info("    └─ CHILD: '{}' | phone={} | objToken={} | objType={} | normalized='{}'", 
+                            child.getTitle(), childPhone, child.getObjToken(), child.getObjType(), childNormalized);
+                    }
+                }
+            }
 
             // 3. Build phone → PosUser map
             Map<String, PosUser> phoneToPosUser = buildPhoneToPosUserMap(posUsers);
             log.info("Built phone map với {} entries", phoneToPosUser.size());
 
+            // 3b. Build name → PosUser map (fallback)
+            Map<String, PosUser> nameToPosUser = buildNameToPosUserMap(posUsers);
+            log.info("Built name map với {} entries", nameToPosUser.size());
+
             // 4. Build phone → LarkNode map
             Map<String, LarkNode> phoneToLarkNode = buildPhoneToLarkNodeMap(larkNodes);
             log.info("Built phone → LarkNode map với {} entries", phoneToLarkNode.size());
+
+            // 4b. Build name → LarkNode map (fallback)
+            Map<String, LarkNode> nameToLarkNode = buildNameToLarkNodeMap(larkNodes);
+            log.info("Built name → LarkNode map với {} entries", nameToLarkNode.size());
 
             // 5. Deactivate existing mappings
             repository.deactivateAll();
 
             // 6. Match and save - use upsert logic
             Set<String> processedPhones = new HashSet<>();
+            Set<String> processedNames = new HashSet<>();
             List<CskhBaseMapping> newMappings = new ArrayList<>();
 
             for (PosUser posUser : posUsers) {
                 String posPhone = extractPhoneNumber(posUser.getName());
+                String posName = posUser.getName() != null ? posUser.getName().trim().toLowerCase() : null;
                 if (posPhone == null && posUser.getUser() != null) {
                     posPhone = extractPhoneNumber(posUser.getUser().getPhoneNumber());
                 }
 
+                LarkNode matchedNode = null;
+
+                // Thử ghép bằng điện thoại trước
                 if (posPhone != null && !processedPhones.contains(posPhone)) {
-                    LarkNode matchedNode = phoneToLarkNode.get(posPhone);
+                    log.debug("  Trying phone match: '{}'", posPhone);
+                    if (phoneToLarkNode.isEmpty()) {
+                        log.warn("  ⚠️ phoneToLarkNode map is EMPTY!");
+                    }
+                    matchedNode = phoneToLarkNode.get(posPhone);
                     if (matchedNode != null) {
                         processedPhones.add(posPhone);
-                        CskhBaseMapping mapping = buildMapping(posUser, matchedNode);
-                        if (mapping != null) {
-                            newMappings.add(mapping);
+                        log.info("✅ Matched by PHONE: '{}' ({}) → '{}'", posUser.getName(), posPhone, matchedNode.getTitle());
+                    } else {
+                        log.debug("  Phone '{}' not found in phoneToLarkNode map", posPhone);
+                    }
+                }
+
+                // Fallback: ghép bằng tên (loại bỏ dấu và số điện thoại)
+                if (matchedNode == null && posName != null && !processedNames.contains(posName)) {
+                    // Loại bỏ số điện thoại và các ký tự thừa để lấy tên thuần túy
+                    String posNameClean = cleanNameForMatching(posName);
+                    String posNameNormalized = normalizeName(posNameClean);
+                    
+                    log.debug("  Trying name match for '{}':", posName);
+                    log.debug("    - posName (raw)     = '{}'", posName);
+                    log.debug("    - posName (cleaned) = '{}'", posNameClean);
+                    log.debug("    - posName (norm)   = '{}'", posNameNormalized);
+
+                    // Debug: list all keys in nameToLarkNode map
+                    if (nameToLarkNode.isEmpty()) {
+                        log.warn("  ⚠️ nameToLarkNode map is EMPTY!");
+                    }
+
+                    // Thử exact match với cleaned name
+                    LarkNode nameMatch = nameToLarkNode.get(posNameClean);
+                    if (nameMatch == null) {
+                        // Thử không dấu
+                        nameMatch = nameToLarkNode.get(posNameNormalized);
+                        if (nameMatch != null) {
+                            log.debug("  Found by normalized name: '{}' -> '{}'", posNameClean, posNameNormalized);
+                        }
+                    } else {
+                        log.debug("  Found by cleaned name: '{}'", posNameClean);
+                    }
+                    
+                    // Debug: kiểm tra xem có key nào gần giống không
+                    if (nameMatch == null) {
+                        log.debug("  Checking for similar keys in map...");
+                        for (String key : nameToLarkNode.keySet()) {
+                            if (key.contains(posNameNormalized.substring(0, Math.min(5, posNameNormalized.length()))) 
+                                || posNameNormalized.contains(key.substring(0, Math.min(5, key.length())))) {
+                                log.debug("    Similar key found: '{}' -> LarkNode: '{}'", key, nameToLarkNode.get(key).getTitle());
+                            }
                         }
                     }
+                    
+                    if (nameMatch != null) {
+                        matchedNode = nameMatch;
+                        processedNames.add(posName);
+                        log.info("✅ Matched by NAME: '{}' → '{}'", posUser.getName(), matchedNode.getTitle());
+                    }
+                }
+
+                if (matchedNode != null) {
+                    CskhBaseMapping mapping = buildMapping(posUser, matchedNode);
+                    if (mapping != null) {
+                        newMappings.add(mapping);
+                    }
+                } else {
+                    log.warn("❌ Không tìm thấy Lark node cho: '{}' (phone={})", posUser.getName(), posPhone);
                 }
             }
 
@@ -185,6 +281,88 @@ public class CskhBaseMappingService {
             }
         }
         return map;
+    }
+
+    private Map<String, PosUser> buildNameToPosUserMap(List<PosUser> posUsers) {
+        Map<String, PosUser> map = new HashMap<>();
+        for (PosUser user : posUsers) {
+            String name = user.getName() != null ? user.getName().trim().toLowerCase() : null;
+            if (name != null && !map.containsKey(name)) {
+                map.put(name, user);
+                log.debug("📝 POS User with name: '{}'", user.getName());
+                // Also add normalized name (no accents)
+                String normalized = normalizeName(name);
+                if (!normalized.equals(name)) {
+                    map.put(normalized, user);
+                    log.debug("📝 POS User with normalized name: '{}' -> '{}'", user.getName(), normalized);
+                }
+            }
+        }
+        return map;
+    }
+
+    private Map<String, LarkNode> buildNameToLarkNodeMap(List<LarkNode> nodes) {
+        Map<String, LarkNode> map = new HashMap<>();
+        for (LarkNode node : nodes) {
+            String name = node.getTitle() != null ? node.getTitle().trim().toLowerCase() : null;
+            if (name != null && !map.containsKey(name)) {
+                map.put(name, node);
+                log.debug("📝 Lark Node with name: '{}'", node.getTitle());
+                // Also add normalized name (no accents)
+                String normalized = normalizeName(name);
+                if (!normalized.equals(name)) {
+                    map.put(normalized, node);
+                    log.debug("📝 Lark Node with normalized name: '{}' -> '{}'", node.getTitle(), normalized);
+                }
+            }
+            // Cũng check trong child nodes
+            if (node.getChildNodes() != null) {
+                for (LarkNode child : node.getChildNodes()) {
+                    String childName = child.getTitle() != null ? child.getTitle().trim().toLowerCase() : null;
+                    if (childName != null && !map.containsKey(childName)) {
+                        map.put(childName, child);
+                        log.debug("📝 Child node with name: '{}' (parent: {})", child.getTitle(), node.getTitle());
+                        String normalized = normalizeName(childName);
+                        if (!normalized.equals(childName)) {
+                            map.put(normalized, child);
+                        }
+                    }
+                }
+            }
+        }
+        return map;
+    }
+
+    private String normalizeName(String name) {
+        if (name == null) return null;
+        return name
+            .replaceAll("[àáạảã]", "a")
+            .replaceAll("[ăằắặẳẵ]", "a")
+            .replaceAll("[âầấậẩẫ]", "a")
+            .replaceAll("[èéẹẻẽ]", "e")
+            .replaceAll("[êềếệểễ]", "e")
+            .replaceAll("[ìíịỉĩ]", "i")
+            .replaceAll("[òóọỏõ]", "o")
+            .replaceAll("[ôồốộổỗ]", "o")
+            .replaceAll("[ơờớợởỡ]", "o")
+            .replaceAll("[ùúụủũ]", "u")
+            .replaceAll("[ưừứựửữ]", "u")
+            .replaceAll("[ỳýỵỷỹ]", "y")
+            .replaceAll("đ", "d");
+    }
+
+    /**
+     * Loại bỏ số điện thoại và các ký tự thừa từ tên để so khớp
+     * Ví dụ: "Dương Minh Giang- 0328524650" -> "dương minh giang"
+     *         "Vũ Thị Lan Anh - 0386806934" -> "vũ thị lan anh"
+     */
+    private String cleanNameForMatching(String rawName) {
+        if (rawName == null) return null;
+        // Loại bỏ số điện thoại (10 số bắt đầu bằng 0 hoặc +84)
+        String cleaned = rawName.replaceAll("(?:\\+84|0)[\\s\\.\\-]*[35789][0-9\\s\\.\\-]{7,10}", "");
+        // Loại bỏ các ký tự đặc biệt và khoảng trắng thừa
+        cleaned = cleaned.replaceAll("[\\-\\–\\—\\|]+", " ").replaceAll("\\s+", " ").trim();
+        return cleaned;
     }
 
     private Map<String, LarkNode> buildPhoneToLarkNodeMap(List<LarkNode> nodes) {
