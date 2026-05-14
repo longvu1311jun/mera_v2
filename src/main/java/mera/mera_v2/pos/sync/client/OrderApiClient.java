@@ -82,8 +82,8 @@ public class OrderApiClient {
       // First, get raw response as String to see actual structure
       ResponseEntity<String> rawEntity = restTemplate.getForEntity(url, String.class);
       String rawResponse = rawEntity.getBody();
-      log.info("RAW API STATUS: {}, BODY ({} chars): {}", rawEntity.getStatusCode(),
-          rawResponse != null ? rawResponse.length() : 0, rawResponse);
+//      log.info("RAW API STATUS: {}, BODY ({} chars): {}", rawEntity.getStatusCode(),
+//          rawResponse != null ? rawResponse.length() : 0, rawResponse);
 
       // Then manually parse with Jackson ObjectMapper (same instance RestTemplate uses)
       ObjectMapper mapper = new ObjectMapper();

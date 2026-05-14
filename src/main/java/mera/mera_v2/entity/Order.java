@@ -20,9 +20,9 @@ public class Order {
     @Column(name = "id", nullable = false)
     private Long id;
 
-    @Version
-    @Column(name = "version")
-    private Long version;
+    // @Version removed - causes "Record has changed since last read" errors during sync
+    // @Column(name = "version")
+    // private Long version;
 
     @Column(name = "order_code", length = 255)
     private String orderCode;

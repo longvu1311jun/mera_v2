@@ -21,6 +21,9 @@ import mera.mera_v2.repository.OrderStatusHistoryRepository;
 import mera.mera_v2.repository.ProductVariationRepository;
 import mera.mera_v2.repository.WarehouseRepository;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,6 +32,7 @@ import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -40,6 +44,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 
 @Slf4j
 @Service
@@ -53,6 +58,7 @@ public class OrderSyncService {
   private final OrderStatusHistoryRepository orderStatusHistoryRepository;
   private final ProductVariationRepository productVariationRepository;
   private final WarehouseRepository warehouseRepository;
+  private final NamedParameterJdbcTemplate namedParameterJdbcTemplate;
 
   @Lazy
   @org.springframework.beans.factory.annotation.Autowired
@@ -105,40 +111,40 @@ public class OrderSyncService {
     int totalPages = 1;
     int totalSynced = 0;
 
+    // Pipeline: pre-fetch next page while processing current page
+    CompletableFuture<OrderListResponseDto> prefetchFuture = null;
+
     do {
-      log.info("Fetching page {} of {}...", currentPage, totalPages);
-
-      OrderListResponseDto resp = null;
-      List<OrderApiDto> orders = List.of();
-      int retries = 0;
-      while (retries < 3) {
-        try {
-          resp = orderApiClient.fetchOrdersPage(
-              startTimestamp, endTimestamp, currentPage, pageSize, updateStatus, status
-          );
-          break;
-        } catch (Exception e) {
-          retries++;
-          log.warn("Page {} fetch attempt {} failed: {}", currentPage, retries, e.getMessage());
-          if (retries >= 3) {
-            log.error("Page {} failed after 3 retries, skipping page", currentPage);
-            errorMessages.add("Page " + currentPage + " failed after 3 retries: " + e.getMessage());
-            skippedOrders += orders.isEmpty() ? 0 : orders.size();
-            currentPage++;
-            continue;
-          }
-          try { Thread.sleep(2000L * retries); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
-        }
+      // Get current page - either from pre-fetch or fetch now
+      OrderListResponseDto resp;
+      if (prefetchFuture != null) {
+        resp = prefetchFuture.join();
+        prefetchFuture = null;
+      } else {
+        log.info("Fetching page {} ...", currentPage);
+        resp = fetchPageWithRetry(startTimestamp, endTimestamp, currentPage, pageSize, updateStatus, status);
       }
-      if (resp == null) { currentPage++; continue; }
 
-      orders = resp.getData() != null ? resp.getData() : List.of();
+      if (resp == null) {
+        errorMessages.add("Page " + currentPage + " failed after 3 retries");
+        currentPage++;
+        continue;
+      }
 
+      List<OrderApiDto> orders = resp.getData() != null ? resp.getData() : List.of();
       if (resp.getTotalPages() != null) totalPages = resp.getTotalPages();
       if (resp.getTotalEntries() != null) totalEntries = resp.getTotalEntries();
 
-      log.info("Page {}: fetched {} orders (totalEntries={}, totalPages={})",
-          currentPage, orders.size(), resp.getTotalEntries(), resp.getTotalPages());
+      log.info("Page {}/{}: fetched {} orders (totalEntries={})",
+          currentPage, totalPages, orders.size(), resp.getTotalEntries());
+
+      // Start pre-fetching next page in background while processing current page
+      if (currentPage + 1 <= totalPages) {
+        final int nextPage = currentPage + 1;
+        prefetchFuture = CompletableFuture.supplyAsync(() ->
+            fetchPageWithRetry(startTimestamp, endTimestamp, nextPage, pageSize, updateStatus, status)
+        );
+      }
 
       // Collect variation IDs from this page
       Set<String> pageVariationIds = new HashSet<>();
@@ -172,7 +178,8 @@ public class OrderSyncService {
             .forEach(w -> existingWarehouseIds.add(w.getId()));
       }
 
-      BatchSyncResult batchResult = self.syncPageBatch(orders, existingVarIds, existingWarehouseIds);
+      // Retry batch sync với deadlock handling
+      BatchSyncResult batchResult = retryBatchSync(orders, existingVarIds, existingWarehouseIds);
 
       insertedCustomers += batchResult.insertedCustomers;
       updatedCustomers += batchResult.updatedCustomers;
@@ -260,11 +267,10 @@ public class OrderSyncService {
       }
     }
 
-    // --- Step 2: Bulk fetch existing ---
-    Map<Long, Order> existingOrders = new HashMap<>();
-    for (Order o : orderRepository.findAllByIdIn(orderIds)) {
-      existingOrders.put(o.getId(), o);
-    }
+    // --- Step 2: Bulk fetch existing IDs (lightweight, no full entity load) ---
+    Set<Long> existingOrderIds = orderIds.isEmpty()
+        ? new HashSet<>()
+        : new HashSet<>(orderRepository.findExistingIds(orderIds));
 
     Map<String, Customer> existingCustomers = new HashMap<>();
     for (Customer c : customerRepository.findAllByIdIn(customerIds)) {
@@ -327,14 +333,11 @@ public class OrderSyncService {
           throw new IllegalArgumentException("Cannot parse order id: " + dto.getId());
         }
 
-        Order order = existingOrders.get(orderId);
-        boolean isNewOrder = (order == null);
-        if (isNewOrder) {
-          order = new Order();
-          order.setId(orderId);
-        }
+        boolean isNewOrder = !existingOrderIds.contains(orderId);
+        Order order = new Order();
+        order.setId(orderId);
 
-        mapOrder(order, dto, isNewOrder, existingWarehouseIds);
+        mapOrder(order, dto, existingWarehouseIds);
         ordersToSaveMap.put(orderId, order);
 
         if (isNewOrder) {
@@ -426,12 +429,12 @@ public class OrderSyncService {
 
     saveWithDeadlockRetry(() -> {
       if (!customersToSave.isEmpty()) {
-        customerRepository.saveAll(customersToSave);
+        customerRepository.saveAllAndFlush(customersToSave);
         log.debug("Saved {} customers", customersToSave.size());
       }
       if (!ordersToSave.isEmpty()) {
-        orderRepository.saveAll(ordersToSave);
-        log.debug("Saved {} orders", ordersToSave.size());
+        batchUpsertOrders(ordersToSave);
+        log.debug("Batch upserted {} orders", ordersToSave.size());
       }
       if (!itemsToSave.isEmpty()) {
         orderItemRepository.saveAll(itemsToSave);
@@ -451,6 +454,234 @@ public class OrderSyncService {
         skippedOrders, errorMessages, skippedOrderIds
     );
   }
+  // ============================================================
+  // Batch upsert orders via JdbcTemplate
+  // ============================================================
+
+  private static final String UPSERT_ORDER_SQL = """
+      INSERT INTO orders (id, order_code, shop_id, page_id, customer_id, conversation_id, post_id,
+          ad_id, creator_id, assigning_seller_id, assigning_care_id, marketer_id, last_editor_id,
+          warehouse_id, status, sub_status, status_name, bill_full_name, bill_phone_number, bill_email,
+          shipping_full_name, shipping_phone_number, shipping_address, shipping_full_address,
+          shipping_province_id, shipping_province_name, shipping_district_id, shipping_district_name,
+          shipping_commune_id, shipping_commune_name, shipping_country_code, shipping_post_code,
+          order_sources, order_sources_name, ads_source, p_utm_source, p_utm_medium, p_utm_campaign,
+          p_utm_content, p_utm_term, p_utm_id, is_livestream, is_live_shopping, total_price,
+          total_price_after_sub_discount, total_discount, shipping_fee, surcharge, tax, cod,
+          money_to_collect, prepaid, cash, transfer_money, charged_by_momo, charged_by_card,
+          charged_by_qrpay, exchange_payment, exchange_value, partner_fee, return_fee, fee_marketplace,
+          buyer_total_amount, levera_point, is_free_shipping, is_exchange_order, is_calculation_tax,
+          is_smc, customer_pay_fee, received_at_shop, partner, tracking_link, time_send_partner,
+          estimate_delivery_date, returned_reason, returned_reason_name, note, note_print, link,
+          time_assign_seller, time_assign_care, inserted_at, updated_at, lt_type, tick, created_at,
+          customer_address, customer_name, customer_phone, last_editor_name, order_id,
+          partner_delivery_name, partner_tracking_id, account, account_name, order_link, raw_data)
+      VALUES (:id, :order_code, :shop_id, :page_id, :customer_id, :conversation_id, :post_id,
+          :ad_id, :creator_id, :assigning_seller_id, :assigning_care_id, :marketer_id, :last_editor_id,
+          :warehouse_id, :status, :sub_status, :status_name, :bill_full_name, :bill_phone_number, :bill_email,
+          :shipping_full_name, :shipping_phone_number, :shipping_address, :shipping_full_address,
+          :shipping_province_id, :shipping_province_name, :shipping_district_id, :shipping_district_name,
+          :shipping_commune_id, :shipping_commune_name, :shipping_country_code, :shipping_post_code,
+          :order_sources, :order_sources_name, :ads_source, :p_utm_source, :p_utm_medium, :p_utm_campaign,
+          :p_utm_content, :p_utm_term, :p_utm_id, :is_livestream, :is_live_shopping, :total_price,
+          :total_price_after_sub_discount, :total_discount, :shipping_fee, :surcharge, :tax, :cod,
+          :money_to_collect, :prepaid, :cash, :transfer_money, :charged_by_momo, :charged_by_card,
+          :charged_by_qrpay, :exchange_payment, :exchange_value, :partner_fee, :return_fee, :fee_marketplace,
+          :buyer_total_amount, :levera_point, :is_free_shipping, :is_exchange_order, :is_calculation_tax,
+          :is_smc, :customer_pay_fee, :received_at_shop, :partner, :tracking_link, :time_send_partner,
+          :estimate_delivery_date, :returned_reason, :returned_reason_name, :note, :note_print, :link,
+          :time_assign_seller, :time_assign_care, :inserted_at, :updated_at, :lt_type, :tick, :created_at,
+          :customer_address, :customer_name, :customer_phone, :last_editor_name, :order_id,
+          :partner_delivery_name, :partner_tracking_id, :account, :account_name, :order_link, :raw_data)
+      ON DUPLICATE KEY UPDATE
+          order_code = VALUES(order_code), shop_id = VALUES(shop_id), page_id = VALUES(page_id),
+          customer_id = VALUES(customer_id), conversation_id = VALUES(conversation_id),
+          post_id = VALUES(post_id), ad_id = VALUES(ad_id), creator_id = VALUES(creator_id),
+          assigning_seller_id = VALUES(assigning_seller_id), assigning_care_id = VALUES(assigning_care_id),
+          marketer_id = VALUES(marketer_id), last_editor_id = VALUES(last_editor_id),
+          warehouse_id = VALUES(warehouse_id), status = VALUES(status), sub_status = VALUES(sub_status),
+          status_name = VALUES(status_name), bill_full_name = VALUES(bill_full_name),
+          bill_phone_number = VALUES(bill_phone_number), bill_email = VALUES(bill_email),
+          shipping_full_name = VALUES(shipping_full_name), shipping_phone_number = VALUES(shipping_phone_number),
+          shipping_address = VALUES(shipping_address), shipping_full_address = VALUES(shipping_full_address),
+          shipping_province_id = VALUES(shipping_province_id), shipping_province_name = VALUES(shipping_province_name),
+          shipping_district_id = VALUES(shipping_district_id), shipping_district_name = VALUES(shipping_district_name),
+          shipping_commune_id = VALUES(shipping_commune_id), shipping_commune_name = VALUES(shipping_commune_name),
+          shipping_country_code = VALUES(shipping_country_code), shipping_post_code = VALUES(shipping_post_code),
+          order_sources = VALUES(order_sources), order_sources_name = VALUES(order_sources_name),
+          ads_source = VALUES(ads_source), p_utm_source = VALUES(p_utm_source), p_utm_medium = VALUES(p_utm_medium),
+          p_utm_campaign = VALUES(p_utm_campaign), p_utm_content = VALUES(p_utm_content),
+          p_utm_term = VALUES(p_utm_term), p_utm_id = VALUES(p_utm_id), is_livestream = VALUES(is_livestream),
+          is_live_shopping = VALUES(is_live_shopping), total_price = VALUES(total_price),
+          total_price_after_sub_discount = VALUES(total_price_after_sub_discount),
+          total_discount = VALUES(total_discount), shipping_fee = VALUES(shipping_fee),
+          surcharge = VALUES(surcharge), tax = VALUES(tax), cod = VALUES(cod),
+          money_to_collect = VALUES(money_to_collect), prepaid = VALUES(prepaid), cash = VALUES(cash),
+          transfer_money = VALUES(transfer_money), charged_by_momo = VALUES(charged_by_momo),
+          charged_by_card = VALUES(charged_by_card), charged_by_qrpay = VALUES(charged_by_qrpay),
+          exchange_payment = VALUES(exchange_payment), exchange_value = VALUES(exchange_value),
+          partner_fee = VALUES(partner_fee), return_fee = VALUES(return_fee),
+          fee_marketplace = VALUES(fee_marketplace), buyer_total_amount = VALUES(buyer_total_amount),
+          levera_point = VALUES(levera_point), is_free_shipping = VALUES(is_free_shipping),
+          is_exchange_order = VALUES(is_exchange_order), is_calculation_tax = VALUES(is_calculation_tax),
+          is_smc = VALUES(is_smc), customer_pay_fee = VALUES(customer_pay_fee),
+          received_at_shop = VALUES(received_at_shop), partner = VALUES(partner),
+          tracking_link = VALUES(tracking_link), time_send_partner = VALUES(time_send_partner),
+          estimate_delivery_date = VALUES(estimate_delivery_date), returned_reason = VALUES(returned_reason),
+          returned_reason_name = VALUES(returned_reason_name), note = VALUES(note),
+          note_print = VALUES(note_print), link = VALUES(link), time_assign_seller = VALUES(time_assign_seller),
+          time_assign_care = VALUES(time_assign_care), updated_at = VALUES(updated_at),
+          lt_type = VALUES(lt_type), tick = VALUES(tick), created_at = VALUES(created_at),
+          customer_address = VALUES(customer_address), customer_name = VALUES(customer_name),
+          customer_phone = VALUES(customer_phone), last_editor_name = VALUES(last_editor_name),
+          order_id = VALUES(order_id), partner_delivery_name = VALUES(partner_delivery_name),
+          partner_tracking_id = VALUES(partner_tracking_id), account = VALUES(account),
+          account_name = VALUES(account_name), order_link = VALUES(order_link), raw_data = VALUES(raw_data)
+      """;
+
+  private void batchUpsertOrders(List<Order> orders) {
+    if (orders.isEmpty()) return;
+
+    SqlParameterSource[] batchParams = orders.stream()
+        .map(this::orderToSqlParams)
+        .toArray(SqlParameterSource[]::new);
+
+    namedParameterJdbcTemplate.batchUpdate(UPSERT_ORDER_SQL, batchParams);
+  }
+
+  private MapSqlParameterSource orderToSqlParams(Order o) {
+    MapSqlParameterSource p = new MapSqlParameterSource();
+    p.addValue("id", o.getId());
+    p.addValue("order_code", o.getOrderCode());
+    p.addValue("shop_id", o.getShopId());
+    p.addValue("page_id", o.getPageId());
+    p.addValue("customer_id", o.getCustomerId());
+    p.addValue("conversation_id", o.getConversationId());
+    p.addValue("post_id", o.getPostId());
+    p.addValue("ad_id", o.getAdId());
+    p.addValue("creator_id", o.getCreatorId());
+    p.addValue("assigning_seller_id", o.getAssigningSellerId());
+    p.addValue("assigning_care_id", o.getAssigningCareId());
+    p.addValue("marketer_id", o.getMarketerId());
+    p.addValue("last_editor_id", o.getLastEditorId());
+    p.addValue("warehouse_id", o.getWarehouseId());
+    p.addValue("status", o.getStatus());
+    p.addValue("sub_status", o.getSubStatus());
+    p.addValue("status_name", o.getStatusName());
+    p.addValue("bill_full_name", o.getBillFullName());
+    p.addValue("bill_phone_number", o.getBillPhoneNumber());
+    p.addValue("bill_email", o.getBillEmail());
+    p.addValue("shipping_full_name", o.getShippingFullName());
+    p.addValue("shipping_phone_number", o.getShippingPhoneNumber());
+    p.addValue("shipping_address", o.getShippingAddress());
+    p.addValue("shipping_full_address", o.getShippingFullAddress());
+    p.addValue("shipping_province_id", o.getShippingProvinceId());
+    p.addValue("shipping_province_name", o.getShippingProvinceName());
+    p.addValue("shipping_district_id", o.getShippingDistrictId());
+    p.addValue("shipping_district_name", o.getShippingDistrictName());
+    p.addValue("shipping_commune_id", o.getShippingCommuneId());
+    p.addValue("shipping_commune_name", o.getShippingCommuneName());
+    p.addValue("shipping_country_code", o.getShippingCountryCode());
+    p.addValue("shipping_post_code", o.getShippingPostCode());
+    p.addValue("order_sources", o.getOrderSources());
+    p.addValue("order_sources_name", o.getOrderSourcesName());
+    p.addValue("ads_source", o.getAdsSource());
+    p.addValue("p_utm_source", o.getPUtmSource());
+    p.addValue("p_utm_medium", o.getPUtmMedium());
+    p.addValue("p_utm_campaign", o.getPUtmCampaign());
+    p.addValue("p_utm_content", o.getPUtmContent());
+    p.addValue("p_utm_term", o.getPUtmTerm());
+    p.addValue("p_utm_id", o.getPUtmId());
+    p.addValue("is_livestream", o.getIsLivestream());
+    p.addValue("is_live_shopping", o.getIsLiveShopping());
+    p.addValue("total_price", o.getTotalPrice());
+    p.addValue("total_price_after_sub_discount", o.getTotalPriceAfterSubDiscount());
+    p.addValue("total_discount", o.getTotalDiscount());
+    p.addValue("shipping_fee", o.getShippingFee());
+    p.addValue("surcharge", o.getSurcharge());
+    p.addValue("tax", o.getTax());
+    p.addValue("cod", o.getCod());
+    p.addValue("money_to_collect", o.getMoneyToCollect());
+    p.addValue("prepaid", o.getPrepaid());
+    p.addValue("cash", o.getCash());
+    p.addValue("transfer_money", o.getTransferMoney());
+    p.addValue("charged_by_momo", o.getChargedByMomo());
+    p.addValue("charged_by_card", o.getChargedByCard());
+    p.addValue("charged_by_qrpay", o.getChargedByQrpay());
+    p.addValue("exchange_payment", o.getExchangePayment());
+    p.addValue("exchange_value", o.getExchangeValue());
+    p.addValue("partner_fee", o.getPartnerFee());
+    p.addValue("return_fee", o.getReturnFee());
+    p.addValue("fee_marketplace", o.getFeeMarketplace());
+    p.addValue("buyer_total_amount", o.getBuyerTotalAmount());
+    p.addValue("levera_point", o.getLeveraPoint());
+    p.addValue("is_free_shipping", o.getIsFreeShipping());
+    p.addValue("is_exchange_order", o.getIsExchangeOrder());
+    p.addValue("is_calculation_tax", o.getIsCalculationTax());
+    p.addValue("is_smc", o.getIsSmc());
+    p.addValue("customer_pay_fee", o.getCustomerPayFee());
+    p.addValue("received_at_shop", o.getReceivedAtShop());
+    p.addValue("partner", o.getPartner());
+    p.addValue("tracking_link", o.getTrackingLink());
+    p.addValue("time_send_partner", toTimestamp(o.getTimeSendPartner()));
+    p.addValue("estimate_delivery_date", o.getEstimateDeliveryDate() != null
+        ? java.sql.Date.valueOf(o.getEstimateDeliveryDate()) : null);
+    p.addValue("returned_reason", o.getReturnedReason());
+    p.addValue("returned_reason_name", o.getReturnedReasonName());
+    p.addValue("note", o.getNote());
+    p.addValue("note_print", o.getNotePrint());
+    p.addValue("link", o.getLink());
+    p.addValue("time_assign_seller", toTimestamp(o.getTimeAssignSeller()));
+    p.addValue("time_assign_care", toTimestamp(o.getTimeAssignCare()));
+    p.addValue("inserted_at", toTimestamp(o.getInsertedAt()));
+    p.addValue("updated_at", toTimestamp(o.getUpdatedAt()));
+    p.addValue("lt_type", o.getLtType());
+    p.addValue("tick", o.getTick());
+    p.addValue("created_at", toTimestamp(o.getCreatedAt()));
+    p.addValue("customer_address", o.getCustomerAddress());
+    p.addValue("customer_name", o.getCustomerName());
+    p.addValue("customer_phone", o.getCustomerPhone());
+    p.addValue("last_editor_name", o.getLastEditorName());
+    p.addValue("order_id", o.getOrderId());
+    p.addValue("partner_delivery_name", o.getPartnerDeliveryName());
+    p.addValue("partner_tracking_id", o.getPartnerTrackingId());
+    p.addValue("account", o.getAccount());
+    p.addValue("account_name", o.getAccountName());
+    p.addValue("order_link", o.getOrderLink());
+    p.addValue("raw_data", o.getRawData());
+    return p;
+  }
+
+  private Timestamp toTimestamp(LocalDateTime ldt) {
+    return ldt != null ? Timestamp.valueOf(ldt) : null;
+  }
+
+  // ============================================================
+  // API fetch with retry
+  // ============================================================
+
+  private OrderListResponseDto fetchPageWithRetry(
+      long startTimestamp, long endTimestamp, int page, int pageSize,
+      String updateStatus, String status) {
+    int retries = 0;
+    while (retries < 3) {
+      try {
+        return orderApiClient.fetchOrdersPage(
+            startTimestamp, endTimestamp, page, pageSize, updateStatus, status
+        );
+      } catch (Exception e) {
+        retries++;
+        log.warn("Page {} fetch attempt {} failed: {}", page, retries, e.getMessage());
+        if (retries >= 3) {
+          log.error("Page {} failed after 3 retries, skipping page", page);
+          return null;
+        }
+        try { Thread.sleep(2000L * retries); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
+      }
+    }
+    return null;
+  }
+
   // ============================================================
   // Mapping helpers (no DB access)
   // ============================================================
@@ -477,7 +708,7 @@ public class OrderSyncService {
     return new CustomerSyncResult(customer, isNew);
   }
 
-  private void mapOrder(Order order, OrderApiDto dto, boolean isNew, Set<String> existingWarehouseIds) {
+  private void mapOrder(Order order, OrderApiDto dto, Set<String> existingWarehouseIds) {
     order.setShopId(dto.getShopId());
     order.setStatus(dto.getStatus() != null ? dto.getStatus() : 0);
     order.setStatusName(dto.getStatusName());
@@ -606,7 +837,7 @@ public class OrderSyncService {
     order.setPostId(dto.getPostId());
     order.setAccountName(dto.getAccountName());
 
-    if (isNew) order.setInsertedAt(parseDateTime(dto.getInsertedAt(), "order.insertedAt"));
+    order.setInsertedAt(parseDateTime(dto.getInsertedAt(), "order.insertedAt"));
     order.setUpdatedAt(parseDateTime(dto.getUpdatedAt(), "order.updatedAt"));
   }
 
@@ -740,6 +971,33 @@ public class OrderSyncService {
   // Deadlock retry helper
   // ============================================================
 
+  private BatchSyncResult retryBatchSync(List<OrderApiDto> orders, Set<String> existingVarIds, Set<String> existingWarehouseIds) {
+    int retries = 0;
+    int maxRetries = 10;
+    long waitTimeMs = 1000;
+
+    while (retries < maxRetries) {
+      try {
+        return self.syncPageBatch(orders, existingVarIds, existingWarehouseIds);
+      } catch (Exception e) {
+        if (isDeadlockOrRollbackOnly(e)) {
+          retries++;
+          log.warn("Page batch deadlock on attempt {}/{}, waiting {}ms...", retries, maxRetries, waitTimeMs);
+          if (retries >= maxRetries) {
+            log.error("Page batch failed after {} retries, skipping batch", maxRetries);
+            List<String> errors = List.of("Batch failed after " + maxRetries + " retries: " + e.getMessage());
+            return new BatchSyncResult(0, 0, 0, 0, 0, 0, 0, 0, orders.size(), errors, List.of());
+          }
+          try { Thread.sleep(waitTimeMs); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
+          waitTimeMs *= 1.5; // Exponential backoff
+        } else {
+          throw e;
+        }
+      }
+    }
+    return new BatchSyncResult(0, 0, 0, 0, 0, 0, 0, 0, orders.size(), List.of("Max retries exceeded"), List.of());
+  }
+
   @FunctionalInterface
   private interface RetryableOperation {
     void execute() throws Exception;
@@ -747,36 +1005,45 @@ public class OrderSyncService {
 
   private void saveWithDeadlockRetry(RetryableOperation op) {
     int retries = 0;
-    while (retries < 3) {
+    int maxRetries = 10;
+    while (retries < maxRetries) {
       try {
         op.execute();
         return;
-      } catch (RuntimeException re) {
-        if (re.getMessage() != null && re.getMessage().contains("Deadlock")) {
-          retries++;
-          log.warn("Deadlock detected on attempt {}, retrying in {}ms...", retries, 200 * retries);
-          if (retries >= 3) {
-            log.error("Deadlock persisted after 3 retries", re);
-            throw re;
-          }
-          try { Thread.sleep(200L * retries); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
-        } else {
-          throw re;
-        }
       } catch (Exception e) {
-        if (e.getMessage() != null && e.getMessage().contains("Deadlock")) {
+        if (isDeadlockOrRollbackOnly(e)) {
           retries++;
-          log.warn("Deadlock detected on attempt {}, retrying in {}ms...", retries, 200 * retries);
-          if (retries >= 3) {
-            log.error("Deadlock persisted after 3 retries", e);
-            throw new RuntimeException("Deadlock persisted after 3 retries", e);
+          long waitTime = 1000L * retries; // 1s, 2s, 3s...
+          log.warn("Deadlock/rollback error on attempt {}/{}, waiting {}ms before retry...",
+              retries, maxRetries, waitTime);
+          if (retries >= maxRetries) {
+            log.error("Deadlock persisted after {} retries, giving up", maxRetries);
+            return; // Skip this batch instead of throwing
           }
-          try { Thread.sleep(200L * retries); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
+          try { Thread.sleep(waitTime); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
         } else {
-          throw new RuntimeException(e);
+          log.error("Non-deadlock error: {}", e.getMessage());
+          throw e instanceof RuntimeException ? (RuntimeException) e : new RuntimeException(e);
         }
       }
     }
+  }
+
+  private boolean isDeadlockOrRollbackOnly(Throwable t) {
+    if (t == null) return false;
+    String msg = t.getMessage();
+    if (msg != null) {
+      String lower = msg.toLowerCase();
+      if (lower.contains("deadlock") || lower.contains("rollback-only")) {
+        return true;
+      }
+    }
+    // Check nested exception
+    Throwable cause = t.getCause();
+    if (cause != null && cause != t) {
+      return isDeadlockOrRollbackOnly(cause);
+    }
+    return false;
   }
 
   // ============================================================
