@@ -25,6 +25,7 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
@@ -50,6 +51,8 @@ import java.util.concurrent.CompletableFuture;
 @Service
 @RequiredArgsConstructor
 public class OrderSyncService {
+
+  private static final int ORDER_UPSERT_CHUNK_SIZE = 50;
 
   private final OrderApiClient orderApiClient;
   private final CustomerRepository customerRepository;
@@ -253,8 +256,9 @@ public class OrderSyncService {
         orderIds.add(orderId);
       }
 
-      if (dto.getCustomer() != null && dto.getCustomer().getId() != null) {
-        customerIds.add(dto.getCustomer().getId());
+      String customerId = resolveCustomerId(dto);
+      if (customerId != null) {
+        customerIds.add(customerId);
       }
 
       if (dto.getItems() != null) {
@@ -298,6 +302,7 @@ public class OrderSyncService {
     List<Customer> customersToSave = new ArrayList<>();
     List<OrderStatusHistory> statusHistoriesToSave = new ArrayList<>();
     Set<String> seenCustomerIds = new HashSet<>();
+    Set<String> validCustomerIds = new HashSet<>(existingCustomers.keySet());
 
     int insertedCustomers = 0, updatedCustomers = 0;
     int insertedOrders = 0, updatedOrders = 0;
@@ -310,21 +315,27 @@ public class OrderSyncService {
 
     for (OrderApiDto dto : orders) {
       try {
-        // --- Customer ---
-        if (dto.getCustomer() != null
-            && dto.getCustomer().getId() != null
-            && !seenCustomerIds.contains(dto.getCustomer().getId())) {
-
-          CustomerSyncResult custRes = mapCustomer(dto.getCustomer(), dto.getShopId(), existingCustomers);
+        // --- Customer (nested object hoặc customer_id phẳng) ---
+        String customerId = resolveCustomerId(dto);
+        if (customerId != null && !seenCustomerIds.contains(customerId)) {
+          CustomerSyncResult custRes;
+          if (dto.getCustomer() != null && dto.getCustomer().getId() != null) {
+            custRes = mapCustomer(dto.getCustomer(), dto.getShopId(), existingCustomers);
+          } else {
+            custRes = mapStubCustomer(customerId, dto, existingCustomers);
+          }
           if (custRes.entity != null) {
             customersToSave.add(custRes.entity);
+            validCustomerIds.add(custRes.entity.getId());
             if (custRes.isNew) {
               insertedCustomers++;
             } else {
               updatedCustomers++;
             }
+          } else {
+            validCustomerIds.add(customerId);
           }
-          seenCustomerIds.add(dto.getCustomer().getId());
+          seenCustomerIds.add(customerId);
         }
 
         // --- Order ---
@@ -337,7 +348,7 @@ public class OrderSyncService {
         Order order = new Order();
         order.setId(orderId);
 
-        mapOrder(order, dto, existingWarehouseIds);
+        mapOrder(order, dto, existingWarehouseIds, validCustomerIds);
         ordersToSaveMap.put(orderId, order);
 
         if (isNewOrder) {
@@ -427,11 +438,12 @@ public class OrderSyncService {
     List<Order> ordersToSave = new ArrayList<>(ordersToSaveMap.values());
     List<OrderItem> itemsToSave = new ArrayList<>(itemsToSaveMap.values());
 
+    if (!customersToSave.isEmpty()) {
+      saveWithDeadlockRetry(() -> self.persistCustomersInNewTx(customersToSave));
+      log.debug("Saved {} customers", customersToSave.size());
+    }
+
     saveWithDeadlockRetry(() -> {
-      if (!customersToSave.isEmpty()) {
-        customerRepository.saveAllAndFlush(customersToSave);
-        log.debug("Saved {} customers", customersToSave.size());
-      }
       if (!ordersToSave.isEmpty()) {
         batchUpsertOrders(ordersToSave);
         log.debug("Batch upserted {} orders", ordersToSave.size());
@@ -540,13 +552,24 @@ public class OrderSyncService {
       """;
 
   private void batchUpsertOrders(List<Order> orders) {
-    if (orders.isEmpty()) return;
+    if (orders.isEmpty()) {
+      return;
+    }
+    for (int i = 0; i < orders.size(); i += ORDER_UPSERT_CHUNK_SIZE) {
+      List<Order> chunk = orders.subList(i, Math.min(i + ORDER_UPSERT_CHUNK_SIZE, orders.size()));
+      SqlParameterSource[] batchParams = chunk.stream()
+          .map(this::orderToSqlParams)
+          .toArray(SqlParameterSource[]::new);
+      namedParameterJdbcTemplate.batchUpdate(UPSERT_ORDER_SQL, batchParams);
+    }
+  }
 
-    SqlParameterSource[] batchParams = orders.stream()
-        .map(this::orderToSqlParams)
-        .toArray(SqlParameterSource[]::new);
-
-    namedParameterJdbcTemplate.batchUpdate(UPSERT_ORDER_SQL, batchParams);
+  @Transactional(propagation = Propagation.REQUIRES_NEW)
+  public void persistCustomersInNewTx(List<Customer> customers) {
+    if (customers == null || customers.isEmpty()) {
+      return;
+    }
+    customerRepository.saveAllAndFlush(customers);
   }
 
   private MapSqlParameterSource orderToSqlParams(Order o) {
@@ -698,23 +721,64 @@ public class OrderSyncService {
       customer = new Customer();
       customer.setId(dto.getId());
     }
-    customer.setShopId(shopId);
+    customer.setShopId(shopId != null ? shopId : 0L);
     customer.setName(dto.getName() != null ? dto.getName() : "Unknown");
     customer.setGender(dto.getGender());
     customer.setFbId(dto.getFbId());
     customer.setReferralCode(dto.getReferralCode());
-    customer.setInsertedAt(parseDateTime(dto.getInsertedAt(), "customer.insertedAt"));
-    customer.setUpdatedAt(parseDateTime(dto.getUpdatedAt(), "customer.updatedAt"));
+    LocalDateTime now = LocalDateTime.now();
+    LocalDateTime insertedAt = parseDateTime(dto.getInsertedAt(), "customer.insertedAt");
+    LocalDateTime updatedAt = parseDateTime(dto.getUpdatedAt(), "customer.updatedAt");
+    customer.setInsertedAt(insertedAt != null ? insertedAt : now);
+    customer.setUpdatedAt(updatedAt != null ? updatedAt : now);
     return new CustomerSyncResult(customer, isNew);
   }
 
-  private void mapOrder(Order order, OrderApiDto dto, Set<String> existingWarehouseIds) {
+  private CustomerSyncResult mapStubCustomer(
+      String customerId,
+      OrderApiDto dto,
+      Map<String, Customer> existing
+  ) {
+    if (customerId == null || customerId.isBlank()) {
+      return new CustomerSyncResult(null, false);
+    }
+    if (existing.containsKey(customerId)) {
+      return new CustomerSyncResult(null, false);
+    }
+    Customer customer = new Customer();
+    customer.setId(customerId);
+    customer.setShopId(dto.getShopId() != null ? dto.getShopId() : 0L);
+    String name = dto.getBillFullName();
+    if (name == null || name.isBlank()) {
+      name = dto.getShippingFullName();
+    }
+    customer.setName(name != null && !name.isBlank() ? name : "Unknown");
+    LocalDateTime now = LocalDateTime.now();
+    customer.setInsertedAt(now);
+    customer.setUpdatedAt(now);
+    return new CustomerSyncResult(customer, true);
+  }
+
+  private String resolveCustomerId(OrderApiDto dto) {
+    if (dto.getCustomer() != null && dto.getCustomer().getId() != null && !dto.getCustomer().getId().isBlank()) {
+      return dto.getCustomer().getId();
+    }
+    if (dto.getCustomerId() != null && !dto.getCustomerId().isBlank()) {
+      return dto.getCustomerId();
+    }
+    return null;
+  }
+
+  private void mapOrder(Order order, OrderApiDto dto, Set<String> existingWarehouseIds, Set<String> validCustomerIds) {
     order.setShopId(dto.getShopId());
     order.setStatus(dto.getStatus() != null ? dto.getStatus() : 0);
     order.setStatusName(dto.getStatusName());
 
-    if (dto.getCustomer() != null && dto.getCustomer().getId() != null) {
-      order.setCustomerId(dto.getCustomer().getId());
+    String customerId = resolveCustomerId(dto);
+    if (customerId != null && validCustomerIds.contains(customerId)) {
+      order.setCustomerId(customerId);
+    } else {
+      order.setCustomerId(null);
     }
     if (dto.getCreator() != null && dto.getCreator().getId() != null) {
       order.setCreatorId(dto.getCreator().getId());

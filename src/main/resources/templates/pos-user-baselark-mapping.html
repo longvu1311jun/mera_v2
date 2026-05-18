@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mapping BaseLark - POS Users | Mera V2</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-light: #818cf8;
+            --secondary: #a855f7;
+            --bg: #0f172a;
+            --card-bg: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --success: #22c55e;
+            --danger: #ef4444;
+            --glass: rgba(30, 41, 59, 0.7);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg);
+            background-image:
+                radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.15) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(168, 85, 247, 0.15) 0px, transparent 50%);
+            color: var(--text-main);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+
+        .container { max-width: 1100px; margin: 0 auto; }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .header h1 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 2rem;
+            font-weight: 700;
+            background: linear-gradient(to right, #818cf8, #c084fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header p {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            margin-top: 6px;
+        }
+
+        .header-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
+        .btn {
+            padding: 10px 20px;
+            border-radius: 12px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+        }
+
+        .btn-edit {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+        }
+
+        .btn-edit:hover { transform: translateY(-1px); }
+
+        .btn-save {
+            background: var(--success);
+            color: white;
+            display: none;
+        }
+
+        .btn-save:hover { filter: brightness(1.08); }
+
+        .btn-cancel {
+            background: var(--card-bg);
+            color: var(--text-main);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            display: none;
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-muted);
+            text-decoration: none;
+            font-weight: 500;
+            padding: 10px 16px;
+            border-radius: 12px;
+            background: var(--glass);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            margin-bottom: 24px;
+        }
+
+        .back-btn:hover { color: var(--primary-light); border-color: var(--primary); }
+
+        .stats {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+
+        .stat-card {
+            background: var(--glass);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 14px;
+            padding: 16px 24px;
+            min-width: 140px;
+        }
+
+        .stat-value { font-size: 1.75rem; font-weight: 700; color: var(--primary-light); }
+        .stat-label { font-size: 0.8rem; color: var(--text-muted); margin-top: 4px; }
+
+        .search-box {
+            margin-bottom: 16px;
+        }
+
+        .search-box input {
+            width: 100%;
+            max-width: 400px;
+            padding: 12px 16px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: var(--card-bg);
+            color: var(--text-main);
+            font-size: 0.9rem;
+        }
+
+        .search-box input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .table-container {
+            background: var(--glass);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            overflow: hidden;
+        }
+
+        .table-wrapper { overflow-x: auto; max-height: calc(100vh - 320px); overflow-y: auto; }
+
+        table { width: 100%; border-collapse: collapse; }
+
+        th {
+            position: sticky;
+            top: 0;
+            z-index: 1;
+            background: #1a2332;
+            padding: 14px 16px;
+            text-align: left;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+        }
+
+        td {
+            padding: 12px 16px;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            vertical-align: middle;
+        }
+
+        tr:hover td { background: rgba(99, 102, 241, 0.05); }
+
+        .user-name { font-weight: 600; }
+
+        .baselark-input {
+            width: 100%;
+            min-width: 280px;
+            padding: 10px 12px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            background: rgba(15, 23, 42, 0.6);
+            color: var(--text-main);
+            font-family: ui-monospace, monospace;
+            font-size: 0.85rem;
+        }
+
+        .baselark-input:read-only {
+            cursor: default;
+            opacity: 0.85;
+            background: rgba(15, 23, 42, 0.35);
+        }
+
+        .baselark-input:not(:read-only) {
+            border-color: var(--primary);
+            background: rgba(15, 23, 42, 0.9);
+        }
+
+        .baselark-input:focus {
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.35);
+        }
+
+        .mapped-badge {
+            display: inline-block;
+            margin-left: 8px;
+            padding: 2px 8px;
+            border-radius: 99px;
+            font-size: 0.65rem;
+            font-weight: 600;
+            background: rgba(34, 197, 94, 0.15);
+            color: var(--success);
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            padding: 14px 20px;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            z-index: 100;
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s;
+        }
+
+        .toast.show { transform: translateY(0); opacity: 1; }
+        .toast.success { background: var(--success); color: white; }
+        .toast.error { background: var(--danger); color: white; }
+
+        .empty-state {
+            text-align: center;
+            padding: 48px;
+            color: var(--text-muted);
+        }
+
+        .edit-mode-banner {
+            display: none;
+            background: rgba(99, 102, 241, 0.15);
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            border-radius: 12px;
+            padding: 12px 16px;
+            margin-bottom: 16px;
+            font-size: 0.9rem;
+            color: var(--primary-light);
+        }
+
+        .edit-mode-banner.visible { display: block; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <a href="/" class="back-btn">← Về Dashboard</a>
+
+    <div class="header" style="display:block">
+        <div>
+            <h1>Mapping BaseLark</h1>
+            <p>Gán Lark Base ID cho nhân viên POS (<code style="color:#818cf8">pos_users.BaseLark</code>)</p>
+        </div>
+        <div class="header-actions">
+            <button type="button" id="btnEdit" class="btn btn-edit">Chỉnh sửa</button>
+            <button type="button" id="btnCancel" class="btn btn-cancel">Hủy</button>
+            <button type="button" id="btnSave" class="btn btn-save">Lưu</button>
+        </div>
+    </div>
+
+    <div class="stats" style="display:flex">
+        <div class="stat-card">
+            <div class="stat-value" th:text="${#lists.size(users)}">0</div>
+            <div class="stat-label">Tổng nhân viên</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="mappedCount">0</div>
+            <div class="stat-label">Đã có BaseLark</div>
+        </div>
+    </div>
+
+    <div id="editBanner" class="edit-mode-banner">
+        Chế độ chỉnh sửa — nhập BaseLark cho từng nhân viên, sau đó bấm <strong>Lưu</strong>.
+    </div>
+
+    <div class="search-box">
+        <input type="text" id="searchInput" placeholder="Tìm theo tên nhân viên..." autocomplete="off">
+    </div>
+
+    <div class="table-container">
+        <div class="table-wrapper">
+            <table th:if="${!users.isEmpty()}">
+                <thead>
+                <tr>
+                    <th style="width:48px">#</th>
+                    <th>Tên nhân viên</th>
+                    <th>BaseLark</th>
+                </tr>
+                </thead>
+                <tbody id="userTableBody">
+                <tr th:each="user, stat : ${users}" th:data-name="${user.name}">
+                    <td th:text="${stat.count}">1</td>
+                    <td>
+                        <span class="user-name" th:text="${user.name}">Name</span>
+                        <span class="mapped-badge" th:if="${user.baseLark != null and !user.baseLark.isEmpty()}">đã map</span>
+                    </td>
+                    <td>
+                        <input type="text"
+                               class="baselark-input"
+                               readonly
+                               th:data-user-id="${user.id}"
+                               th:value="${user.baseLark != null ? user.baseLark : ''}"
+                               placeholder="Chưa có BaseLark">
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+            <div th:if="${users.isEmpty()}" class="empty-state">
+                Chưa có dữ liệu nhân viên trong <code>pos_users</code>. Hãy đồng bộ nhân viên từ POS trước.
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+    const btnEdit = document.getElementById('btnEdit');
+    const btnSave = document.getElementById('btnSave');
+    const btnCancel = document.getElementById('btnCancel');
+    const editBanner = document.getElementById('editBanner');
+    const searchInput = document.getElementById('searchInput');
+    const inputs = () => document.querySelectorAll('.baselark-input');
+    let originalValues = new Map();
+
+    function updateMappedCount() {
+        const mapped = Array.from(inputs()).filter(i => i.value.trim() !== '').length;
+        const el = document.getElementById('mappedCount');
+        if (el) el.textContent = mapped;
+    }
+
+    function setEditMode(enabled) {
+        inputs().forEach(input => {
+            input.readOnly = !enabled;
+        });
+        btnEdit.style.display = enabled ? 'none' : 'inline-block';
+        btnSave.style.display = enabled ? 'inline-block' : 'none';
+        btnCancel.style.display = enabled ? 'inline-block' : 'none';
+        editBanner.classList.toggle('visible', enabled);
+    }
+
+    function snapshotValues() {
+        originalValues = new Map();
+        inputs().forEach(input => {
+            originalValues.set(input.dataset.userId, input.value);
+        });
+    }
+
+    btnEdit.addEventListener('click', () => {
+        snapshotValues();
+        setEditMode(true);
+    });
+
+    btnCancel.addEventListener('click', () => {
+        inputs().forEach(input => {
+            const prev = originalValues.get(input.dataset.userId);
+            input.value = prev != null ? prev : '';
+        });
+        setEditMode(false);
+    });
+
+    btnSave.addEventListener('click', async () => {
+        const updates = Array.from(inputs()).map(input => ({
+            id: input.dataset.userId,
+            baseLark: input.value.trim()
+        }));
+
+        btnSave.disabled = true;
+        try {
+            const res = await fetch('/admin/pos-users-baselark/api/save', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ updates })
+            });
+            const data = await res.json();
+            if (!res.ok || !data.success) {
+                throw new Error(data.message || 'Lưu thất bại');
+            }
+            showToast('Đã lưu ' + data.saved + ' nhân viên', 'success');
+            snapshotValues();
+            setEditMode(false);
+            updateMappedCount();
+            refreshMappedBadges();
+        } catch (e) {
+            showToast(e.message || 'Lỗi khi lưu', 'error');
+        } finally {
+            btnSave.disabled = false;
+        }
+    });
+
+    function refreshMappedBadges() {
+        document.querySelectorAll('#userTableBody tr').forEach(row => {
+            const input = row.querySelector('.baselark-input');
+            let badge = row.querySelector('.mapped-badge');
+            const hasValue = input && input.value.trim() !== '';
+            if (hasValue && !badge) {
+                badge = document.createElement('span');
+                badge.className = 'mapped-badge';
+                badge.textContent = 'đã map';
+                row.querySelector('.user-name')?.after(badge);
+            } else if (!hasValue && badge) {
+                badge.remove();
+            }
+        });
+    }
+
+    searchInput.addEventListener('input', () => {
+        const q = searchInput.value.trim().toLowerCase();
+        document.querySelectorAll('#userTableBody tr').forEach(row => {
+            const name = (row.dataset.name || '').toLowerCase();
+            row.style.display = !q || name.includes(q) ? '' : 'none';
+        });
+    });
+
+    function showToast(message, type) {
+        const toast = document.getElementById('toast');
+        toast.textContent = message;
+        toast.className = 'toast ' + type + ' show';
+        setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+
+    updateMappedCount();
+</script>
+</body>
+</html>

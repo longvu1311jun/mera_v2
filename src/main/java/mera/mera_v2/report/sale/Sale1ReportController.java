@@ -41,49 +41,42 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Controller
-public class SaleReportController {
+public class Sale1ReportController {
 
-  private static final Logger log = LoggerFactory.getLogger(SaleReportController.class);
+  private static final Logger log = LoggerFactory.getLogger(Sale1ReportController.class);
 
-  private static final String SESSION_SALE_SUMMARY = "SESSION_SALE_SUMMARY";
-  private static final String SESSION_SALE_RANGE = "SESSION_SALE_RANGE";
-  private static final String SESSION_SALE_FETCHED_AT = "SESSION_SALE_FETCHED_AT";
+  private static final String SESSION_SALE_SUMMARY = "SESSION_SALE1_SUMMARY";
+  private static final String SESSION_SALE_RANGE = "SESSION_SALE1_RANGE";
+  private static final String SESSION_SALE_FETCHED_AT = "SESSION_SALE1_FETCHED_AT";
 
   private final LarkTokenService tokenService;
   private final BitableService bitableService;
   private final SaleReportCacheService cacheService;
-  private final SaleReportTongDonService tongDonService;
 
-  public SaleReportController(
-      LarkTokenService tokenService,
-      BitableService bitableService,
-      SaleReportCacheService cacheService,
-      SaleReportTongDonService tongDonService
-  ) {
+  public Sale1ReportController(LarkTokenService tokenService, BitableService bitableService, SaleReportCacheService cacheService) {
     this.tokenService = tokenService;
     this.bitableService = bitableService;
     this.cacheService = cacheService;
-    this.tongDonService = tongDonService;
   }
 
-  @GetMapping("/saleReport")
-  public String saleReport(
+  @GetMapping("/sale1report")
+  public String sale1Report(
       @RequestParam(value = "range", required = false, defaultValue = "CurrentMonth") String range,
       Model model,
       HttpSession session
   ) {
     model.addAttribute("range", range);
-    return "saleReport";
+    return "sale1report";
   }
 
-  @GetMapping("/api/saleReport/data")
+  @GetMapping("/api/sale1report/data")
   @ResponseBody
-  public ResponseEntity<Map<String, Object>> getSaleReportData(
+  public ResponseEntity<Map<String, Object>> getSale1ReportData(
       @RequestParam(value = "range", required = false, defaultValue = "CurrentMonth") String range,
       HttpSession session
   ) {
     Map<String, Object> response = new HashMap<>();
-    
+
     if (!tokenService.hasToken(session)) {
       response.put("hasToken", false);
       response.put("rows", List.of());
@@ -91,17 +84,16 @@ public class SaleReportController {
     }
 
     try {
-      log.info("🔍 Loading sale report data for range: {}", range);
+      log.info("Loading sale1 report data for range: {}", range);
       tokenService.autoRefreshTokenIfNeeded(session);
 
-      // 1) ✅ session cache
+      // 1) session cache
       @SuppressWarnings("unchecked")
       List<SaleSummaryRow> cached = (List<SaleSummaryRow>) session.getAttribute(SESSION_SALE_SUMMARY);
       String cachedRange = (String) session.getAttribute(SESSION_SALE_RANGE);
       LocalDateTime fetchedAt = (LocalDateTime) session.getAttribute(SESSION_SALE_FETCHED_AT);
 
       if (cached != null && cachedRange != null && cachedRange.equals(range) && fetchedAt != null) {
-        tongDonService.enrichTongDonFromDb(cached, range);
         response.put("hasToken", true);
         response.put("rows", cached);
         response.put("range", cachedRange);
@@ -111,7 +103,7 @@ public class SaleReportController {
         return ResponseEntity.ok(response);
       }
 
-      // 2) ✅ disk cache
+      // 2) disk cache
       Optional<SaleReportCacheEntry> disk = cacheService.get(range);
       if (disk.isPresent()) {
         SaleReportCacheEntry entry = disk.get();
@@ -120,15 +112,12 @@ public class SaleReportController {
             ZoneId.systemDefault()
         );
 
-        List<SaleSummaryRow> diskRows = entry.getRows();
-        tongDonService.enrichTongDonFromDb(diskRows, range);
-
-        session.setAttribute(SESSION_SALE_SUMMARY, diskRows);
+        session.setAttribute(SESSION_SALE_SUMMARY, entry.getRows());
         session.setAttribute(SESSION_SALE_RANGE, range);
         session.setAttribute(SESSION_SALE_FETCHED_AT, dt);
 
         response.put("hasToken", true);
-        response.put("rows", diskRows);
+        response.put("rows", entry.getRows());
         response.put("range", range);
         response.put("fetchedAt", dt.toString());
         response.put("totalAgents", entry.getRows() != null ? entry.getRows().size() : 0);
@@ -136,14 +125,13 @@ public class SaleReportController {
         return ResponseEntity.ok(response);
       }
 
-      // 3) ❌ cache miss -> thống kế thật
+      // 3) cache miss -> thống kế thật
       List<BitableTable> saleTables = bitableService.getSaleTables(session);
       List<SaleSummaryRow> rows = new ArrayList<>();
 
       for (BitableTable t : saleTables) {
         rows.add(bitableService.buildSaleSummaryForTable(session, t, range));
       }
-      tongDonService.enrichTongDonFromDb(rows, range);
 
       long nowMs = Instant.now().toEpochMilli();
       LocalDateTime nowDt = LocalDateTime.ofInstant(Instant.ofEpochMilli(nowMs), ZoneId.systemDefault());
@@ -164,7 +152,7 @@ public class SaleReportController {
       response.put("fromCache", "LIVE");
 
     } catch (Exception e) {
-      log.error("Error loading sale report: {}", e.getMessage(), e);
+      log.error("Error loading sale1 report: {}", e.getMessage(), e);
       response.put("hasToken", true);
       response.put("rows", List.of());
       response.put("range", range);
@@ -174,8 +162,8 @@ public class SaleReportController {
     return ResponseEntity.ok(response);
   }
 
-  @PostMapping("/saleReport/refresh")
-  public String refreshSaleReport(
+  @PostMapping("/sale1report/refresh")
+  public String refreshSale1Report(
       @RequestParam(value = "range", required = false, defaultValue = "CurrentMonth") String range,
       HttpSession session
   ) {
@@ -187,15 +175,15 @@ public class SaleReportController {
     // clear disk
     cacheService.clear(range);
 
-    return "redirect:/saleReport?range=" + range;
+    return "redirect:/sale1report?range=" + range;
   }
 
-  @GetMapping("/saleReport/export")
+  @GetMapping("/sale1report/export")
   public ResponseEntity<byte[]> exportToExcel(
       @RequestParam(value = "range", required = false, defaultValue = "CurrentMonth") String range,
       HttpSession session
   ) throws IOException {
-    
+
     if (!tokenService.hasToken(session)) {
       return ResponseEntity.badRequest().build();
     }
@@ -227,11 +215,9 @@ public class SaleReportController {
         return ResponseEntity.badRequest().build();
       }
 
-      tongDonService.enrichTongDonFromDb(rows, range);
-
       // Tạo Excel file
       Workbook workbook = new XSSFWorkbook();
-      Sheet sheet = workbook.createSheet("Sale Report");
+      Sheet sheet = workbook.createSheet("Sale1 Report");
 
       // Tạo style cho header
       CellStyle headerStyle = workbook.createCellStyle();
@@ -274,15 +260,16 @@ public class SaleReportController {
       titleStyle.setFont(titleFont);
       titleStyle.setAlignment(HorizontalAlignment.CENTER);
       titleCell.setCellStyle(titleStyle);
-      sheet.addMergedRegion(new org.apache.poi.ss.util.CellRangeAddress(0, 0, 0, 11));
+      sheet.addMergedRegion(new org.apache.poi.ss.util.CellRangeAddress(0, 0, 0, 13));
 
       // Dòng trống ngăn cách
       Row headerRow = sheet.createRow(2);
       String[] headers = {
           "#", "Tư vấn viên", "Nhu cầu", "Trùng", "Rác", "Không tương tác",
-          "Tổng mess", "Tổng đơn", "Hủy", "Đơn/mess nhu cầu", "Đơn/mess tổng", "Tỷ lệ hủy"
+          "Chốt nóng", "Chốt cũ", "Đơn hủy", "Tổng mess", "Tổng đơn",
+          "Đơn/mess nhu cầu", "Đơn/mess tổng", "Tỷ lệ hủy"
       };
-      
+
       for (int i = 0; i < headers.length; i++) {
         Cell cell = headerRow.createCell(i);
         cell.setCellValue(headers[i]);
@@ -293,49 +280,57 @@ public class SaleReportController {
       int rowNum = 3;
       for (SaleSummaryRow row : rows) {
         Row dataRow = sheet.createRow(rowNum++);
-        
+
         int colNum = 0;
         dataRow.createCell(colNum++).setCellValue(rowNum - 1); // STT
         dataRow.createCell(colNum++).setCellValue(row.getTableName() != null ? row.getTableName() : "");
-        
+
         // Số nguyên
         Cell nhuCauCell = dataRow.createCell(colNum++);
         nhuCauCell.setCellValue(row.getNhuCau());
         nhuCauCell.setCellStyle(numberStyle);
-        
+
         Cell trungCell = dataRow.createCell(colNum++);
         trungCell.setCellValue(row.getTrung());
         trungCell.setCellStyle(numberStyle);
-        
+
         Cell racCell = dataRow.createCell(colNum++);
         racCell.setCellValue(row.getRac());
         racCell.setCellStyle(numberStyle);
-        
+
         Cell khongTuongTacCell = dataRow.createCell(colNum++);
         khongTuongTacCell.setCellValue(row.getKhongTuongTac());
         khongTuongTacCell.setCellStyle(numberStyle);
-        
+
+        Cell chotNongCell = dataRow.createCell(colNum++);
+        chotNongCell.setCellValue(row.getChotNong());
+        chotNongCell.setCellStyle(numberStyle);
+
+        Cell chotCuCell = dataRow.createCell(colNum++);
+        chotCuCell.setCellValue(row.getChotCu());
+        chotCuCell.setCellStyle(numberStyle);
+
+        Cell donHuyCell = dataRow.createCell(colNum++);
+        donHuyCell.setCellValue(row.getDonHuy());
+        donHuyCell.setCellStyle(numberStyle);
+
         Cell tongMessCell = dataRow.createCell(colNum++);
         tongMessCell.setCellValue(row.getTongMess());
         tongMessCell.setCellStyle(numberStyle);
-        
+
         Cell tongDonCell = dataRow.createCell(colNum++);
         tongDonCell.setCellValue(row.getTongDon());
         tongDonCell.setCellStyle(numberStyle);
 
-        Cell donHuyDbCell = dataRow.createCell(colNum++);
-        donHuyDbCell.setCellValue(row.getDonHuyDb());
-        donHuyDbCell.setCellStyle(numberStyle);
-        
         // Phần trăm: dữ liệu đang ở dạng %, cần chia 100 để Excel format đúng
         Cell nhuCauRateCell = dataRow.createCell(colNum++);
         nhuCauRateCell.setCellValue(row.getDonPerMessNhuCau() / 100.0);
         nhuCauRateCell.setCellStyle(percentStyle);
-        
+
         Cell tongRateCell = dataRow.createCell(colNum++);
         tongRateCell.setCellValue(row.getDonPerMessTong() / 100.0);
         tongRateCell.setCellStyle(percentStyle);
-        
+
         Cell tiLeHuyCell = dataRow.createCell(colNum++);
         tiLeHuyCell.setCellValue(row.getTiLeHuyPercent() / 100.0);
         tiLeHuyCell.setCellStyle(percentStyle);
@@ -346,10 +341,12 @@ public class SaleReportController {
       long totalTrung = rows.stream().mapToLong(r -> r.getTrung()).sum();
       long totalRac = rows.stream().mapToLong(r -> r.getRac()).sum();
       long totalKhongTuongTac = rows.stream().mapToLong(r -> r.getKhongTuongTac()).sum();
-      long totalDonHuyDb = rows.stream().mapToLong(r -> r.getDonHuyDb()).sum();
+      long totalChotNong = rows.stream().mapToLong(r -> r.getChotNong()).sum();
+      long totalChotCu = rows.stream().mapToLong(r -> r.getChotCu()).sum();
+      long totalDonHuy = rows.stream().mapToLong(r -> r.getDonHuy()).sum();
       long totalTongMess = rows.stream().mapToLong(r -> r.getTongMess()).sum();
       long totalTongDon = rows.stream().mapToLong(r -> r.getTongDon()).sum();
-      double totalTiLeHuy = totalTongDon > 0 ? (double) totalDonHuyDb / totalTongDon : 0;
+      double totalTiLeHuy = totalTongDon > 0 ? (double) totalDonHuy / totalTongDon : 0;
 
       // Dòng tổng
       Row totalRow = sheet.createRow(rowNum);
@@ -384,23 +381,29 @@ public class SaleReportController {
       c5.setCellValue(totalKhongTuongTac);
       c5.setCellStyle(numberStyle);
       Cell c6 = totalRow.createCell(col++);
-      c6.setCellValue(totalTongMess);
+      c6.setCellValue(totalChotNong);
       c6.setCellStyle(numberStyle);
       Cell c7 = totalRow.createCell(col++);
-      c7.setCellValue(totalTongDon);
+      c7.setCellValue(totalChotCu);
       c7.setCellStyle(numberStyle);
       Cell c8 = totalRow.createCell(col++);
-      c8.setCellValue(totalDonHuyDb);
+      c8.setCellValue(totalDonHuy);
       c8.setCellStyle(numberStyle);
       Cell c9 = totalRow.createCell(col++);
-      c9.setCellValue("");
-      c9.setCellStyle(totalStyle);
+      c9.setCellValue(totalTongMess);
+      c9.setCellStyle(numberStyle);
       Cell c10 = totalRow.createCell(col++);
-      c10.setCellValue("");
-      c10.setCellStyle(totalStyle);
+      c10.setCellValue(totalTongDon);
+      c10.setCellStyle(numberStyle);
       Cell c11 = totalRow.createCell(col++);
-      c11.setCellValue(totalTiLeHuy);
-      c11.setCellStyle(percentStyle);
+      c11.setCellValue("");
+      c11.setCellStyle(totalStyle);
+      Cell c12 = totalRow.createCell(col++);
+      c12.setCellValue("");
+      c12.setCellStyle(totalStyle);
+      Cell c13 = totalRow.createCell(col++);
+      c13.setCellValue(totalTiLeHuy);
+      c13.setCellStyle(percentStyle);
 
       // Auto-size columns
       for (int i = 0; i < headers.length; i++) {
@@ -411,7 +414,7 @@ public class SaleReportController {
 
       // Tạo tên file với ngày giờ
       SimpleDateFormat dateFormat = new SimpleDateFormat("yyyyMMdd_HHmmss");
-      String fileName = "saleReport_" + monthLabel + "_" + dateFormat.format(new java.util.Date()) + ".xlsx";
+      String fileName = "sale1Report_" + monthLabel + "_" + dateFormat.format(new java.util.Date()) + ".xlsx";
 
       // Convert workbook to byte array
       ByteArrayOutputStream outputStream = new ByteArrayOutputStream();

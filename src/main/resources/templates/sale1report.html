@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Sale Report</title>
+  <title>Sale1 Report</title>
   <style>
     :root{
       --header:#6673ff;
@@ -152,7 +152,7 @@
       /* make header span full viewport width despite body padding */
       /* margin:-50px;
       padding: 1rem 24px; */
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1); 
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
       height: 78px;
       margin-top: -25px;
       margin-left: -50px;
@@ -171,7 +171,7 @@
     }
     .content-section { padding: 2rem 0; }
     .section-title { font-size: 1.4rem; margin-bottom: 1rem; color: #667eea; display:flex; align-items:center; gap:0.5rem }
-    
+
     /* Loading popup */
     .loading-overlay {
       position: fixed;
@@ -215,13 +215,12 @@
 <header>
   <div class="container">
     <div class="header-content">
-      <div class="logo">📊 MeraGroup</div>
+      <div class="logo">MeraGroup</div>
       <nav>
         <ul>
-<!--          <li><a href="/">Dashboard</a></li>-->
-          <li><a href="/saleReport" style="font-size: 25px" class="active">SALE 1</a></li>
+          <li><a href="/saleReport" style="font-size: 25px">SALE 1</a></li>
+          <li><a href="/sale1report" style="font-size: 25px" class="active">SALE 1 (Copy)</a></li>
           <li><a href="/stats" style="font-size: 25px">SALE 2</a></li>
-<!--          <li><a href="/config">Cấu Hình</a></li>-->
         </ul>
       </nav>
     </div>
@@ -237,10 +236,10 @@
 </div>
 
 <div id="noTokenSection" class="no-token" style="display:none;">
-  <h2 style="margin:0 0 10px 0;">Chưa có token 😵‍💫</h2>
+  <h2 style="margin:0 0 10px 0;">Chưa có token</h2>
   <div style="color:var(--muted)">Đăng nhập Lark trước rồi quay lại trang report nha.</div>
   <div style="margin-top:14px;">
-    <a href="/">👉 Về trang đăng nhập</a>
+    <a href="/">Về trang đăng nhập</a>
   </div>
 </div>
 
@@ -249,7 +248,7 @@
     <div class="container">
   <div class="topbar">
     <div>
-      <div class="title">📈 Sale Report (Tổng hợp theo tư vấn viên)</div>
+      <div class="title">Sale1 Report (Tổng hợp theo tư vấn viên)</div>
       <div class="meta" id="metaInfo">
         <!-- Will be populated by JavaScript -->
       </div>
@@ -258,7 +257,7 @@
     <div class="actions">
       <input id="searchInput" class="search" type="search" placeholder="Tìm theo tên tư vấn viên" />
 
-      <form method="get" action="/saleReport" id="rangeForm">
+      <form method="get" action="/sale1report" id="rangeForm">
         <select name="range" id="rangeSelect">
           <option value="CurrentMonth" id="optCurrentMonth">Tháng này</option>
           <option value="LastMonth" id="optLastMonth">Tháng trước</option>
@@ -266,13 +265,13 @@
         <button class="ghost" type="submit">Lọc</button>
       </form>
 
-      <form method="post" action="/saleReport/refresh" id="refreshForm">
+      <form method="post" action="/sale1report/refresh" id="refreshForm">
         <input type="hidden" name="range" id="refreshRange" />
-        <button class="primary" type="submit">🔄 Làm mới dữ liệu</button>
+        <button class="primary" type="submit">Làm mới dữ liệu</button>
       </form>
 
       <a href="#" id="exportExcelBtn" class="primary" style="text-decoration: none; display: inline-block; padding: 10px 20px; border-radius: 8px; background: #28a745; color: white; border: none; cursor: pointer; font-size: 14px; font-weight: 500;">
-        📥 Xuất Excel
+        Xuất Excel
       </a>
     </div>
   </div>
@@ -292,13 +291,14 @@
           <th class="center">Trùng</th>
           <th class="center">Rác</th>
           <th class="center">Không tương tác</th>
-          <th class="center" title="Tổng mess">Tổng mess</th>
-          <th class="center" title="Tổng đơn (orders.status=3)">Tổng đơn</th>
-          <th class="center" title="Hủy (orders.status=6)">Hủy</th>
-          <th class="center" title="Đơn/mess nhu cầu">Đơn/mess nhu cầu</th>
+          <th class="center">Chốt nóng</th>
+          <th class="center">Chốt cũ</th>
+          <th class="center">Đơn hủy</th>
+          <th class="center" title="Tổng mess = Nhu cầu + Trùng + Rác + Không tương tác + Chốt nóng + Chốt cũ + Đơn hủy">Tổng mess</th>
+          <th class="center" title="Tổng đơn = Chốt nóng + Chốt cũ">Tổng đơn</th>
+          <th class="center" title="Đơn/mess nhu cầu = Tổng đơn / (Nhu cầu + Chốt nóng + Chốt cũ + Hủy)">Đơn/mess nhu cầu</th>
           <th class="center" title="Đơn/mess tổng = Tổng đơn / Tổng mess">Đơn/mess tổng</th>
-          <th class="center" title="Tỉ lệ hủy = Hủy / Tổng đơn">Tỉ lệ hủy</th>
-          <!-- <th style="min-width:220px;">Table ID</th> -->
+          <th class="center" title="Tỉ lệ hủy = Đơn hủy / Tổng đơn">Tỉ lệ hủy</th>
         </tr>
         </thead>
 
@@ -312,9 +312,11 @@
             <td class="center" id="totalTrung">0</td>
             <td class="center" id="totalRac">0</td>
             <td class="center" id="totalKhongTuongTac">0</td>
+            <td class="center" id="totalChotNong">0</td>
+            <td class="center" id="totalChotCu">0</td>
+            <td class="center" id="totalDonHuy">0</td>
             <td class="center" id="totalTongMess">0</td>
             <td class="center" id="totalTongDon">0</td>
-            <td class="center" id="totalDonHuyDb">0</td>
             <td class="center">—</td>
             <td class="center">—</td>
             <td class="center" id="totalTiLeHuy">0%</td>
@@ -425,27 +427,31 @@ document.addEventListener('DOMContentLoaded', function(){
 
   function updateTotalsFromVisibleRows(){
     let totalNhuCau = 0, totalTrung = 0, totalRac = 0, totalKhongTuongTac = 0;
-    let totalDonHuy = 0, totalTongMess = 0, totalTongDon = 0;
+    let totalChotNong = 0, totalChotCu = 0, totalDonHuy = 0, totalTongMess = 0, totalTongDon = 0;
     const visibleRows = saleRows.filter(r => r.style.display !== 'none');
     visibleRows.forEach(tr => {
       const cells = tr.children;
-      if (cells.length >= 12) {
+      if (cells.length >= 14) {
         totalNhuCau += parseInt(cells[2].textContent.replace(/\./g, '')) || 0;
         totalTrung += parseInt(cells[3].textContent.replace(/\./g, '')) || 0;
         totalRac += parseInt(cells[4].textContent.replace(/\./g, '')) || 0;
         totalKhongTuongTac += parseInt(cells[5].textContent.replace(/\./g, '')) || 0;
-        totalTongMess += parseInt(cells[6].textContent.replace(/\./g, '')) || 0;
-        totalTongDon += parseInt(cells[7].textContent.replace(/\./g, '')) || 0;
+        totalChotNong += parseInt(cells[6].textContent.replace(/\./g, '')) || 0;
+        totalChotCu += parseInt(cells[7].textContent.replace(/\./g, '')) || 0;
         totalDonHuy += parseInt(cells[8].textContent.replace(/\./g, '')) || 0;
+        totalTongMess += parseInt(cells[9].textContent.replace(/\./g, '')) || 0;
+        totalTongDon += parseInt(cells[10].textContent.replace(/\./g, '')) || 0;
       }
     });
     document.getElementById('totalNhuCau').textContent = formatNumber(totalNhuCau);
     document.getElementById('totalTrung').textContent = formatNumber(totalTrung);
     document.getElementById('totalRac').textContent = formatNumber(totalRac);
     document.getElementById('totalKhongTuongTac').textContent = formatNumber(totalKhongTuongTac);
+    document.getElementById('totalChotNong').textContent = formatNumber(totalChotNong);
+    document.getElementById('totalChotCu').textContent = formatNumber(totalChotCu);
+    document.getElementById('totalDonHuy').textContent = formatNumber(totalDonHuy);
     document.getElementById('totalTongMess').textContent = formatNumber(totalTongMess);
     document.getElementById('totalTongDon').textContent = formatNumber(totalTongDon);
-    document.getElementById('totalDonHuyDb').textContent = formatNumber(totalDonHuy);
     const totalTiLeHuy = totalTongDon > 0 ? (totalDonHuy / totalTongDon * 100) : 0;
     document.getElementById('totalTiLeHuy').textContent = formatPercent(totalTiLeHuy);
   }
@@ -467,45 +473,45 @@ document.addEventListener('DOMContentLoaded', function(){
   const errorText = document.getElementById('errorText');
   const rangeSelect = document.getElementById('rangeSelect');
   const refreshRange = document.getElementById('refreshRange');
-  
+
   // Get range from URL params
   const urlParams = new URLSearchParams(window.location.search);
   const range = urlParams.get('range') || 'CurrentMonth';
   rangeSelect.value = range;
   refreshRange.value = range;
-  
+
   // Show loading
   loadingOverlay.classList.remove('hidden');
-  
+
   try {
-    const response = await fetch(`/api/saleReport/data?range=${encodeURIComponent(range)}`);
+    const response = await fetch(`/api/sale1report/data?range=${encodeURIComponent(range)}`);
     const data = await response.json();
-    
+
     loadingOverlay.classList.add('hidden');
-    
+
     if (!data.hasToken) {
       noTokenSection.style.display = 'block';
       return;
     }
-    
+
     contentSection.style.display = 'block';
-    
+
     if (data.error) {
       errorAlert.style.display = 'block';
       errorText.textContent = data.error;
       return;
     }
-    
+
     // Update meta info
     let metaHtml = '';
     if (data.fetchedAt) {
-      metaHtml += ` • Thống kê lần cuối: <b>${data.fetchedAt}</b>`;
+      metaHtml += ` Thống kê lần cuối: <b>${data.fetchedAt}</b>`;
     }
     if (data.totalAgents != null) {
       metaHtml += ` • Tư vấn viên: <b>${data.totalAgents}</b>`;
     }
     metaInfo.innerHTML = metaHtml;
-    
+
     // Render table
     if (data.rows && data.rows.length > 0) {
       tableBody.innerHTML = '';
@@ -520,9 +526,11 @@ document.addEventListener('DOMContentLoaded', function(){
           <td class="center">${formatNumber(row.trung || 0)}</td>
           <td class="center">${formatNumber(row.rac || 0)}</td>
           <td class="center">${formatNumber(row.khongTuongTac || 0)}</td>
+          <td class="center">${formatNumber(row.chotNong || 0)}</td>
+          <td class="center">${formatNumber(row.chotCu || 0)}</td>
+          <td class="center">${formatNumber(row.donHuy || 0)}</td>
           <td class="center">${formatNumber(row.tongMess || 0)}</td>
           <td class="center">${formatNumber(row.tongDon || 0)}</td>
-          <td class="center">${formatNumber(row.donHuyDb || 0)}</td>
           <td class="center">
             <span class="center">${formatPercent(row.donPerMessNhuCau || 0)}</span>
           </td>
@@ -538,13 +546,15 @@ document.addEventListener('DOMContentLoaded', function(){
 
       // Calculate and update totals
       let totalNhuCau = 0, totalTrung = 0, totalRac = 0, totalKhongTuongTac = 0;
-      let totalDonHuy = 0, totalTongMess = 0, totalTongDon = 0;
+      let totalChotNong = 0, totalChotCu = 0, totalDonHuy = 0, totalTongMess = 0, totalTongDon = 0;
       data.rows.forEach(row => {
         totalNhuCau += row.nhuCau || 0;
         totalTrung += row.trung || 0;
         totalRac += row.rac || 0;
         totalKhongTuongTac += row.khongTuongTac || 0;
-        totalDonHuy += row.donHuyDb || 0;
+        totalChotNong += row.chotNong || 0;
+        totalChotCu += row.chotCu || 0;
+        totalDonHuy += row.donHuy || 0;
         totalTongMess += row.tongMess || 0;
         totalTongDon += row.tongDon || 0;
       });
@@ -552,9 +562,12 @@ document.addEventListener('DOMContentLoaded', function(){
       document.getElementById('totalTrung').textContent = formatNumber(totalTrung);
       document.getElementById('totalRac').textContent = formatNumber(totalRac);
       document.getElementById('totalKhongTuongTac').textContent = formatNumber(totalKhongTuongTac);
+      document.getElementById('totalChotNong').textContent = formatNumber(totalChotNong);
+      document.getElementById('totalChotCu').textContent = formatNumber(totalChotCu);
+      document.getElementById('totalDonHuy').textContent = formatNumber(totalDonHuy);
       document.getElementById('totalTongMess').textContent = formatNumber(totalTongMess);
       document.getElementById('totalTongDon').textContent = formatNumber(totalTongDon);
-      document.getElementById('totalDonHuyDb').textContent = formatNumber(totalDonHuy);
+      // Tỉ lệ hủy = Tổng đơn hủy / Tổng đơn
       const totalTiLeHuy = totalTongDon > 0 ? (totalDonHuy / totalTongDon * 100) : 0;
       document.getElementById('totalTiLeHuy').textContent = formatPercent(totalTiLeHuy);
 
@@ -567,9 +580,9 @@ document.addEventListener('DOMContentLoaded', function(){
         }
       }, 100);
     } else {
-      tableBody.innerHTML = '<tr><td colspan="12" style="text-align:center;padding:2rem;">Không có dữ liệu</td></tr>';
+      tableBody.innerHTML = '<tr><td colspan="14" style="text-align:center;padding:2rem;">Không có dữ liệu</td></tr>';
     }
-    
+
   } catch (error) {
     loadingOverlay.classList.add('hidden');
     contentSection.style.display = 'block';
@@ -600,8 +613,8 @@ document.addEventListener('DOMContentLoaded', function() {
       e.preventDefault();
       const urlParams = new URLSearchParams(window.location.search);
       const range = urlParams.get('range') || 'CurrentMonth';
-      const exportUrl = `/saleReport/export?range=${encodeURIComponent(range)}`;
-      
+      const exportUrl = `/sale1report/export?range=${encodeURIComponent(range)}`;
+
       // Tạo link tạm để download
       const link = document.createElement('a');
       link.href = exportUrl;

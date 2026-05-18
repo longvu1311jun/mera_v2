@@ -6,9 +6,45 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 public interface OrderRepository extends JpaRepository<Order, Long> {
+
+  @Query(value = """
+      SELECT COUNT(*)
+      FROM orders c
+      INNER JOIN pos_users u ON c.creator_id = u.id
+      WHERE c.inserted_at >= :startAt
+        AND c.inserted_at <= :endAt
+        AND c.status = :status
+        AND u.Base_Lark = :baseLark
+      """, nativeQuery = true)
+  long countByBaseLarkAndInsertedAtBetween(
+      @Param("baseLark") String baseLark,
+      @Param("startAt") LocalDateTime startAt,
+      @Param("endAt") LocalDateTime endAt,
+      @Param("status") int status
+  );
+
+  @Query(value = """
+      SELECT COUNT(DISTINCT c.id)
+      FROM orders c
+      INNER JOIN pos_users u ON c.creator_id = u.id
+      INNER JOIN order_status_histories osh ON osh.order_id = c.id
+      WHERE c.inserted_at >= :startAt
+        AND c.inserted_at <= :endAt
+        AND c.status = :orderStatus
+        AND osh.new_status = :historyNewStatus
+        AND u.Base_Lark = :baseLark
+      """, nativeQuery = true)
+  long countCancelledOrdersByBaseLarkWithHistory(
+      @Param("baseLark") String baseLark,
+      @Param("startAt") LocalDateTime startAt,
+      @Param("endAt") LocalDateTime endAt,
+      @Param("orderStatus") int orderStatus,
+      @Param("historyNewStatus") int historyNewStatus
+  );
 
   List<Order> findAllByIdIn(List<Long> ids);
 

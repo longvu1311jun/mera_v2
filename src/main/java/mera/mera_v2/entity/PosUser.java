@@ -31,6 +31,9 @@ public class PosUser {
     @Column(name = "avatar_url", length = 1024)
     private String avatarUrl;
 
+    @Column(name = "BaseLark", length = 100)
+    private String baseLark;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 

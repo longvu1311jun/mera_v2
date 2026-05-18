@@ -17,6 +17,8 @@ public class SaleSummaryRow {
 
   private long tongMess;
   private long tongDon;
+  /** Đơn hủy từ DB (orders.status = 6) */
+  private long donHuyDb;
 
   private double donPerMessNhuCau;
   private double donPerMessTong;
@@ -111,6 +113,14 @@ public class SaleSummaryRow {
 
   public void setTongDon(long tongDon) {
     this.tongDon = tongDon;
+  }
+
+  public long getDonHuyDb() {
+    return donHuyDb;
+  }
+
+  public void setDonHuyDb(long donHuyDb) {
+    this.donHuyDb = donHuyDb;
   }
 
   public double getDonPerMessNhuCau() {
