@@ -17,6 +17,7 @@ import mera.mera_v2.repository.OrderItemRepository;
 import mera.mera_v2.repository.OrderPaymentRepository;
 import mera.mera_v2.repository.OrderRepository;
 import mera.mera_v2.repository.OrderStatusHistoryRepository;
+import mera.mera_v2.repository.PosUserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -45,6 +46,7 @@ public class WebhookPersistenceService {
     private final OrderPaymentRepository orderPaymentRepository;
     private final OrderStatusHistoryRepository orderStatusHistoryRepository;
     private final CustomerPhoneNumberRepository customerPhoneNumberRepository;
+    private final PosUserRepository posUserRepository;
     private final ObjectMapper objectMapper;
 
     public PersistenceResult saveFromWebhook(JsonNode webhookData) {
@@ -257,22 +259,37 @@ public class WebhookPersistenceService {
             }
 
             // === User IDs ===
-            if (webhook.getCreator() != null) {
-                order.setCreatorId(webhook.getCreator().getId());
+            String creatorId = getValidCreatorId(webhook.getCreator());
+            order.setCreatorId(creatorId);
+
+            String assigningSellerId = getValidAssigningSellerId(webhook.getAssigningSeller());
+            order.setAssigningSellerId(assigningSellerId);
+
+            String assigningCareId = getValidAssigningSellerId(webhook.getAssigningCare());
+            order.setAssigningCareId(assigningCareId);
+
+            String lastEditorId = getValidCreatorId(webhook.getLastEditor());
+            order.setLastEditorId(lastEditorId);
+
+            // Fallback to direct ID fields if object fields are null
+            if (order.getAssigningSellerId() == null && webhook.getAssigningSellerId() != null) {
+                String sellerId = posUserRepository.existsById(webhook.getAssigningSellerId())
+                    ? webhook.getAssigningSellerId() : null;
+                order.setAssigningSellerId(sellerId);
             }
-            if (webhook.getAssigningSeller() != null) {
-                order.setAssigningSellerId(webhook.getAssigningSeller().getId());
+            if (order.getAssigningCareId() == null && webhook.getAssigningCareId() != null) {
+                String careId = posUserRepository.existsById(webhook.getAssigningCareId())
+                    ? webhook.getAssigningCareId() : null;
+                order.setAssigningCareId(careId);
             }
-            if (webhook.getAssigningCare() != null) {
-                order.setAssigningCareId(webhook.getAssigningCare().getId());
+            if (order.getMarketerId() != null && !posUserRepository.existsById(webhook.getMarketerId())) {
+                order.setMarketerId(null);
             }
-            if (webhook.getLastEditor() != null) {
-                order.setLastEditorId(webhook.getLastEditor().getId());
+            if (order.getLastEditorId() == null && webhook.getLastEditorId() != null) {
+                String editorId = posUserRepository.existsById(webhook.getLastEditorId())
+                    ? webhook.getLastEditorId() : null;
+                order.setLastEditorId(editorId);
             }
-            order.setAssigningSellerId(webhook.getAssigningSellerId());
-            order.setAssigningCareId(webhook.getAssigningCareId());
-            order.setMarketerId(webhook.getMarketerId());
-            order.setLastEditorId(webhook.getLastEditorId());
             order.setWarehouseId(webhook.getWarehouseId());
 
             // === Shipping Address ===
@@ -607,6 +624,38 @@ public class WebhookPersistenceService {
     }
 
     // ============== HELPER METHODS ==============
+
+    /**
+     * Get valid user ID from CreatorInfo by checking if user exists in pos_users table.
+     * Returns null if user doesn't exist to avoid foreign key constraint violation.
+     */
+    private String getValidCreatorId(PosOrderWebhook.CreatorInfo userInfo) {
+        if (userInfo == null || userInfo.getId() == null) {
+            return null;
+        }
+        String userId = userInfo.getId();
+        if (posUserRepository.existsById(userId)) {
+            return userId;
+        }
+        log.warn("   User ID '{}' does not exist in pos_users, setting to null", userId);
+        return null;
+    }
+
+    /**
+     * Get valid user ID from AssigningSeller by checking if user exists in pos_users table.
+     * Returns null if user doesn't exist to avoid foreign key constraint violation.
+     */
+    private String getValidAssigningSellerId(PosOrderWebhook.AssigningSeller seller) {
+        if (seller == null || seller.getId() == null) {
+            return null;
+        }
+        String userId = seller.getId();
+        if (posUserRepository.existsById(userId)) {
+            return userId;
+        }
+        log.warn("   Seller ID '{}' does not exist in pos_users, setting to null", userId);
+        return null;
+    }
 
     private PosOrderWebhook.CustomerInfo getCustomerInfo(PosOrderWebhook webhook) {
         if (webhook.getCustomer() != null) {

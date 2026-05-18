@@ -1,0 +1,16 @@
+---
+description: Favicon bắt buộc trên mọi trang HTML Thymeleaf/static
+globs: **/*.html
+alwaysApply: false
+---
+
+# Favicon MeraGroup
+
+Khi tạo hoặc sửa file HTML (`src/main/resources/templates/`, `src/main/resources/static/`), luôn thêm trong `<head>` (ngay sau `<meta charset>`):
+
+```html
+<link rel="icon" type="image/jpeg" href="/meraicon.ico">
+```
+
+- File icon: `src/main/resources/static/meraicon.ico` (URL: `/meraicon.ico`)
+- Dùng path tuyệt đối `/meraicon.ico` để hoạt động trên mọi route (vd. `/admin/...`)
