@@ -770,6 +770,7 @@ public class OrderSyncService {
   }
 
   private void mapOrder(Order order, OrderApiDto dto, Set<String> existingWarehouseIds, Set<String> validCustomerIds) {
+    order.setRawData(dto.getRawData());
     order.setShopId(dto.getShopId());
     order.setStatus(dto.getStatus() != null ? dto.getStatus() : 0);
     order.setStatusName(dto.getStatusName());

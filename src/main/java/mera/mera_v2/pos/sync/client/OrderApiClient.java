@@ -1,6 +1,7 @@
 package mera.mera_v2.pos.sync.client;
 
 import lombok.extern.slf4j.Slf4j;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import mera.mera_v2.pos.sync.dto.OrderApiDto;
 import mera.mera_v2.pos.sync.dto.OrderListResponseDto;
@@ -85,9 +86,17 @@ public class OrderApiClient {
 //      log.info("RAW API STATUS: {}, BODY ({} chars): {}", rawEntity.getStatusCode(),
 //          rawResponse != null ? rawResponse.length() : 0, rawResponse);
 
-      // Then manually parse with Jackson ObjectMapper (same instance RestTemplate uses)
+      // Parse from JsonNode so each order can keep its original JSON payload in orders.raw_data.
       ObjectMapper mapper = new ObjectMapper();
-      OrderListResponseDto dto = mapper.readValue(rawResponse, OrderListResponseDto.class);
+      JsonNode root = mapper.readTree(rawResponse);
+      OrderListResponseDto dto = mapper.treeToValue(root, OrderListResponseDto.class);
+      JsonNode dataNode = root.path("data");
+      if (dto.getData() != null && dataNode.isArray()) {
+        int count = Math.min(dto.getData().size(), dataNode.size());
+        for (int i = 0; i < count; i++) {
+          dto.getData().get(i).setRawData(mapper.writeValueAsString(dataNode.get(i)));
+        }
+      }
       log.info("Parsed DTO successfully, data size: {}",
           dto.getData() != null ? dto.getData().size() : 0);
       log.info("Pagination: page={}, totalEntries={}, totalPages={}",
