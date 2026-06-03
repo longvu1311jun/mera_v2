@@ -564,12 +564,48 @@ public class OrderSyncService {
     }
   }
 
+  private static final String UPSERT_CUSTOMER_SQL = """
+      INSERT INTO customers (id, shop_id, name, gender, fb_id, referral_code, inserted_at, updated_at)
+      VALUES (:id, :shop_id, :name, :gender, :fb_id, :referral_code, :inserted_at, :updated_at)
+      ON DUPLICATE KEY UPDATE
+          shop_id = VALUES(shop_id),
+          name = VALUES(name),
+          gender = VALUES(gender),
+          fb_id = VALUES(fb_id),
+          referral_code = VALUES(referral_code),
+          inserted_at = IFNULL(inserted_at, VALUES(inserted_at)),
+          updated_at = VALUES(updated_at)
+      """;
+
+  private void batchUpsertCustomers(List<Customer> customers) {
+    if (customers == null || customers.isEmpty()) {
+      return;
+    }
+    SqlParameterSource[] batchParams = customers.stream()
+        .map(this::customerToSqlParams)
+        .toArray(SqlParameterSource[]::new);
+    namedParameterJdbcTemplate.batchUpdate(UPSERT_CUSTOMER_SQL, batchParams);
+  }
+
   @Transactional(propagation = Propagation.REQUIRES_NEW)
   public void persistCustomersInNewTx(List<Customer> customers) {
     if (customers == null || customers.isEmpty()) {
       return;
     }
-    customerRepository.saveAllAndFlush(customers);
+    batchUpsertCustomers(customers);
+  }
+
+  private MapSqlParameterSource customerToSqlParams(Customer c) {
+    MapSqlParameterSource p = new MapSqlParameterSource();
+    p.addValue("id", c.getId());
+    p.addValue("shop_id", c.getShopId());
+    p.addValue("name", c.getName());
+    p.addValue("gender", c.getGender());
+    p.addValue("fb_id", c.getFbId());
+    p.addValue("referral_code", c.getReferralCode());
+    p.addValue("inserted_at", toTimestamp(c.getInsertedAt()));
+    p.addValue("updated_at", toTimestamp(c.getUpdatedAt()));
+    return p;
   }
 
   private MapSqlParameterSource orderToSqlParams(Order o) {
@@ -715,12 +751,9 @@ public class OrderSyncService {
     if (dto == null || dto.getId() == null) {
       return new CustomerSyncResult(null, false);
     }
-    Customer customer = existing.get(dto.getId());
-    boolean isNew = (customer == null);
-    if (isNew) {
-      customer = new Customer();
-      customer.setId(dto.getId());
-    }
+    boolean isNew = !existing.containsKey(dto.getId());
+    Customer customer = new Customer();
+    customer.setId(dto.getId());
     customer.setShopId(shopId != null ? shopId : 0L);
     customer.setName(dto.getName() != null ? dto.getName() : "Unknown");
     customer.setGender(dto.getGender());
