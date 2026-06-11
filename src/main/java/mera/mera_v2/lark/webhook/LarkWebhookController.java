@@ -23,6 +23,7 @@ import mera.mera_v2.lark.webhook.config.LarkBaseProperties;
 import mera.mera_v2.lark.webhook.config.SalesTablesConfig;
 import mera.mera_v2.lark.token.TokenStorageService;
 import mera.mera_v2.lark.webhook.scheduler2.TokenRefreshScheduler;
+import mera.mera_v2.repository.PendingFollowupNotificationRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
@@ -91,6 +92,9 @@ public class LarkWebhookController {
 
     @Autowired(required = false)
     private WebhookPersistenceService webhookPersistenceService;
+
+    @Autowired(required = false)
+    private PendingFollowupNotificationRepository pendingFollowupNotificationRepository;
 
     @Autowired(required = false)
     private CskhBaseMappingService cskhBaseMappingService;
@@ -513,10 +517,21 @@ public class LarkWebhookController {
         BitableRecordResponse response = bitableService.createRecord(appToken, targetTableId, userAccessToken, fields);
         
         if (response.isSuccess() && response.getData() != null) {
-            String recordId = response.getData().getRecord() != null 
-                    ? response.getData().getRecord().getRecordId() 
+            String recordId = response.getData().getRecord() != null
+                    ? response.getData().getRecord().getRecordId()
                     : "unknown";
             log.info("Created Bitable record successfully: recordId={}", recordId);
+
+            // === SCHEDULE 30-MIN PENDING NOTIFICATION ===
+            // Neu link_record_ids = null → khach hang chua co trong Bang Khach Hang
+            // → se dua vao Bang Khao Sat → can check lai sau 30 phut
+            List<String> linkRecordIds = response.getLinkRecordIds();
+            if (linkRecordIds == null || linkRecordIds.isEmpty()) {
+                scheduleFollowupIfPossible(phoneNumber, appToken, targetTableId, viewId, recordId, orderWebhook);
+            } else {
+                log.info("Record {} da co link sang Bang Khach Hang (link_record_ids={}), bo qua schedule 30-phut",
+                        recordId, linkRecordIds.size());
+            }
         } else {
             throw new RuntimeException(String.format("Bitable error: code=%d, msg=%s", 
                     response.getCode(), response.getMsg()));
@@ -866,5 +881,57 @@ public class LarkWebhookController {
         java.util.regex.Matcher simpleMatcher = simplePattern.matcher(text.replaceAll("[^0-9]", ""));
         if (simpleMatcher.find()) return simpleMatcher.group();
         return null;
+    }
+
+    // ============== PENDING FOLLOWUP NOTIFICATION ==============
+
+    /**
+     * Tao ban ghi PendingFollowupNotification de scheduler check sau 30 phut.
+     * Chi tao khi link_record_ids = null (khach hang chua co trong Bang Khach Hang).
+     */
+    private void scheduleFollowupIfPossible(
+            String phoneNumber,
+            String baseId,
+            String tableId,
+            String viewId,
+            String createdRecordId,
+            PosOrderWebhook orderWebhook
+    ) {
+        if (pendingFollowupNotificationRepository == null) {
+            log.warn("[PendingFollowup] Repository not available, skip scheduling notification");
+            return;
+        }
+
+        if (phoneNumber == null || phoneNumber.isBlank()) {
+            log.warn("[PendingFollowup] Phone number is blank, skip scheduling notification");
+            return;
+        }
+
+        try {
+            mera.mera_v2.entity.PendingFollowupNotification pending =
+                    new mera.mera_v2.entity.PendingFollowupNotification();
+            pending.setPhoneNumber(phoneNumber);
+            pending.setBaseId(baseId);
+            pending.setTableId(tableId);
+            pending.setViewId(viewId != null ? viewId : "vew5Ou4Kee");
+            pending.setCreatedRecordId(createdRecordId);
+
+            // Lay ten khach hang
+            String customerName = posToBitableMapper.getTenKhach(orderWebhook);
+            pending.setCustomerName(customerName);
+
+            // Dat thoi gian can check = 30 phut sau
+            pending.setScheduledAt(java.time.LocalDateTime.now().plusMinutes(30));
+            pending.setProcessed(false);
+            pending.setRetryCount(0);
+            pending.setCreatedAt(java.time.LocalDateTime.now());
+
+            pendingFollowupNotificationRepository.save(pending);
+            log.info("[PendingFollowup] Scheduled notification for phone={} at {} (recordId={})",
+                    phoneNumber, pending.getScheduledAt(), createdRecordId);
+        } catch (Exception e) {
+            log.error("[PendingFollowup] Failed to schedule notification for phone={}: {}",
+                    phoneNumber, e.getMessage());
+        }
     }
 }
