@@ -16,7 +16,8 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "pending_followup_notifications", indexes = {
     @Index(name = "idx_pending_scheduled_at", columnList = "scheduled_at"),
-    @Index(name = "idx_pending_processed", columnList = "processed")
+    @Index(name = "idx_pending_processed", columnList = "processed"),
+    @Index(name = "idx_pending_phone", columnList = "phone_number")
 })
 public class PendingFollowupNotification {
 
@@ -29,11 +30,11 @@ public class PendingFollowupNotification {
     @Column(name = "phone_number", length = 20, nullable = false)
     private String phoneNumber;
 
-    /** Base ID (appToken) của bảng Khách hàng cần search */
+    /** Base ID (appToken) của bảng Liệu trình cần search */
     @Column(name = "base_id", length = 64, nullable = false)
     private String baseId;
 
-    /** Table ID của bảng Khách hàng */
+    /** Table ID của bảng Liệu trình */
     @Column(name = "table_id", length = 64, nullable = false)
     private String tableId;
 
@@ -53,23 +54,23 @@ public class PendingFollowupNotification {
     @Column(name = "scheduled_at", nullable = false)
     private LocalDateTime scheduledAt;
 
-    /** Da xu ly chua */
+    /** Đã xử lý chưa */
     @Column(name = "processed", nullable = false)
     private Boolean processed = false;
 
-    /** Thoi diem xu ly (neu da xu ly) */
+    /** Thời điểm xử lý (nếu đã xử lý) */
     @Column(name = "processed_at")
     private LocalDateTime processedAt;
 
-    /** Ghi chú / ket qua */
+    /** Ghi chú / kết quả */
     @Column(name = "note", length = 500)
     private String note;
 
-    /** So lan retry */
+    /** Số lần retry */
     @Column(name = "retry_count", nullable = false)
     private Integer retryCount = 0;
 
-    /** Thoi diem tao */
+    /** Thời điểm tạo */
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 

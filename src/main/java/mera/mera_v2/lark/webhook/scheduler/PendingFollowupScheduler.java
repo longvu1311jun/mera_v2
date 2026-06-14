@@ -18,9 +18,16 @@ import java.time.LocalDateTime;
 import java.util.*;
 
 /**
- * Scheduler chay deu de xu ly PendingFollowupNotification.
- * Moi 5 phut, doc cac ban ghi da den gio, search theo SDT trong Bang Khach Hang.
- * Neu link_record_ids van null → gui tin nhan Lark cho CSKH.
+ * Luong 30 phut (Pending Followup Notification):
+ *
+ * Buoc 1: Them ban ghi vao Bang Lieu Trinh (Lark webhook -> bitableService.createRecord)
+ * Buoc 2: Luu so dien thoai vao bang pending_followup_notifications (trong DB)
+ *          -> Scheduler se tu dong chay sau 30 phut (moi 5 phut check 1 lan)
+ *
+ * Sau 30 phut, scheduler lam Buoc 3-5:
+ * Buoc 3: Goi API search voi SDT da luu
+ * Buoc 4: Kiem tra link_record_ids -> null thi lay id tu field "Nguoi CSKH"
+ * Buoc 5: Gui tin nhan Lark IM bang API voi SDT va id tu Buoc 4
  */
 @Component
 @RequiredArgsConstructor
@@ -31,6 +38,7 @@ public class PendingFollowupScheduler {
             "https://open.larksuite.com/open-apis/im/v1/messages?receive_id_type=open_id";
     private static final String PHONE_FIELD = "Điện thoại";
     private static final String CSKH_FIELD = "Người CSKH";
+    private static final String TRAO_DOI_FIELD = "Trao đổi gần nhất"; // field kiem tra da co trao doi chua
     private static final int MAX_RETRIES = 2;
 
     private final PendingFollowupNotificationRepository pendingRepo;
@@ -45,7 +53,7 @@ public class PendingFollowupScheduler {
     // ========== SCHEDULER: chạy mỗi 5 phút ==========
     // Test: @Scheduled(fixedDelay = 60_000, initialDelay = 30_000)
     // Prod: @Scheduled(cron = "0 */5 * * * *") // mỗi 5 phút
-    @Scheduled(cron = "0 */5 * * * *")
+    @Scheduled(fixedDelay = 60_000, initialDelay = 30_000)
     public void processPendingFollowups() {
         log.info("========================================");
         log.info("[PendingFollowupScheduler] Bat dau kiem tra pending notifications...");
@@ -88,66 +96,92 @@ public class PendingFollowupScheduler {
     }
 
     /**
-     * Xu ly mot pending notification.
+     * Xu ly mot pending notification (Buoc 3–5 cua luong 30 phut).
+     * Buoc 3:  Goi API search voi SDT da luu
+     * Buoc 4:  Kiem tra link_record_ids -> null thi lay id tu field "Nguoi CSKH"
+     * Buoc 5:  Gui tin nhan Lark IM
      * @return true = da xu ly xong (da gui tin hoac skip), false = can retry sau
      */
     private boolean processOnePending(PendingFollowupNotification pending) {
         log.info("[PendingFollowupScheduler] Dang xu ly pending id={}, phone={}, baseId={}, tableId={}",
                 pending.getId(), pending.getPhoneNumber(), pending.getBaseId(), pending.getTableId());
 
-        String token = getUserAccessToken();
-        if (token == null || token.isBlank()) {
+        String tenantToken = getTenantAccessToken();
+        if (tenantToken == null || tenantToken.isBlank()) {
+            log.error("[PendingFollowupScheduler] Khong co tenant access token, skip pending id={}", pending.getId());
+            return true;
+        }
+
+        // Bước 3 & 4: Bitable search cần user_access_token
+        String userToken = getUserAccessToken();
+        if (userToken == null || userToken.isBlank()) {
             log.error("[PendingFollowupScheduler] Khong co user access token, skip pending id={}", pending.getId());
-            return true; // mark as processed de khong bi lap mai
+            return true;
         }
 
-        // --- Search trong Bang Khach Hang theo SDT ---
-        List<String> linkRecordIds = searchLinkRecordIds(
-                pending.getBaseId(),
-                pending.getTableId(),
-                pending.getViewId(),
-                pending.getPhoneNumber(),
-                token
-        );
+    // ========== BƯỚC 3: GỌI API SEARCH VỚI SDT ==========
+    // Gọi API search với SDT đã lưu ở Bước 2
+    List<String> linkRecordIds = searchLinkRecordIds(
+            pending.getBaseId(),
+            pending.getTableId(),
+            pending.getViewId(),
+            pending.getPhoneNumber(),
+            userToken
+    );
 
-        // Neu van chua co link → gui tin nhan CSKH
-        if (linkRecordIds == null || linkRecordIds.isEmpty()) {
-            log.info("[PendingFollowupScheduler] Record {} van chua co link sang Bang Khach Hang. Tim CSKH de gui tin nhan...",
-                    pending.getCreatedRecordId());
-
-            String openId = extractCskhOpenId(
-                    pending.getBaseId(),
-                    pending.getTableId(),
-                    pending.getPhoneNumber(),
-                    token
-            );
-
-            if (openId != null && !openId.isBlank()) {
-                String customerName = pending.getCustomerName() != null ? pending.getCustomerName() : "Khach hang";
-                sendLarkMessage(openId, pending.getPhoneNumber(), customerName, token);
-                markProcessed(pending, true, "Da gui tin nhan den CSKH open_id=" + openId);
-            } else {
-                // Thu lai sau
-                log.warn("[PendingFollowupScheduler] Khong tim thay CSKH open_id cho phone={}, scheduling retry",
-                        pending.getPhoneNumber());
-                scheduleRetry(pending);
-                return false;
-            }
-        } else {
-            // Da co link → khong can gui tin nhan
-            markProcessed(pending, true, "Record da co link_record_ids=" + linkRecordIds + ", bo qua");
-            log.info("[PendingFollowupScheduler] Record {} da co link ({}). Bo qua gui tin nhan.",
-                    pending.getCreatedRecordId(), linkRecordIds.size());
-        }
-
+    // searchLinkRecordIds tra ve:
+    // - null     = loi can retry
+    // - empty()  = chua co link, tiep tuc buoc 4
+    // - [ids]    = da co link, skip
+    if (linkRecordIds == null) {
+        // Tra ve null = skip chu dong (da co trao doi hoac loi), khong retry
+        markProcessed(pending, true, "KH da co trao doi, bo qua thong bao");
+        log.info("[PendingFollowupScheduler] Da co trao doi hoac skip chu dong, danh dau processed, phone={}", pending.getPhoneNumber());
         return true;
     }
 
-    // ========== SEARCH: lay link_record_ids ==========
+    // Da co trao doi → markProcessed + skip
+    if (linkRecordIds.isEmpty()) {
+        // Chuong trinh o day = searchLinkRecordIds da log "da co trao doi" roi
+        // Tiep tuc buoc 4 de lay CSKH
+        log.info("[PendingFollowupScheduler] Record chua co link. Bat dau Buoc 4, phone={}", pending.getPhoneNumber());
+    } else {
+        // Co link_record_ids → Lark da tu link → ket thuc
+        markProcessed(pending, true, "Record da co link_record_ids, bo qua");
+        log.info("[PendingFollowupScheduler] Record {} da co link ({}). Bo qua Buoc 4-5.",
+                pending.getCreatedRecordId(), linkRecordIds.size());
+        return true;
+    }
+
+    // ========== BƯỚC 4: LẤY ID TỪ "NGƯỜI CSKH" ==========
+    String openId = extractCskhOpenId(
+            pending.getBaseId(),
+            pending.getTableId(),
+            pending.getPhoneNumber(),
+            userToken
+    );
+
+    // ========== BƯỚC 5: GỬI TIN NHẮN ==========
+    if (openId != null && !openId.isBlank()) {
+        String customerName = pending.getCustomerName() != null ? pending.getCustomerName() : "Khach hang";
+        sendLarkMessage(openId, pending.getPhoneNumber(), customerName, tenantToken);
+        markProcessed(pending, true, "Đã gửi tin nhắn đến CSKH open_id=" + openId);
+        log.info("[PendingFollowupScheduler] Hoàn thành Bước 5: gửi tin đến {}", openId);
+    } else {
+        // Chưa lấy được id → retry sau 15 phút
+        log.warn("[PendingFollowupScheduler] Không tìm thấy id từ 'Người CSKH' cho phone={}", pending.getPhoneNumber());
+        scheduleRetry(pending);
+        return false;
+    }
+
+    return true;
+    }
+
+    // ========== BƯỚC 3: GỌI API SEARCH VỚI SDT ==========
 
     /**
-     * Search trong Bang Khach Hang theo so dien thoai.
-     * Tra ve danh sach link_record_ids, hoac null/empty neu khong tim thay.
+     * Bước 3: Gọi API search vào Bảng Liệu trình với số điện thoại đã lưu.
+     * Trả về danh sách link_record_ids, hoặc null/empty nếu không tìm thấy.
      */
     private List<String> searchLinkRecordIds(
             String baseId,
@@ -160,7 +194,7 @@ public class PendingFollowupScheduler {
 
         BitableSearchRequest request = BitableSearchRequest.builder()
                 .automaticFields(false)
-                .fieldNames(List.of(PHONE_FIELD, CSKH_FIELD))
+                .fieldNames(List.of(PHONE_FIELD, CSKH_FIELD, TRAO_DOI_FIELD))
                 .viewId(view)
                 .pageSize(1)
                 .filter(BitableSearchRequest.Filter.builder()
@@ -186,8 +220,40 @@ public class PendingFollowupScheduler {
             BitableSearchResponse.SearchItem item = resp.getData().getItems().get(0);
             Map<String, Object> fields = item.getFields();
 
+            // LOG CHI TIET: in tat ca fields tra ve de debug
+            log.info("[PendingFollowupScheduler] === RAW FIELDS DEBUG phone={} ===", phoneNumber);
+            if (fields != null) {
+                for (Map.Entry<String, Object> entry : fields.entrySet()) {
+                    log.info("[DEBUG] Field '{}' = {} (type: {})",
+                            entry.getKey(),
+                            entry.getValue(),
+                            entry.getValue() != null ? entry.getValue().getClass().getSimpleName() : "null");
+                }
+            } else {
+                log.warn("[DEBUG] fields == null");
+            }
+            log.info("[PendingFollowupScheduler] === END RAW FIELDS DEBUG phone={} ===", phoneNumber);
+
             // Lay link_record_ids tu fields (Lark tra ve khi co lien ket)
             Object linkIds = fields != null ? fields.get("link_record_ids") : null;
+
+            // Kiem tra field "Trao doi gan nhat" — phai check link_record_ids ben trong object
+            Object traoDoiValue = fields != null ? fields.get(TRAO_DOI_FIELD) : null;
+            boolean daCoTraoDoi = false;
+            if (traoDoiValue instanceof Map) {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> traoDoiMap = (Map<String, Object>) traoDoiValue;
+                Object linkRecordIds = traoDoiMap.get("link_record_ids");
+                daCoTraoDoi = linkRecordIds != null && !linkRecordIds.toString().isBlank();
+                log.info("[PendingFollowupScheduler] Trao doi check: traoDoiValue={}, linkRecordIds={}, daCoTraoDoi={}, phone={}",
+                        traoDoiValue, linkRecordIds, daCoTraoDoi, phoneNumber);
+            }
+            if (daCoTraoDoi) {
+                log.info("[PendingFollowupScheduler] Record da co trao doi (field '{}'), bo qua buoc 3-5, phone={}",
+                        TRAO_DOI_FIELD, phoneNumber);
+                return null; // null = skip chu dong, caller se markProcessed
+            }
+
             if (linkIds instanceof List) {
                 @SuppressWarnings("unchecked")
                 List<String> ids = (List<String>) linkIds;
@@ -204,10 +270,11 @@ public class PendingFollowupScheduler {
         }
     }
 
-    // ========== LAY OPEN_ID TU NGƯỜI CSKH ==========
+    // ========== BƯỚC 4: LẤY ID TỪ "NGƯỜI CSKH" ==========
 
     /**
-     * Search record theo SDT, lay open_id tu field "Người CSKH".
+     * Bước 4: Search record vừa tạo theo SDT, lấy id từ field "Người CSKH".
+     * Trả về open_id của CSKH để gửi tin nhắn ở Bước 5.
      */
     private String extractCskhOpenId(
             String baseId,
@@ -219,7 +286,7 @@ public class PendingFollowupScheduler {
 
         BitableSearchRequest request = BitableSearchRequest.builder()
                 .automaticFields(false)
-                .fieldNames(List.of(PHONE_FIELD, CSKH_FIELD))
+                .fieldNames(List.of(PHONE_FIELD, CSKH_FIELD, TRAO_DOI_FIELD))
                 .viewId(view)
                 .pageSize(1)
                 .filter(BitableSearchRequest.Filter.builder()
@@ -244,14 +311,40 @@ public class PendingFollowupScheduler {
 
             Map<String, Object> fields = resp.getData().getItems().get(0).getFields();
             if (fields == null) {
+                log.warn("[PendingFollowupScheduler] fields == null, phone={}", phoneNumber);
                 return null;
             }
 
-            Object cskhValue = fields.get(CSKH_FIELD);
-            if (cskhValue == null) {
-                log.warn("[PendingFollowupScheduler] Field '{}' null cho phone={}", CSKH_FIELD, phoneNumber);
+            // Debug: in tat ca fields nhan duoc
+            log.info("[PendingFollowupScheduler] === extractCskhOpenId RAW FIELDS phone={} ===", phoneNumber);
+            for (Map.Entry<String, Object> e : fields.entrySet()) {
+                log.info("[DEBUG B4] Field '{}' = {} (type: {})",
+                        e.getKey(), e.getValue(),
+                        e.getValue() != null ? e.getValue().getClass().getSimpleName() : "null");
+            }
+            log.info("[PendingFollowupScheduler] === END RAW FIELDS phone={} ===", phoneNumber);
+
+            // Kiem tra field trao doi — phai check link_record_ids ben trong object
+            Object traoDoiValue = fields.get(TRAO_DOI_FIELD);
+            boolean daCoTraoDoi = false;
+            if (traoDoiValue instanceof Map) {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> traoDoiMap = (Map<String, Object>) traoDoiValue;
+                Object linkRecordIds = traoDoiMap.get("link_record_ids");
+                daCoTraoDoi = linkRecordIds != null && !linkRecordIds.toString().isBlank();
+                log.info("[PendingFollowupScheduler] Trao doi check B4: traoDoiValue={}, linkRecordIds={}, daCoTraoDoi={}, phone={}",
+                        traoDoiValue, linkRecordIds, daCoTraoDoi, phoneNumber);
+            }
+            if (daCoTraoDoi) {
+                log.info("[PendingFollowupScheduler] Record da co trao doi (field '{}'), bo qua buoc lay CSKH, phone={}",
+                        TRAO_DOI_FIELD, phoneNumber);
                 return null;
             }
+
+            // CSKH luon co gia tri khi chua co trao doi, lay open_id
+            Object cskhValue = fields.get(CSKH_FIELD);
+            log.info("[PendingFollowupScheduler] CSKH field value={} (type={}) cho phone={}",
+                    cskhValue, cskhValue != null ? cskhValue.getClass().getSimpleName() : "null", phoneNumber);
 
             // Lark tra ve field CSKH nhu the nao? Thu parse theo Map (open_id)
             if (cskhValue instanceof Map) {
@@ -263,16 +356,47 @@ public class PendingFollowupScheduler {
                     log.info("[PendingFollowupScheduler] Lay duoc CSKH open_id={} cho phone={}", openIdStr, phoneNumber);
                     return openIdStr;
                 }
-                // Thu lay id
+                // Thu lay id ( Lark user field chuan tra ve truong "id")
                 Object id = cskhMap.get("id");
                 if (id != null) {
-                    return id.toString();
+                    String idStr = id.toString();
+                    log.info("[PendingFollowupScheduler] Lay duoc CSKH id={} cho phone={}", idStr, phoneNumber);
+                    return idStr;
+                }
+            }
+
+            // Lark user field co the tra ve List (danh sach nguoi duoc assign)
+            if (cskhValue instanceof List) {
+                @SuppressWarnings("unchecked")
+                List<Object> cskhList = (List<Object>) cskhValue;
+                if (!cskhList.isEmpty()) {
+                    Object first = cskhList.get(0);
+                    if (first instanceof Map) {
+                        @SuppressWarnings("unchecked")
+                        Map<String, Object> firstMap = (Map<String, Object>) first;
+                        Object openId = firstMap.get("open_id");
+                        if (openId != null) {
+                            String openIdStr = openId.toString();
+                            log.info("[PendingFollowupScheduler] Lay duoc CSKH open_id tu list={} cho phone={}", openIdStr, phoneNumber);
+                            return openIdStr;
+                        }
+                        Object id = firstMap.get("id");
+                        if (id != null) {
+                            String idStr = id.toString();
+                            log.info("[PendingFollowupScheduler] Lay duoc CSKH id tu list={} cho phone={}", idStr, phoneNumber);
+                            return idStr;
+                        }
+                    }
+                    // Neu khong parse duoc Map, lay toString() cua phan tu dau tien
+                    String firstStr = first.toString();
+                    log.info("[PendingFollowupScheduler] Lay phan tu dau tien tu list CSKH='{}' cho phone={}", firstStr, phoneNumber);
+                    return firstStr;
                 }
             }
 
             // Fallback: co the la string (ten CSKH)
             if (cskhValue instanceof String) {
-                log.info("[PendingFollowupScheduler] CSKH field la string='{}' (co the can map ten→open_id)", cskhValue);
+                log.info("[PendingFollowupScheduler] CSKH field la string='{}' (co the can map ten->open_id)", cskhValue);
                 return cskhValue.toString();
             }
 
@@ -286,7 +410,7 @@ public class PendingFollowupScheduler {
         }
     }
 
-    // ========== GUI TIN NHAN LARK IM ==========
+    // ========== BƯỚC 5: GỬI TIN NHẮN LARK IM ==========
 
     /**
      * Gui tin nhan Lark IM den open_id.
@@ -297,7 +421,15 @@ public class PendingFollowupScheduler {
             return;
         }
 
-        String text = String.format("Khách hàng: %s (%s) chưa có trao đổi sau 30 phút kể từ khi được ghi nhận. Vui lòng kiểm tra và liên hệ.",
+        // Dam bao openId chi la chuoi id thuan, khong phai object/map/list
+        if (openId.startsWith("{") || openId.startsWith("[")) {
+            log.error("[PendingFollowupScheduler] openId dang la object/map/list='{}', khong gui duoc. Can parse dung truong id.", openId);
+            return;
+        }
+
+        log.info("[PendingFollowupScheduler] Gui tin nhan den openId='{}', phone={}", openId, phoneNumber);
+
+        String text = String.format("Khach hang: %s (%s) chua co trao doi sau 30 phut ke tu khi duoc ghi nhan. Vui long kiem tra va lien he.",
                 customerName, phoneNumber);
 
         String contentJson = "{\"text\":\"" + escapeForJson(text) + "\"}";
@@ -365,6 +497,15 @@ public class PendingFollowupScheduler {
     }
 
     // ========== TOKEN ==========
+
+    private String getTenantAccessToken() {
+        if (tokenStorageService != null) {
+            String t = tokenStorageService.getTenantAccessToken();
+            if (t != null && !t.isBlank()) return t;
+        }
+        log.warn("[PendingFollowupScheduler] Khong lay duoc tenant access token");
+        return null;
+    }
 
     private String getUserAccessToken() {
         if (tokenStorageService != null) {

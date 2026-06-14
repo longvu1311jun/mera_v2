@@ -790,3 +790,29 @@ CREATE TABLE einvoice_shipping_snapshots (
                                                  REFERENCES einvoices(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
 COMMENT='Snapshot địa chỉ trong hóa đơn — bất biến sau INSERT';
+
+
+-- ============================================================
+-- 24. PENDING_FOLLOWUP_NOTIFICATIONS
+-- Lưu SDT cần check sau 30 phút khi tạo record Bitable.
+-- Scheduler đọc bảng này, gọi API search, gửi tin nhắn nếu chưa link.
+-- ============================================================
+CREATE TABLE pending_followup_notifications (
+    id                BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    phone_number      VARCHAR(20)    NOT NULL,
+    base_id           VARCHAR(64)    NOT NULL,
+    table_id          VARCHAR(64)    NOT NULL,
+    view_id           VARCHAR(64)         NULL,
+    customer_name     VARCHAR(255)         NULL,
+    created_record_id VARCHAR(64)         NULL,
+    scheduled_at      DATETIME       NOT NULL,
+    processed         TINYINT(1)     NOT NULL DEFAULT 0,
+    processed_at      DATETIME             NULL,
+    note              VARCHAR(500)         NULL,
+    retry_count       INT UNSIGNED   NOT NULL DEFAULT 0,
+    created_at        DATETIME       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    INDEX idx_pending_scheduled_at (scheduled_at),
+    INDEX idx_pending_processed (processed),
+    INDEX idx_pending_phone (phone_number)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

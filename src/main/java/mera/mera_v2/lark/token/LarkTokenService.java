@@ -220,7 +220,7 @@ public class LarkTokenService {
     }
 
     log.info("âœ… Token saved:");
-    log.info("   accessToken = {}", displayToken(tokenInfo.getAccessToken()));
+    log.info("   accessToken = {}", tokenInfo.getAccessToken());
     log.info("   refreshToken = {}", displayToken(tokenInfo.getRefreshToken()));
     log.info("   tokenType = {}", tokenInfo.getTokenType());
     log.info("   expiresIn = {} seconds", tokenInfo.getExpiresIn());

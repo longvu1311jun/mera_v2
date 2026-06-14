@@ -522,9 +522,8 @@ public class LarkWebhookController {
                     : "unknown";
             log.info("Created Bitable record successfully: recordId={}", recordId);
 
-            // === SCHEDULE 30-MIN PENDING NOTIFICATION ===
-            // Neu link_record_ids = null → khach hang chua co trong Bang Khach Hang
-            // → se dua vao Bang Khao Sat → can check lai sau 30 phut
+            // === BƯỚC 2: Lưu SDT vào bảng pending_followup_notifications ===
+            // Scheduler sẽ tự động chạy sau 30 phút để thực hiện Bước 3–5
             List<String> linkRecordIds = response.getLinkRecordIds();
             if (linkRecordIds == null || linkRecordIds.isEmpty()) {
                 scheduleFollowupIfPossible(phoneNumber, appToken, targetTableId, viewId, recordId, orderWebhook);
@@ -883,11 +882,11 @@ public class LarkWebhookController {
         return null;
     }
 
-    // ============== PENDING FOLLOWUP NOTIFICATION ==============
+    // ============== BƯỚC 2: LƯU SDT VÀO PENDING ==============
 
     /**
-     * Tao ban ghi PendingFollowupNotification de scheduler check sau 30 phut.
-     * Chi tao khi link_record_ids = null (khach hang chua co trong Bang Khach Hang).
+     * Bước 2: Tạo bản ghi trong pending_followup_notifications để scheduler check sau 30 phút.
+     * Lưu: SĐT, baseId/tableId/viewId của Bảng Liệu trình, recordId vừa tạo, tên khách, scheduledAt.
      */
     private void scheduleFollowupIfPossible(
             String phoneNumber,
