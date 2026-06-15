@@ -429,7 +429,7 @@ public class PendingFollowupScheduler {
 
         log.info("[PendingFollowupScheduler] Gui tin nhan den openId='{}', phone={}", openId, phoneNumber);
 
-        String text = String.format("Khach hang: %s (%s) chua co trao doi sau 30 phut ke tu khi duoc ghi nhan. Vui long kiem tra va lien he.",
+        String text = String.format("Khách hàng: %s (%s) cha có trao đổi sau 30 phút kể từ khi được ghi nhận. Vui lòng kiểm tra và lin hệ.",
                 customerName, phoneNumber);
 
         String contentJson = "{\"text\":\"" + escapeForJson(text) + "\"}";
