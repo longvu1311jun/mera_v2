@@ -2,7 +2,8 @@ package mera.mera_v2.cskh.mapping;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import mera.mera_v2.entity.CskhBaseMapping;
+import mera.mera_v2.entity.SearchConfig;
+import mera.mera_v2.customer.Service.SearchConfigService;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -17,12 +18,12 @@ import java.util.stream.Collectors;
 @Slf4j
 public class CskhMappingController {
 
-    private final CskhBaseMappingService mappingService;
+    private final SearchConfigService searchConfigService;
 
     @GetMapping
     public String listMappings(Model model) {
-        List<CskhBaseMapping> mappings = mappingService.getActiveMappings();
-        List<CskhMappingDto> dtos = mappings.stream()
+        List<SearchConfig> configs = searchConfigService.getActiveConfigs();
+        List<CskhMappingDto> dtos = configs.stream()
                 .map(this::toDto)
                 .collect(Collectors.toList());
         model.addAttribute("mappings", dtos);
@@ -32,12 +33,12 @@ public class CskhMappingController {
     @PostMapping("/reload")
     public String reloadMappings(RedirectAttributes redirectAttributes) {
         try {
-            log.info("Bắt đầu reload CSKH Base Mapping...");
-            int count = mappingService.loadAndSaveMappings();
-            redirectAttributes.addFlashAttribute("success", "Đã load và lưu " + count + " mappings thành công!");
+            log.info("Bat dau reload CSKH Base Mapping tu DB...");
+            int count = searchConfigService.reloadAll();
+            redirectAttributes.addFlashAttribute("success", "Da load va luu " + count + " mappings thanh cong!");
         } catch (Exception e) {
-            log.error("Lỗi khi reload mapping: {}", e.getMessage(), e);
-            redirectAttributes.addFlashAttribute("error", "Lỗi: " + e.getMessage());
+            log.error("Loi khi reload mapping: {}", e.getMessage(), e);
+            redirectAttributes.addFlashAttribute("error", "Loi: " + e.getMessage());
         }
         return "redirect:/admin/cskh-mapping";
     }
@@ -45,24 +46,24 @@ public class CskhMappingController {
     @GetMapping("/api/mappings")
     @ResponseBody
     public List<CskhMappingDto> getMappingsApi() {
-        return mappingService.getActiveMappings().stream()
+        return searchConfigService.getActiveConfigs().stream()
                 .map(this::toDto)
                 .collect(Collectors.toList());
     }
 
-    private CskhMappingDto toDto(CskhBaseMapping entity) {
+    private CskhMappingDto toDto(SearchConfig cfg) {
         return CskhMappingDto.builder()
-                .id(entity.getId())
-                .posName(entity.getPosName())
-                .posPhone(entity.getPosPhone())
-                .larkBaseName(entity.getLarkBaseName())
-                .larkBaseId(entity.getLarkBaseId())
-                .khachHangTableId(entity.getKhachHangTableId())
-                .traoDoiTableId(entity.getTraoDoiTableId())
-                .lichHenTableId(entity.getLichHenTableId())
-                .viewId(entity.getViewId())
-                .isActive(entity.getIsActive())
-                .departmentName(entity.getDepartmentName())
+                .id(cfg.getLarkBaseId())
+                .posName(cfg.getPosName())
+                .posPhone(cfg.getPosPhone())
+                .larkBaseName(cfg.getLarkBaseName())
+                .larkBaseId(cfg.getLarkBaseId())
+                .khachHangTableId(cfg.getKhachHangTableId())
+                .traoDoiTableId(cfg.getTraoDoiTableId())
+                .lichHenTableId(cfg.getLichHenTableId())
+                .viewId(cfg.getKhachHangViewId())
+                .isActive(cfg.getSyncStatus() != null && cfg.getSyncStatus() == 2)
+                .departmentName(cfg.getDepartmentName())
                 .build();
     }
 }

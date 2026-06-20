@@ -11,7 +11,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class CskhMappingDto {
 
-    private Long id;
+    private String id;
     private String posName;
     private String posPhone;
     private String larkBaseName;

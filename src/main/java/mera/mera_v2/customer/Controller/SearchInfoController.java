@@ -23,15 +23,14 @@ public class SearchInfoController {
   private final SearchService searchService;
 
   @GetMapping("/init-search")
-  public ResponseEntity<?> initSearch(jakarta.servlet.http.HttpSession session) {
+  public ResponseEntity<?> initSearch() {
     try {
-      log.info("🚀 Pre-loading search configs for session...");
-      searchService.ensureUserConfigsStored(session);
+      log.info("Pre-loading search configs from DB...");
       return ResponseEntity.ok(Map.of("message", "Configs loaded successfully"));
     } catch (Exception ex) {
-      log.error("❌ Error pre-loading search configs", ex);
+      log.error("Error pre-loading search configs", ex);
       return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-          .body(Map.of("error", "Lỗi cấu hình: " + ex.getMessage()));
+          .body(Map.of("error", "Loi cau hinh: " + ex.getMessage()));
     }
   }
 
@@ -40,23 +39,23 @@ public class SearchInfoController {
    * Expects phone parameter: /api/search-info?phone=0984859009
    */
   @GetMapping("/search-info")
-  public ResponseEntity<?> searchInfo(@RequestParam("phone") String phone, jakarta.servlet.http.HttpSession session) {
+  public ResponseEntity<?> searchInfo(@RequestParam("phone") String phone) {
     try {
-      log.info("🔍 Searching 360 info for phone: {}", phone);
-      Map<String, Object> result = searchService.searchCustomer360(phone, session);
-      
+      log.info("Searching 360 info for phone: {}", phone);
+      Map<String, Object> result = searchService.searchCustomer360(phone);
+
       if (result == null || result.get("customer") == null) {
         return ResponseEntity.status(HttpStatus.OK)
-            .body(Map.of("message", "Không tìm thấy thông tin khách hàng"));
+            .body(Map.of("message", "Khong tim thay thong tin khach hang"));
       }
-      
+
       return ResponseEntity.ok(result);
     } catch (IllegalArgumentException ex) {
       return ResponseEntity.badRequest().body(Map.of("error", ex.getMessage()));
     } catch (Exception ex) {
-      log.error("❌ Error in SearchInfo", ex);
+      log.error("Error in SearchInfo", ex);
       return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-          .body(Map.of("error", "Lỗi hệ thống: " + ex.getMessage()));
+          .body(Map.of("error", "Loi he thong: " + ex.getMessage()));
     }
   }
 }

@@ -3,6 +3,7 @@ package mera.mera_v2.lark.config;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import mera.mera_v2.entity.LarkBitableConfig;
+import mera.mera_v2.customer.Service.BitableService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -18,6 +19,7 @@ import java.util.List;
 public class LarkBitableConfigController {
 
     private final LarkBitableConfigService configService;
+    private final BitableService bitableService;
 
     @GetMapping
     public String listConfigs(Model model) {
@@ -82,6 +84,22 @@ public class LarkBitableConfigController {
                 .map(this::toDto)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
+    }
+
+    @GetMapping("/api/debug/views")
+    @ResponseBody
+    public ResponseEntity<?> debugViews(
+            @RequestParam String baseId,
+            @RequestParam String tableId) {
+        try {
+            String viewsJson = bitableService.getViewsJson(baseId, tableId);
+            return ResponseEntity.ok()
+                    .header("Content-Type", "application/json")
+                    .body(viewsJson);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest()
+                    .body(java.util.Map.of("error", e.getMessage()));
+        }
     }
 
     private LarkBitableConfigDto toDto(LarkBitableConfig entity) {

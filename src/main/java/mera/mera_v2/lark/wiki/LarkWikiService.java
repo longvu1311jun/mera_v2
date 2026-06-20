@@ -43,17 +43,18 @@ public class LarkWikiService {
   }
   
   /**
-   * Get all nodes (bases) from space with pagination support
+   * Get all nodes (bases) from space with pagination support.
+   * Uses global token storage (no session required).
    */
-  public List<LarkNode> getAllNodes(HttpSession session) throws Exception {
+  public List<LarkNode> getAllNodes() throws Exception {
     List<LarkNode> allNodes = new java.util.ArrayList<>();
     String pageToken = "";
     boolean hasMore = true;
-    
-    log.info("=== Fetching All Wiki Nodes (with Pagination) ===");
-    
+
+    log.info("=== Fetching All Wiki Nodes (no-session, global token) ===");
+
     while (hasMore) {
-      String accessToken = tokenService.getAccessToken(session, false);
+      String accessToken = tokenService.getAccessToken(false);
       String url = String.format(
           "https://open.larksuite.com/open-apis/wiki/v2/spaces/%s/nodes?page_size=50",
           LARK_SPACE_ID
@@ -61,24 +62,23 @@ public class LarkWikiService {
       if (!pageToken.isEmpty()) {
         url += "&page_token=" + pageToken;
       }
-      
+
       HttpHeaders headers = new HttpHeaders();
       headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
       headers.setBearerAuth(accessToken);
-      
+
       HttpEntity<String> entity = new HttpEntity<>(headers);
-      
+
       ResponseEntity<LarkNodesResponse> response = restTemplate.exchange(
           url, HttpMethod.GET, entity, LarkNodesResponse.class
       );
-      
+
       if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
         LarkNodesResponse body = response.getBody();
         if (body.getCode() == 0 && body.getData() != null) {
           allNodes.addAll(body.getData().getItems());
           hasMore = body.getData().isHasMore();
           pageToken = body.getData().getPageToken();
-          log.info("Fetched {} nodes, hasMore={}", body.getData().getItems().size(), hasMore);
         } else {
           log.warn("API Error: {} - {}", body.getCode(), body.getMsg());
           break;
@@ -88,23 +88,31 @@ public class LarkWikiService {
         break;
       }
     }
-    
+
     log.info("Total Wiki nodes fetched: {}", allNodes.size());
     return allNodes;
   }
-  
+
   /**
-   * Get child nodes of a specific node with pagination support
+   * Get all nodes (bases) from space with pagination support (session-based)
    */
-  public List<LarkNode> getChildNodesByNodeToken(String nodeToken, HttpSession session) throws Exception {
+  public List<LarkNode> getAllNodes(HttpSession session) throws Exception {
+    return getAllNodes();
+  }
+
+  /**
+   * Get child nodes of a specific node with pagination support.
+   * Uses global token storage (no session required).
+   */
+  public List<LarkNode> getChildNodesByNodeToken(String nodeToken) throws Exception {
     if (nodeToken == null || nodeToken.isEmpty()) return Collections.emptyList();
-    
+
     List<LarkNode> childNodes = new java.util.ArrayList<>();
     String pageToken = "";
     boolean hasMore = true;
-    
+
     while (hasMore) {
-      String accessToken = tokenService.getAccessToken(session, false);
+      String accessToken = tokenService.getAccessToken(false);
       String url = String.format(
           "https://open.larksuite.com/open-apis/wiki/v2/spaces/%s/nodes?parent_node_token=%s&page_size=50",
           LARK_SPACE_ID, nodeToken
@@ -112,17 +120,17 @@ public class LarkWikiService {
       if (!pageToken.isEmpty()) {
         url += "&page_token=" + pageToken;
       }
-      
+
       HttpHeaders headers = new HttpHeaders();
       headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
       headers.setBearerAuth(accessToken);
-      
+
       HttpEntity<String> entity = new HttpEntity<>(headers);
-      
+
       ResponseEntity<LarkNodesResponse> response = restTemplate.exchange(
           url, HttpMethod.GET, entity, LarkNodesResponse.class
       );
-      
+
       if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
         LarkNodesResponse body = response.getBody();
         if (body.getCode() == 0 && body.getData() != null) {
@@ -138,18 +146,25 @@ public class LarkWikiService {
     }
     return childNodes;
   }
-  
+
   /**
-   * Get all nodes and their child nodes with pagination support
+   * Get child nodes of a specific node with pagination support (session-based)
    */
-  public List<LarkNode> getAllNodesWithChildren(HttpSession session) throws Exception {
-    List<LarkNode> allNodes = getAllNodes(session);
-    
-    // For each node, get its child nodes (recursive or at least 1 level deep)
+  public List<LarkNode> getChildNodesByNodeToken(String nodeToken, HttpSession session) throws Exception {
+    return getChildNodesByNodeToken(nodeToken);
+  }
+
+  /**
+   * Get all nodes and their child nodes with pagination support.
+   * Uses global token storage (no session required).
+   */
+  public List<LarkNode> getAllNodesWithChildren() throws Exception {
+    List<LarkNode> allNodes = getAllNodes();
+
     for (LarkNode node : allNodes) {
       if (node.getNodeToken() != null && !node.getNodeToken().isEmpty()) {
         try {
-          List<LarkNode> childNodes = getChildNodesByNodeToken(node.getNodeToken(), session);
+          List<LarkNode> childNodes = getChildNodesByNodeToken(node.getNodeToken());
           node.setChildNodes(childNodes);
         } catch (Exception e) {
           log.warn("Failed to get child nodes for node {}: {}", node.getNodeToken(), e.getMessage());
@@ -157,8 +172,15 @@ public class LarkWikiService {
         }
       }
     }
-    
+
     return allNodes;
+  }
+
+  /**
+   * Get all nodes and their child nodes with pagination support (session-based, delegates to no-session version)
+   */
+  public List<LarkNode> getAllNodesWithChildren(HttpSession session) throws Exception {
+    return getAllNodesWithChildren();
   }
   
   /**

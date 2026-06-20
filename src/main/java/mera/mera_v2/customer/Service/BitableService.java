@@ -11,8 +11,10 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import mera.mera_v2.model.BitableRecord;
 import mera.mera_v2.model.BitableTable;
+import mera.mera_v2.model.BitableView;
 import mera.mera_v2.model.SaleSummaryRow;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -230,12 +232,43 @@ public class BitableService {
 
       HttpEntity<RecordSearchRequest> entity = new HttpEntity<>(bodyReq, headers);
 
-      ResponseEntity<RecordSearchResponse> response;
-      try {
-        response = restTemplate.exchange(url, HttpMethod.POST, entity, RecordSearchResponse.class);
-      } catch (RestClientException e) {
-        log.error("Error calling Bitable search customer by phone API: {}", e.getMessage(), e);
-        throw new RuntimeException("Failed to call Bitable search customer API: " + e.getMessage(), e);
+      ResponseEntity<RecordSearchResponse> response = null;
+      int retries = 3;
+      for (int attempt = 1; attempt <= retries; attempt++) {
+        try {
+          response = restTemplate.exchange(url, HttpMethod.POST, entity, RecordSearchResponse.class);
+          break;
+        } catch (HttpClientErrorException.TooManyRequests e) {
+          if (attempt == retries) {
+            log.error("Rate limit (429) exceeded after {} retries for phone search: {}", retries, e.getMessage());
+            return new ArrayList<>();
+          }
+          long waitMs = 1000L * attempt;
+          log.warn("Rate limit (429) on phone search attempt {}/{}, waiting {}ms...", attempt, retries, waitMs);
+          Thread.sleep(waitMs);
+        } catch (HttpClientErrorException.BadRequest e) {
+          String body = e.getResponseBodyAsString();
+          if (body != null && body.contains("request trigger frequency limit")) {
+            if (attempt == retries) {
+              log.error("Rate limit (freq) exceeded after {} retries for phone search", retries);
+              return new ArrayList<>();
+            }
+            long waitMs = 1500L * attempt;
+            log.warn("Rate limit (freq) on phone search attempt {}/{}, waiting {}ms...", attempt, retries, waitMs);
+            Thread.sleep(waitMs);
+          } else {
+            log.error("Bitable BAD_REQUEST for phone search: {}", body);
+            return new ArrayList<>();
+          }
+        } catch (RestClientException e) {
+          log.error("Error calling Bitable search customer by phone API: {}", e.getMessage(), e);
+          return new ArrayList<>();
+        }
+      }
+
+      if (response == null) {
+        log.error("All retries failed for phone search URL: {}", url);
+        return new ArrayList<>();
       }
 
       if (response.getStatusCode() != HttpStatus.OK || response.getBody() == null) {
@@ -463,6 +496,9 @@ public class BitableService {
     String accessToken = tokenService.getAccessToken(session, false);
     List<Map<String, Object>> actualFields = getFieldsByTableId(accessToken, baseId, tableId);
     String customerLinkFieldName = detectFieldName(actualFields, List.of("Khách Hàng", "Khách hàng", "Customer", "Mã khách hàng", "Mã KH"));
+    log.info("BaseId={} - TD table fields: detectedLinkField='{}', allFields={}", baseId, customerLinkFieldName,
+            actualFields.stream().map(f -> f.get("field_name")).collect(Collectors.toList()));
+    log.info("BaseId={} - Searching TD with customerRecordId='{}', viewId='{}'", baseId, customerRecordId, viewId);
 
     HttpHeaders headers = new HttpHeaders();
     headers.setBearerAuth(accessToken);
@@ -493,14 +529,48 @@ public class BitableService {
 
       bodyReq.filter = f;
 
+      log.info("BaseId={} - TD API request: url={}, filterField='{}', filterValue='{}', viewId='{}', pageToken='{}'",
+              baseId, url, customerLinkFieldName, customerRecordId, viewId, pageToken);
+
       HttpEntity<RecordSearchRequest> entity = new HttpEntity<>(bodyReq, headers);
 
-      ResponseEntity<RecordSearchResponse> response;
-      try {
-        response = restTemplate.exchange(url, HttpMethod.POST, entity, RecordSearchResponse.class);
-      } catch (RestClientException e) {
-        log.error("Error calling Bitable search records by customer ID API: {}", e.getMessage(), e);
-        throw new RuntimeException("Failed to call Bitable search records API: " + e.getMessage(), e);
+      ResponseEntity<RecordSearchResponse> response = null;
+      int retries = 3;
+      for (int attempt = 1; attempt <= retries; attempt++) {
+        try {
+          response = restTemplate.exchange(url, HttpMethod.POST, entity, RecordSearchResponse.class);
+          break;
+        } catch (HttpClientErrorException.TooManyRequests e) {
+          if (attempt == retries) {
+            log.error("Rate limit (429) exceeded after {} retries for TD search base {}: {}", retries, baseId, e.getMessage());
+            throw new RuntimeException("Rate limit exceeded for TD search", e);
+          }
+          long waitMs = 1500L * attempt;
+          log.warn("Rate limit (429) on TD search base {} attempt {}/{}, waiting {}ms...", baseId, attempt, retries, waitMs);
+          Thread.sleep(waitMs);
+        } catch (HttpClientErrorException.BadRequest e) {
+          String body = e.getResponseBodyAsString();
+          if (body != null && body.contains("request trigger frequency limit")) {
+            if (attempt == retries) {
+              log.error("Rate limit (freq) exceeded after {} retries for TD search base {}", retries, baseId);
+              throw new RuntimeException("Rate limit exceeded for TD search", e);
+            }
+            long waitMs = 2000L * attempt;
+            log.warn("Rate limit (freq) on TD search base {} attempt {}/{}, waiting {}ms...", baseId, attempt, retries, waitMs);
+            Thread.sleep(waitMs);
+          } else {
+            log.error("Bitable BAD_REQUEST for TD search base {}: {}", baseId, body);
+            throw new RuntimeException("Bitable BAD_REQUEST for TD search: " + body, e);
+          }
+        } catch (RestClientException e) {
+          log.error("Error calling Bitable search records by customer ID for base {}: {}", baseId, e.getMessage(), e);
+          throw new RuntimeException("Failed to call Bitable search records API for base " + baseId + ": " + e.getMessage(), e);
+        }
+      }
+
+      if (response == null) {
+        log.error("All retries failed for TD search base {} URL: {}", baseId, url);
+        throw new RuntimeException("Rate limit exceeded for TD search");
       }
 
       if (response.getStatusCode() != HttpStatus.OK || response.getBody() == null) {
@@ -511,6 +581,11 @@ public class BitableService {
       if (body.code != 0) {
         throw new RuntimeException("Bitable error: " + body.code + " - " + body.msg);
       }
+
+      log.info("BaseId={} - TD API response: code={}, msg='{}', items={}, hasMore={}",
+              baseId, body.code, body.msg,
+              body.data != null && body.data.items != null ? body.data.items.size() : 0,
+              body.data != null ? body.data.hasMore : false);
 
       if (body.data != null && body.data.items != null) {
         allRecords.addAll(body.data.items);
@@ -802,6 +877,94 @@ public class BitableService {
 
   private static class TablesData {
     @JsonProperty("items") List<BitableTable> items;
+    @JsonProperty("page_token") String pageToken;
+    @JsonProperty("has_more") Boolean hasMore;
+  }
+
+  // ================== list views ==================
+
+  /** Lấy danh sách views của một table. Trả về view đầu tiên (grid view). */
+  public String getDefaultViewId(HttpSession session, String baseId, String tableId) throws Exception {
+    List<BitableView> views = listViews(session, baseId, tableId);
+    if (views.isEmpty()) {
+      log.warn("BaseId={} TableId={} - Khong lay duoc view nao", baseId, tableId);
+      return null;
+    }
+    String vid = views.get(0).getViewId();
+    log.info("BaseId={} TableId={} - view_id resolved: {}", baseId, tableId, vid);
+    return vid;
+  }
+
+  /** Raw JSON response tu API list views - dung de debug */
+  public String getViewsJson(String baseId, String tableId) throws Exception {
+    String accessToken = tokenService.getAccessToken(null, false);
+    HttpHeaders headers = new HttpHeaders();
+    headers.setBearerAuth(accessToken);
+    headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+    HttpEntity<Void> entity = new HttpEntity<>(headers);
+
+    String url = buildListViewsUrl(baseId, tableId, null);
+    ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
+    return response.getBody();
+  }
+
+  private List<BitableView> listViews(HttpSession session, String baseId, String tableId) throws Exception {
+    String accessToken = tokenService.getAccessToken(session, false);
+    HttpHeaders headers = new HttpHeaders();
+    headers.setBearerAuth(accessToken);
+    headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+    HttpEntity<Void> entity = new HttpEntity<>(headers);
+
+    List<BitableView> all = new ArrayList<>();
+    String pageToken = null;
+    boolean hasMore = true;
+
+    while (hasMore) {
+      String url = buildListViewsUrl(baseId, tableId, pageToken);
+
+      try {
+        ResponseEntity<BitableViewsResponse> response = restTemplate.exchange(
+            url, HttpMethod.GET, entity, BitableViewsResponse.class);
+
+        if (response.getStatusCode() != HttpStatus.OK || response.getBody() == null) {
+          throw new RuntimeException("Bitable HTTP error: " + response.getStatusCode());
+        }
+
+        BitableViewsResponse body = response.getBody();
+        if (body.code != 0) throw new RuntimeException("Bitable error: " + body.code + " - " + body.msg);
+
+        if (body.data != null && body.data.items != null) all.addAll(body.data.items);
+
+        hasMore = body.data != null && Boolean.TRUE.equals(body.data.hasMore);
+        pageToken = (body.data != null) ? body.data.pageToken : null;
+
+        if (hasMore && (pageToken == null || pageToken.isBlank())) break;
+
+      } catch (HttpClientErrorException e) {
+        log.warn("Cannot list views for table {} in base {}: {} ({})", tableId, baseId, e.getStatusText(), e.getStatusCode());
+        return Collections.emptyList();
+      } catch (RestClientException e) {
+        log.warn("Unexpected error listing views for table {} in base {}: {}", tableId, baseId, e.getMessage());
+        return Collections.emptyList();
+      }
+    }
+    return all;
+  }
+
+  private String buildListViewsUrl(String baseId, String tableId, String pageToken) {
+    String url = String.format("https://open.larksuite.com/open-apis/bitable/v1/apps/%s/tables/%s/views?page_size=100", baseId, tableId);
+    if (pageToken != null && !pageToken.isBlank()) url += "&page_token=" + pageToken;
+    return url;
+  }
+
+  private static class BitableViewsResponse {
+    @JsonProperty("code") int code;
+    @JsonProperty("msg") String msg;
+    @JsonProperty("data") ViewsData data;
+  }
+
+  private static class ViewsData {
+    @JsonProperty("items") List<BitableView> items;
     @JsonProperty("page_token") String pageToken;
     @JsonProperty("has_more") Boolean hasMore;
   }

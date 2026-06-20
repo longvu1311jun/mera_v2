@@ -53,7 +53,7 @@ public class PendingFollowupScheduler {
     // ========== SCHEDULER: chạy mỗi 5 phút ==========
     // Test: @Scheduled(fixedDelay = 60_000, initialDelay = 30_000)
     // Prod: @Scheduled(cron = "0 */5 * * * *") // mỗi 5 phút
-    @Scheduled(fixedDelay = 60_000, initialDelay = 30_000)
+//    @Scheduled(fixedDelay = 60_000, initialDelay = 30_000)
     public void processPendingFollowups() {
         log.info("========================================");
         log.info("[PendingFollowupScheduler] Bat dau kiem tra pending notifications...");

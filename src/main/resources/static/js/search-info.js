@@ -135,6 +135,13 @@ function renderDashboard(data) {
         const warnings = (exchanges || []).filter(ex => ex.type === 'special_warning');
         const normalExchanges = (exchanges || []).filter(ex => ex.type !== 'special_warning');
 
+        // Cập nhật tên base vào title
+        const baseNameEl = document.getElementById('exchangeBaseName');
+        const allItems = [...warnings, ...normalExchanges];
+        if (baseNameEl && allItems.length > 0) {
+            baseNameEl.textContent = allItems[0].source || 'Base';
+        }
+
         let html = '';
 
         // Render warning banners (Từ chối chăm / Hoàn / Hủy)
@@ -172,24 +179,15 @@ function renderDashboard(data) {
         // Render nhật ký trao đổi thường
         if (normalExchanges.length > 0) {
             html += normalExchanges.map((ex, idx) => `
-                <div class="relative pl-8 mb-6 last:mb-0">
-                    <div class="absolute left-0 top-1 w-6 h-6 bg-white border-2 ${idx === 0 ? 'border-brand-500' : 'border-slate-300'} rounded-full flex items-center justify-center z-10 shadow-sm">
-                        <i class="fa-solid ${idx === 0 ? 'fa-check text-brand-500' : 'fa-clock text-slate-300'} text-[10px]"></i>
-                    </div>
-                    <div>
-                        <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">${ex.date || 'N/A'}</span>
-                        <div class="bg-white p-2.5 rounded-lg border border-slate-200 shadow-sm mt-1 group hover:border-brand-200 transition">
-                            <p class="text-slate-800 text-sm font-medium">${ex.content}</p>
-                            <div class="flex justify-between items-center mt-1">
-                                <p class="text-[10px] text-slate-400">Người: <span class="font-bold">${ex.person || 'N/A'}</span></p>
-                                <p class="text-[10px] text-brand-600 font-bold bg-brand-50 px-1.5 py-0.5 rounded border border-brand-100">${ex.source || 'Lark'}</p>
-                            </div>
-                        </div>
+                <div class="relative pl-6 mb-4 last:mb-0">
+                        <div class="space-y-0.5">                    
+                        <p class="text-sm text-slate-800 leading-snug">${ex.content || ''}</p>                
+                        <p class="text-xs text-slate-400">Base: <span class="font-medium text-slate-600">${ex.source || ''}</span></p>
                     </div>
                 </div>
             `).join('');
         } else if (warnings.length === 0) {
-            html = '<div class="text-center py-4 text-slate-400 text-xs italic">Chưa có nhật ký từ Lark</div>';
+            html = '<div class="text-center py-4 text-slate-400 text-xs italic">Chưa có nhật ký trao đổi</div>';
         }
 
         exchangeHistoryWrap.innerHTML = `<div class="relative timeline-line">${html}</div>`;

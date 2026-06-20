@@ -816,3 +816,40 @@ CREATE TABLE pending_followup_notifications (
     INDEX idx_pending_processed (processed),
     INDEX idx_pending_phone (phone_number)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+-- ============================================================
+-- 25. SEARCH_CONFIG
+-- Cache mapping Lark Base ↔ POS user dùng cho /search-info, /search-config, /admin/cskh-mapping
+-- lark_base_id = khóa chính. sync_status = 0=PENDING, 1=LOADING, 2=COMPLETED, 3=FAILED
+-- ============================================================
+CREATE TABLE search_config (
+    lark_base_id        VARCHAR(64)     NOT NULL PRIMARY KEY,
+    lark_base_name      VARCHAR(255)        NULL,
+    lark_obj_type       VARCHAR(50)         NULL,
+
+    -- POS user info
+    pos_user_id         VARCHAR(100)        NULL,
+    pos_name            VARCHAR(255)        NULL,
+    pos_phone           VARCHAR(20)         NULL,
+    department_name     VARCHAR(100)        NULL,
+
+    -- Table IDs
+    khach_hang_table_id VARCHAR(64)         NULL,
+    lich_hen_table_id   VARCHAR(64)         NULL,
+    trao_doi_table_id   VARCHAR(64)         NULL,
+    view_id             VARCHAR(64)         NULL,
+
+    -- Trạng thái load
+    sync_status         TINYINT      NOT NULL DEFAULT 0,
+    -- 0=PENDING, 1=LOADING, 2=COMPLETED, 3=FAILED
+
+    error_message       VARCHAR(500)        NULL,
+    last_synced_at      DATETIME            NULL,
+    created_at          DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at          DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    INDEX idx_sync_status (sync_status),
+    INDEX idx_pos_phone   (pos_phone)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+COMMENT='Cache mapping Lark Base ↔ POS user cho search';
