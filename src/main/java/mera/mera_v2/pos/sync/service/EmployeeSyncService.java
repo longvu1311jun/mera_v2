@@ -10,7 +10,6 @@ import mera.mera_v2.pos.sync.dto.EmployeeApiResponse;
 import mera.mera_v2.repository.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -20,17 +19,21 @@ import java.util.*;
 @RequiredArgsConstructor
 public class EmployeeSyncService {
 
+    private static final long DEFAULT_SHOP_ID = 1546758L;
+
     @PersistenceContext
     private EntityManager entityManager;
     
     private final EmployeeApiClient employeeApiClient;
     private final PosUserRepository posUserRepository;
+    private final PosProfileRepository posProfileRepository;
     private final PosShopUserRepository posShopUserRepository;
     private final PosDepartmentRepository posDepartmentRepository;
     private final PosSaleGroupRepository posSaleGroupRepository;
     private final PosSaleGroupMemberRepository posSaleGroupMemberRepository;
-    private final TransactionTemplate transactionTemplate;
+    private final PosShopRepository posShopRepository;
 
+    @Transactional
     public EmployeeSyncResult syncAllEmployees() {
         log.info("Starting employee sync...");
 
@@ -62,6 +65,7 @@ public class EmployeeSyncService {
     public EmployeeSyncResult syncEmployeesBatch(List<EmployeeApiResponse.EmployeeDto> employees) {
         int totalFromApi = employees.size();
         int insertedUsers = 0, updatedUsers = 0;
+        int insertedProfiles = 0, updatedProfiles = 0;
         int insertedShopUsers = 0, updatedShopUsers = 0;
         int insertedDepartments = 0, updatedDepartments = 0;
         int insertedSaleGroups = 0, updatedSaleGroups = 0;
@@ -72,13 +76,18 @@ public class EmployeeSyncService {
         // PHASE 1: Collect all IDs from API response
         // ========================================
         Set<String> userIds = new HashSet<>();
+        Set<String> profileIds = new HashSet<>();
         Set<String> shopUserIds = new HashSet<>();
         Set<Long> departmentIds = new HashSet<>();
         Set<Integer> saleGroupIds = new HashSet<>();
+        Set<Long> shopIds = new HashSet<>();
 
         for (EmployeeApiResponse.EmployeeDto emp : employees) {
             if (emp.getUser() != null && emp.getUser().getId() != null) {
                 userIds.add(emp.getUser().getId());
+            }
+            if (emp.getProfileId() != null) {
+                profileIds.add(emp.getProfileId());
             }
             if (emp.getShopUserId() != null) {
                 shopUserIds.add(emp.getShopUserId());
@@ -89,6 +98,9 @@ public class EmployeeSyncService {
             if (emp.getSale_group() != null && emp.getSale_group().getId() != null) {
                 saleGroupIds.add(emp.getSale_group().getId());
             }
+            if (emp.getShopId() != null) {
+                shopIds.add(emp.getShopId());
+            }
         }
 
         // ========================================
@@ -97,6 +109,11 @@ public class EmployeeSyncService {
         Map<String, PosUser> userCache = new HashMap<>();
         for (PosUser u : posUserRepository.findAllById(userIds)) {
             userCache.put(u.getId(), u);
+        }
+
+        Map<String, PosProfile> profileCache = new HashMap<>();
+        for (PosProfile p : posProfileRepository.findAllById(profileIds)) {
+            profileCache.put(p.getId(), p);
         }
 
         Map<String, PosShopUser> shopUserCache = new HashMap<>();
@@ -123,23 +140,27 @@ public class EmployeeSyncService {
         // PHASE 3: Process each employee
         // ========================================
         List<PosUser> usersToSave = new ArrayList<>();
+        List<PosProfile> profilesToSave = new ArrayList<>();
         List<PosDepartment> departmentsToSave = new ArrayList<>();
         List<PosSaleGroup> saleGroupsToSave = new ArrayList<>();
         List<PosShopUser> shopUsersToSave = new ArrayList<>();
         List<PosSaleGroupMember> membersToSave = new ArrayList<>();
 
+        LocalDateTime now = LocalDateTime.now();
+
         for (EmployeeApiResponse.EmployeeDto emp : employees) {
             try {
-                // --- Process PosUser ---
+                // --- 1. PosUser ---
                 PosUser posUser = null;
                 if (emp.getUser() != null && emp.getUser().getId() != null) {
                     EmployeeApiResponse.EmployeeDto.UserDto userDto = emp.getUser();
-                    posUser = userCache.get(userDto.getId());
+                    String userId = userDto.getId();
+                    posUser = userCache.get(userId);
 
                     if (posUser == null) {
                         posUser = new PosUser();
-                        posUser.setId(userDto.getId());
-                        userCache.put(userDto.getId(), posUser); // Add to cache
+                        posUser.setId(userId);
+                        userCache.put(userId, posUser);
                         insertedUsers++;
                     } else {
                         updatedUsers++;
@@ -150,13 +171,36 @@ public class EmployeeSyncService {
                     posUser.setFbId(userDto.getFbId());
                     posUser.setPhoneNumber(userDto.getPhoneNumber());
                     posUser.setAvatarUrl(userDto.getAvatarUrl());
-                    posUser.setCreatedAt(LocalDateTime.now());
-                    posUser.setUpdatedAt(LocalDateTime.now());
+                    posUser.setCreatedAt(now);
+                    posUser.setUpdatedAt(now);
 
                     usersToSave.add(posUser);
                 }
 
-                // --- SAFE PATTERN: Department - create if not exists ---
+                // --- 2. PosProfile ---
+                PosProfile profile = null;
+                if (emp.getProfileId() != null) {
+                    String profileId = emp.getProfileId();
+                    profile = profileCache.get(profileId);
+
+                    if (profile == null) {
+                        profile = new PosProfile();
+                        profile.setId(profileId);
+                        profileCache.put(profileId, profile);
+                        insertedProfiles++;
+                    } else {
+                        updatedProfiles++;
+                    }
+
+                    profile.setName("Profile " + profileId.substring(0, Math.min(8, profileId.length())));
+                    profile.setShopId(getValidShopId(emp.getShopId()));
+                    profile.setCreatedAt(now);
+                    profile.setUpdatedAt(now);
+
+                    profilesToSave.add(profile);
+                }
+
+                // --- 3. PosDepartment ---
                 PosDepartment department = null;
                 if (emp.getDepartment() != null && emp.getDepartmentId() != null) {
                     Long deptId = emp.getDepartmentId();
@@ -165,20 +209,20 @@ public class EmployeeSyncService {
                     if (department == null) {
                         department = new PosDepartment();
                         department.setId(deptId);
-                        departmentCache.put(deptId, department); // Add to cache BEFORE save
+                        departmentCache.put(deptId, department);
                         insertedDepartments++;
                     } else {
                         updatedDepartments++;
                     }
 
                     department.setName(emp.getDepartment().getName());
-                    department.setShopId(emp.getShopId() != null ? emp.getShopId() : 1546758L);
-                    department.setCreatedAt(LocalDateTime.now());
+                    department.setShopId(getValidShopId(emp.getShopId()));
+                    department.setCreatedAt(now);
 
                     departmentsToSave.add(department);
                 }
 
-                // --- SAFE PATTERN: SaleGroup - create if not exists ---
+                // --- 4. PosSaleGroup ---
                 PosSaleGroup saleGroup = null;
                 if (emp.getSale_group() != null && emp.getSale_group().getId() != null) {
                     Integer sgId = emp.getSale_group().getId();
@@ -187,35 +231,40 @@ public class EmployeeSyncService {
                     if (saleGroup == null) {
                         saleGroup = new PosSaleGroup();
                         saleGroup.setId(sgId);
-                        saleGroupCache.put(sgId, saleGroup); // Add to cache BEFORE save
+                        saleGroupCache.put(sgId, saleGroup);
                         insertedSaleGroups++;
                     } else {
                         updatedSaleGroups++;
                     }
 
                     saleGroup.setName(emp.getSale_group().getName());
-                    saleGroup.setShopId(emp.getShopId() != null ? emp.getShopId() : 1546758L);
+                    saleGroup.setShopId(getValidShopId(emp.getShopId()));
 
                     saleGroupsToSave.add(saleGroup);
                 }
 
-                // --- Process PosShopUser with JPA relationship ---
+                // --- 5. PosShopUser ---
                 if (emp.getShopUserId() != null) {
                     PosShopUser shopUser = shopUserCache.get(emp.getShopUserId());
+                    boolean isNew = (shopUser == null);
 
-                    if (shopUser == null) {
+                    if (isNew) {
                         shopUser = new PosShopUser();
                         shopUser.setId(emp.getShopUserId());
-                        shopUserCache.put(emp.getShopUserId(), shopUser); // Add to cache
+                        shopUserCache.put(emp.getShopUserId(), shopUser);
                         insertedShopUsers++;
                     } else {
                         updatedShopUsers++;
                     }
 
-                    shopUser.setShopId(emp.getShopId() != null ? emp.getShopId() : 1546758L);
-                    shopUser.setUserId(emp.getUserId());
+                    shopUser.setShopId(getValidShopId(emp.getShopId()));
 
-                    // Use JPA relationship - department already in cache and will be saved
+                    // FK-safe: only set userId if user exists in DB
+                    String userId = emp.getUserId();
+                    if (userId != null && userCache.containsKey(userId)) {
+                        shopUser.setUserId(userId);
+                    }
+
                     shopUser.setDepartment(department);
 
                     shopUser.setRole(emp.getRole());
@@ -231,12 +280,12 @@ public class EmployeeSyncService {
                     shopUser.setCreatorId(emp.getCreatorId());
                     shopUser.setProfileId(emp.getProfileId());
                     shopUser.setInsertedAt(parseDateTime(emp.getInsertedAt()));
-                    shopUser.setUpdatedAt(LocalDateTime.now());
+                    shopUser.setUpdatedAt(now);
 
                     shopUsersToSave.add(shopUser);
                 }
 
-                // --- Process PosSaleGroupMember ---
+                // --- 6. PosSaleGroupMember ---
                 if (saleGroup != null && emp.getShopUserId() != null) {
                     String memberKey = emp.getShopUserId() + "_" + saleGroup.getId();
 
@@ -261,8 +310,8 @@ public class EmployeeSyncService {
         // ========================================
         // PHASE 4: Save in correct order (parents before children)
         // ========================================
-        saveWithRetry(() -> {
-            // 1. Save PosUser (root entity)
+        try {
+            // Priority 1: Save root entities
             if (!usersToSave.isEmpty()) {
                 for (PosUser user : usersToSave) {
                     posUserRepository.save(user);
@@ -271,7 +320,14 @@ public class EmployeeSyncService {
                 log.debug("Saved {} pos_users", usersToSave.size());
             }
 
-            // 2. Save PosDepartment (root entity)
+            if (!profilesToSave.isEmpty()) {
+                for (PosProfile p : profilesToSave) {
+                    posProfileRepository.save(p);
+                }
+                entityManager.flush();
+                log.debug("Saved {} pos_profiles", profilesToSave.size());
+            }
+
             if (!departmentsToSave.isEmpty()) {
                 for (PosDepartment dept : departmentsToSave) {
                     posDepartmentRepository.save(dept);
@@ -280,7 +336,6 @@ public class EmployeeSyncService {
                 log.debug("Saved {} pos_departments", departmentsToSave.size());
             }
 
-            // 3. Save PosSaleGroup (root entity)
             if (!saleGroupsToSave.isEmpty()) {
                 for (PosSaleGroup sg : saleGroupsToSave) {
                     posSaleGroupRepository.save(sg);
@@ -289,25 +344,34 @@ public class EmployeeSyncService {
                 log.debug("Saved {} pos_sale_groups", saleGroupsToSave.size());
             }
 
-            // 4. Save PosShopUser (depends on PosUser, PosDepartment)
+            // Priority 2: Save dependent entities
+            int validShopUsers = 0;
             if (!shopUsersToSave.isEmpty()) {
                 for (PosShopUser shopUser : shopUsersToSave) {
+                    if (shopUser.getUserId() == null) {
+                        log.warn("Skipping shop_user {} with null user_id", shopUser.getId());
+                        continue;
+                    }
                     posShopUserRepository.save(shopUser);
+                    validShopUsers++;
                 }
                 entityManager.flush();
-                log.debug("Saved {} pos_shop_users", shopUsersToSave.size());
+                log.debug("Saved {} pos_shop_users (skipped {} with null user_id)", validShopUsers, shopUsersToSave.size() - validShopUsers);
             }
 
-            // 5. Save PosSaleGroupMember (depends on PosShopUser, PosSaleGroup)
+            // Priority 3: Save leaf entities
             if (!membersToSave.isEmpty()) {
                 posSaleGroupMemberRepository.saveAll(membersToSave);
                 log.debug("Saved {} pos_sale_group_members", membersToSave.size());
             }
-        });
+        } catch (Exception e) {
+            log.error("Save failed: {}", e.getMessage(), e);
+            throw e;
+        }
 
         String message = String.format(
-            "Synced %d employees: %d users, %d shop_users, %d departments, %d sale_groups, %d group_members",
-            totalFromApi, usersToSave.size(), shopUsersToSave.size(),
+            "Synced %d employees: %d users, %d profiles, %d shop_users, %d departments, %d sale_groups, %d group_members",
+            totalFromApi, usersToSave.size(), profilesToSave.size(), shopUsersToSave.size(),
             departmentsToSave.size(), saleGroupsToSave.size(), membersToSave.size());
 
         log.info("Employee sync completed: {}", message);
@@ -316,6 +380,8 @@ public class EmployeeSyncService {
             .totalFromApi(totalFromApi)
             .insertedUsers(insertedUsers)
             .updatedUsers(updatedUsers)
+            .insertedProfiles(insertedProfiles)
+            .updatedProfiles(updatedProfiles)
             .insertedShopUsers(insertedShopUsers)
             .updatedShopUsers(updatedShopUsers)
             .insertedDepartments(insertedDepartments)
@@ -328,6 +394,17 @@ public class EmployeeSyncService {
             .build();
     }
 
+    private long getValidShopId(Long shopId) {
+        if (shopId == null) {
+            return DEFAULT_SHOP_ID;
+        }
+        if (posShopRepository.existsById(shopId)) {
+            return shopId;
+        }
+        log.warn("Shop ID {} does not exist in pos_shop table, using default {}", shopId, DEFAULT_SHOP_ID);
+        return DEFAULT_SHOP_ID;
+    }
+
     private LocalDateTime parseDateTime(String value) {
         if (value == null || value.isBlank()) {
             return LocalDateTime.now();
@@ -338,34 +415,5 @@ public class EmployeeSyncService {
             log.warn("Cannot parse datetime '{}', using now", value);
             return LocalDateTime.now();
         }
-    }
-
-    @FunctionalInterface
-    private interface RetryableOperation {
-        void execute() throws Exception;
-    }
-
-    private void saveWithRetry(RetryableOperation op) {
-        transactionTemplate.executeWithoutResult(status -> {
-            int retries = 0;
-            while (retries < 3) {
-                try {
-                    op.execute();
-                    return;
-                } catch (Exception e) {
-                    if (e.getMessage() != null && e.getMessage().contains("Deadlock")) {
-                        retries++;
-                        log.warn("Deadlock on save attempt {}, retrying...", retries);
-                        if (retries >= 3) {
-                            throw new RuntimeException("Deadlock persisted after 3 retries", e);
-                        }
-                        try { Thread.sleep(200L * retries); }
-                        catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
-                    } else {
-                        throw new RuntimeException(e);
-                    }
-                }
-            }
-        });
     }
 }

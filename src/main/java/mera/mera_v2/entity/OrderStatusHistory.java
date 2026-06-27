@@ -18,7 +18,8 @@ import java.time.LocalDateTime;
 public class OrderStatusHistory {
 
   @Id
-  @GeneratedValue(strategy = GenerationType.IDENTITY)
+  @SequenceGenerator(name = "order_status_history_seq", sequenceName = "order_status_history_seq", allocationSize = 50)
+  @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "order_status_history_seq")
   @Column(name = "id")
   private Long id;
 

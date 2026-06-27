@@ -283,7 +283,7 @@ public class PosOrderWebhook {
     private String postId;
 
     @JsonProperty("order_sources")
-    private Integer orderSources;
+    private Long orderSources;
 
     @JsonProperty("sub_status")
     private String subStatus;

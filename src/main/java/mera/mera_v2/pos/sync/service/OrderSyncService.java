@@ -20,12 +20,12 @@ import mera.mera_v2.repository.OrderRepository;
 import mera.mera_v2.repository.OrderStatusHistoryRepository;
 import mera.mera_v2.repository.ProductVariationRepository;
 import mera.mera_v2.repository.WarehouseRepository;
+import mera.mera_v2.repository.PosUserRepository;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
@@ -61,6 +61,7 @@ public class OrderSyncService {
   private final OrderStatusHistoryRepository orderStatusHistoryRepository;
   private final ProductVariationRepository productVariationRepository;
   private final WarehouseRepository warehouseRepository;
+  private final PosUserRepository posUserRepository;
   private final NamedParameterJdbcTemplate namedParameterJdbcTemplate;
 
   @Lazy
@@ -181,8 +182,22 @@ public class OrderSyncService {
             .forEach(w -> existingWarehouseIds.add(w.getId()));
       }
 
+      // Collect creator IDs and pre-load pos_users
+      Set<String> pageCreatorIds = new HashSet<>();
+      for (OrderApiDto order : orders) {
+        if (order.getCreator() != null && order.getCreator().getId() != null
+            && !order.getCreator().getId().isBlank()) {
+          pageCreatorIds.add(order.getCreator().getId());
+        }
+      }
+      Set<String> existingPosUserIds = new HashSet<>();
+      if (!pageCreatorIds.isEmpty()) {
+        posUserRepository.findAllById(pageCreatorIds)
+            .forEach(u -> existingPosUserIds.add(u.getId()));
+      }
+
       // Retry batch sync với deadlock handling
-      BatchSyncResult batchResult = retryBatchSync(orders, existingVarIds, existingWarehouseIds);
+      BatchSyncResult batchResult = retryBatchSync(orders, existingVarIds, existingWarehouseIds, existingPosUserIds);
 
       insertedCustomers += batchResult.insertedCustomers;
       updatedCustomers += batchResult.updatedCustomers;
@@ -241,6 +256,11 @@ public class OrderSyncService {
 
   @Transactional
   public BatchSyncResult syncPageBatch(List<OrderApiDto> orders, Set<String> existingVariationIds, Set<String> existingWarehouseIds) {
+    return syncPageBatch(orders, existingVariationIds, existingWarehouseIds, null);
+  }
+
+  @Transactional
+  public BatchSyncResult syncPageBatch(List<OrderApiDto> orders, Set<String> existingVariationIds, Set<String> existingWarehouseIds, Set<String> existingPosUserIds) {
     if (orders == null || orders.isEmpty()) {
       return new BatchSyncResult(0, 0, 0, 0, 0, 0, 0, 0, 0, List.of(), List.of());
     }
@@ -348,7 +368,7 @@ public class OrderSyncService {
         Order order = new Order();
         order.setId(orderId);
 
-        mapOrder(order, dto, existingWarehouseIds, validCustomerIds);
+        mapOrder(order, dto, existingWarehouseIds, validCustomerIds, existingPosUserIds);
         ordersToSaveMap.put(orderId, order);
 
         if (isNewOrder) {
@@ -565,29 +585,58 @@ public class OrderSyncService {
   }
 
   private static final String UPSERT_CUSTOMER_SQL = """
-      INSERT INTO customers (id, shop_id, name, gender, fb_id, referral_code, inserted_at, updated_at)
-      VALUES (:id, :shop_id, :name, :gender, :fb_id, :referral_code, :inserted_at, :updated_at)
+      INSERT INTO customers (
+          id, shop_id, name, gender, date_of_birth, fb_id, referral_code, customer_referral_code,
+          is_discount_by_level, reward_point, used_reward_point, current_debts, level_id, is_block,
+          order_count, succeed_order_count, returned_order_count, purchased_amount, last_order_at,
+          assigned_user_id, creator_id, inserted_at, updated_at, lt_real
+      ) VALUES (
+          :id, :shop_id, :name, :gender, :date_of_birth, :fb_id, :referral_code, :customer_referral_code,
+          :is_discount_by_level, :reward_point, :used_reward_point, :current_debts, :level_id, :is_block,
+          :order_count, :succeed_order_count, :returned_order_count, :purchased_amount, :last_order_at,
+          :assigned_user_id, :creator_id, :inserted_at, :updated_at, :lt_real
+      )
       ON DUPLICATE KEY UPDATE
           shop_id = VALUES(shop_id),
           name = VALUES(name),
           gender = VALUES(gender),
+          date_of_birth = VALUES(date_of_birth),
           fb_id = VALUES(fb_id),
           referral_code = VALUES(referral_code),
+          customer_referral_code = VALUES(customer_referral_code),
+          is_discount_by_level = VALUES(is_discount_by_level),
+          reward_point = VALUES(reward_point),
+          used_reward_point = VALUES(used_reward_point),
+          current_debts = VALUES(current_debts),
+          level_id = VALUES(level_id),
+          is_block = VALUES(is_block),
+          order_count = VALUES(order_count),
+          succeed_order_count = VALUES(succeed_order_count),
+          returned_order_count = VALUES(returned_order_count),
+          purchased_amount = VALUES(purchased_amount),
+          last_order_at = VALUES(last_order_at),
+          assigned_user_id = VALUES(assigned_user_id),
+          creator_id = VALUES(creator_id),
           inserted_at = IFNULL(inserted_at, VALUES(inserted_at)),
-          updated_at = VALUES(updated_at)
+          updated_at = VALUES(updated_at),
+          lt_real = VALUES(lt_real)
       """;
+
+  private static final int CUSTOMER_UPSERT_CHUNK_SIZE = 50;
 
   private void batchUpsertCustomers(List<Customer> customers) {
     if (customers == null || customers.isEmpty()) {
       return;
     }
-    SqlParameterSource[] batchParams = customers.stream()
-        .map(this::customerToSqlParams)
-        .toArray(SqlParameterSource[]::new);
-    namedParameterJdbcTemplate.batchUpdate(UPSERT_CUSTOMER_SQL, batchParams);
+    for (int i = 0; i < customers.size(); i += CUSTOMER_UPSERT_CHUNK_SIZE) {
+      List<Customer> chunk = customers.subList(i, Math.min(i + CUSTOMER_UPSERT_CHUNK_SIZE, customers.size()));
+      SqlParameterSource[] batchParams = chunk.stream()
+          .map(this::customerToSqlParams)
+          .toArray(SqlParameterSource[]::new);
+      namedParameterJdbcTemplate.batchUpdate(UPSERT_CUSTOMER_SQL, batchParams);
+    }
   }
 
-  @Transactional(propagation = Propagation.REQUIRES_NEW)
   public void persistCustomersInNewTx(List<Customer> customers) {
     if (customers == null || customers.isEmpty()) {
       return;
@@ -601,10 +650,26 @@ public class OrderSyncService {
     p.addValue("shop_id", c.getShopId());
     p.addValue("name", c.getName());
     p.addValue("gender", c.getGender());
+    p.addValue("date_of_birth", c.getDateOfBirth() != null ? java.sql.Date.valueOf(c.getDateOfBirth()) : null);
     p.addValue("fb_id", c.getFbId());
     p.addValue("referral_code", c.getReferralCode());
+    p.addValue("customer_referral_code", c.getCustomerReferralCode());
+    p.addValue("is_discount_by_level", c.getIsDiscountByLevel());
+    p.addValue("reward_point", c.getRewardPoint());
+    p.addValue("used_reward_point", c.getUsedRewardPoint());
+    p.addValue("current_debts", c.getCurrentDebts());
+    p.addValue("level_id", c.getLevelId());
+    p.addValue("is_block", c.getIsBlock());
+    p.addValue("order_count", c.getOrderCount());
+    p.addValue("succeed_order_count", c.getSucceedOrderCount());
+    p.addValue("returned_order_count", c.getReturnedOrderCount());
+    p.addValue("purchased_amount", c.getPurchasedAmount());
+    p.addValue("last_order_at", c.getLastOrderAt() != null ? Timestamp.valueOf(c.getLastOrderAt()) : null);
+    p.addValue("assigned_user_id", c.getAssignedUserId());
+    p.addValue("creator_id", c.getCreatorId());
     p.addValue("inserted_at", toTimestamp(c.getInsertedAt()));
     p.addValue("updated_at", toTimestamp(c.getUpdatedAt()));
+    p.addValue("lt_real", c.getLtReal());
     return p;
   }
 
@@ -802,7 +867,7 @@ public class OrderSyncService {
     return null;
   }
 
-  private void mapOrder(Order order, OrderApiDto dto, Set<String> existingWarehouseIds, Set<String> validCustomerIds) {
+  private void mapOrder(Order order, OrderApiDto dto, Set<String> existingWarehouseIds, Set<String> validCustomerIds, Set<String> existingPosUserIds) {
     order.setRawData(dto.getRawData());
     order.setShopId(dto.getShopId());
     order.setStatus(dto.getStatus() != null ? dto.getStatus() : 0);
@@ -814,8 +879,13 @@ public class OrderSyncService {
     } else {
       order.setCustomerId(null);
     }
-    if (dto.getCreator() != null && dto.getCreator().getId() != null) {
-      order.setCreatorId(dto.getCreator().getId());
+    // === Creator ID - chỉ set nếu tồn tại trong pos_users ===
+    String creatorId = dto.getCreator() != null ? dto.getCreator().getId() : null;
+    if (creatorId != null && !creatorId.isBlank()
+        && existingPosUserIds != null && existingPosUserIds.contains(creatorId)) {
+      order.setCreatorId(creatorId);
+    } else {
+      order.setCreatorId(null);
     }
 
     // === User IDs ===
@@ -1069,14 +1139,14 @@ public class OrderSyncService {
   // Deadlock retry helper
   // ============================================================
 
-  private BatchSyncResult retryBatchSync(List<OrderApiDto> orders, Set<String> existingVarIds, Set<String> existingWarehouseIds) {
+  private BatchSyncResult retryBatchSync(List<OrderApiDto> orders, Set<String> existingVarIds, Set<String> existingWarehouseIds, Set<String> existingPosUserIds) {
     int retries = 0;
     int maxRetries = 10;
     long waitTimeMs = 1000;
 
     while (retries < maxRetries) {
       try {
-        return self.syncPageBatch(orders, existingVarIds, existingWarehouseIds);
+        return self.syncPageBatch(orders, existingVarIds, existingWarehouseIds, existingPosUserIds);
       } catch (Exception e) {
         if (isDeadlockOrRollbackOnly(e)) {
           retries++;
@@ -1132,7 +1202,10 @@ public class OrderSyncService {
     String msg = t.getMessage();
     if (msg != null) {
       String lower = msg.toLowerCase();
-      if (lower.contains("deadlock") || lower.contains("rollback-only")) {
+      if (lower.contains("deadlock")
+          || lower.contains("rollback-only")
+          || lower.contains("record has changed since last read")
+          || lower.contains("could not execute statement")) {
         return true;
       }
     }

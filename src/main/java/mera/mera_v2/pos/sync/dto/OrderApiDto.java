@@ -61,7 +61,7 @@ public class OrderApiDto {
   private String subStatus;
 
   @JsonProperty("order_sources")
-  private Integer orderSources;
+  private Long orderSources;
 
   @JsonProperty("order_sources_name")
   private String orderSourcesName;

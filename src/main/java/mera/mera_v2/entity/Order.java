@@ -118,7 +118,7 @@ public class Order {
     private String shippingPostCode;
 
     @Column(name = "order_sources")
-    private Integer orderSources;
+    private Long orderSources;
 
     @Column(name = "order_sources_name", length = 255)
     private String orderSourcesName;

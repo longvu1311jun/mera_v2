@@ -52,59 +52,96 @@ public class WebhookPersistenceService {
     public PersistenceResult saveFromWebhook(JsonNode webhookData) {
         log.info("=== BẮT ĐẦU LƯU DATA TỪ WEBHOOK VÀO DB ===");
 
-        PersistenceResult result = new PersistenceResult();
+        int maxRetries = 3;
+        long waitTimeMs = 500;
 
-        try {
-            // Parse webhook data
-            PosOrderWebhook orderWebhook = objectMapper.treeToValue(webhookData, PosOrderWebhook.class);
+        for (int attempt = 1; attempt <= maxRetries; attempt++) {
+            PersistenceResult result = new PersistenceResult();
 
-            if (orderWebhook.getId() == null) {
-                log.error("Webhook không có order ID, bỏ qua lưu DB");
-                result.setSuccess(false);
-                result.setErrorMessage("Order ID is null");
+            try {
+                // Parse webhook data
+                PosOrderWebhook orderWebhook = objectMapper.treeToValue(webhookData, PosOrderWebhook.class);
+
+                if (orderWebhook.getId() == null) {
+                    log.error("Webhook không có order ID, bỏ qua lưu DB");
+                    result.setSuccess(false);
+                    result.setErrorMessage("Order ID is null");
+                    return result;
+                }
+
+                Long orderId = orderWebhook.getId();
+                log.info("Processing order ID: {} (attempt {}/{})", orderId, attempt, maxRetries);
+
+                // 1. Luu Customer
+                CustomerResult customerResult = saveCustomer(orderWebhook);
+                result.setCustomerSaved(customerResult.isSaved());
+                result.setCustomerUpdated(customerResult.isUpdated());
+
+                // 2. Luu Order
+                OrderResult orderResult = saveOrder(orderWebhook);
+                result.setOrderSaved(orderResult.isSaved());
+                result.setOrderUpdated(orderResult.isUpdated());
+
+                // 3. Luu OrderItems
+                int itemsSaved = saveOrderItems(orderWebhook, webhookData);
+                result.setItemsSaved(itemsSaved);
+
+                // 4. Luu OrderPayments (neu co)
+                int paymentsSaved = saveOrderPayments(orderWebhook, webhookData);
+                result.setPaymentsSaved(paymentsSaved);
+
+                // 5. Luu OrderStatusHistory
+                int historiesSaved = saveOrderStatusHistory(orderWebhook);
+                result.setHistoriesSaved(historiesSaved);
+
+                result.setSuccess(true);
+                log.info("=== HOÀN THÀNH LƯU DATA: Order #{} ===", orderId);
+                log.info("   Customer: saved={}, updated={}", result.isCustomerSaved(), result.isCustomerUpdated());
+                log.info("   Order: saved={}, updated={}", result.isOrderSaved(), result.isOrderUpdated());
+                log.info("   OrderItems: {}", result.getItemsSaved());
+                log.info("   Payments: {}", result.getPaymentsSaved());
+                log.info("   StatusHistories: {}", result.getHistoriesSaved());
+
                 return result;
+
+            } catch (Exception e) {
+                if (isRetryableError(e) && attempt < maxRetries) {
+                    log.warn("Retryable error on attempt {}/{}: {}. Retrying in {}ms...",
+                        attempt, maxRetries, e.getMessage(), waitTimeMs);
+                    try { Thread.sleep(waitTimeMs); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
+                    waitTimeMs *= 2;
+                } else {
+                    log.error("Lỗi khi lưu data từ webhook: {}", e.getMessage(), e);
+                    result.setSuccess(false);
+                    result.setErrorMessage(e.getMessage());
+                    return result;
+                }
             }
-
-            Long orderId = orderWebhook.getId();
-            log.info("Processing order ID: {}", orderId);
-
-            // 1. Luu Customer
-            CustomerResult customerResult = saveCustomer(orderWebhook);
-            result.setCustomerSaved(customerResult.isSaved());
-            result.setCustomerUpdated(customerResult.isUpdated());
-
-            // 2. Luu Order
-            OrderResult orderResult = saveOrder(orderWebhook);
-            result.setOrderSaved(orderResult.isSaved());
-            result.setOrderUpdated(orderResult.isUpdated());
-
-            // 3. Luu OrderItems
-            int itemsSaved = saveOrderItems(orderWebhook, webhookData);
-            result.setItemsSaved(itemsSaved);
-
-            // 4. Luu OrderPayments (neu co)
-            int paymentsSaved = saveOrderPayments(orderWebhook, webhookData);
-            result.setPaymentsSaved(paymentsSaved);
-
-            // 5. Luu OrderStatusHistory
-            int historiesSaved = saveOrderStatusHistory(orderWebhook);
-            result.setHistoriesSaved(historiesSaved);
-
-            result.setSuccess(true);
-            log.info("=== HOÀN THÀNH LƯU DATA: Order #{} ===", orderId);
-            log.info("   Customer: saved={}, updated={}", result.isCustomerSaved(), result.isCustomerUpdated());
-            log.info("   Order: saved={}, updated={}", result.isOrderSaved(), result.isOrderUpdated());
-            log.info("   OrderItems: {}", result.getItemsSaved());
-            log.info("   Payments: {}", result.getPaymentsSaved());
-            log.info("   StatusHistories: {}", result.getHistoriesSaved());
-
-        } catch (Exception e) {
-            log.error("Lỗi khi lưu data từ webhook: {}", e.getMessage(), e);
-            result.setSuccess(false);
-            result.setErrorMessage(e.getMessage());
         }
 
+        PersistenceResult result = new PersistenceResult();
+        result.setSuccess(false);
+        result.setErrorMessage("Max retries exceeded");
         return result;
+    }
+
+    private boolean isRetryableError(Throwable t) {
+        if (t == null) return false;
+        String msg = t.getMessage();
+        if (msg != null) {
+            String lower = msg.toLowerCase();
+            if (lower.contains("deadlock")
+                || lower.contains("rollback-only")
+                || lower.contains("record has changed since last read")
+                || lower.contains("could not execute statement")) {
+                return true;
+            }
+        }
+        Throwable cause = t.getCause();
+        if (cause != null && cause != t) {
+            return isRetryableError(cause);
+        }
+        return false;
     }
 
     /**

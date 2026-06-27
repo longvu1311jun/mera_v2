@@ -63,8 +63,7 @@ public class PancakeOrderResponse {
         private String billPhoneNumber;
         private String billEmail;
 
-        @JsonDeserialize(using = CustomDeserializers.FlexibleIntegerDeserializer.class)
-        private Integer orderSources;
+        private Long orderSources;
 
         private String orderSourcesName;
         private String adsSource;

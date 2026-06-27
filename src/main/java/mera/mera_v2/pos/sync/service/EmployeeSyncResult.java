@@ -10,6 +10,8 @@ public class EmployeeSyncResult {
     private int totalFromApi;
     private int insertedUsers;
     private int updatedUsers;
+    private int insertedProfiles;
+    private int updatedProfiles;
     private int insertedShopUsers;
     private int updatedShopUsers;
     private int insertedDepartments;
