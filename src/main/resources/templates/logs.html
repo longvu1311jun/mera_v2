@@ -271,13 +271,41 @@
       margin-bottom: 20px;
     }
     
+    /* Responsive */
+    @media (max-width: 1024px) {
+      .main-content {
+        margin-left: 280px;
+        padding: 32px;
+      }
+    }
+    
     @media (max-width: 768px) {
+      body {
+        padding: 12px;
+        height: auto;
+        overflow: auto;
+      }
+      
+      .container {
+        padding: 16px;
+      }
+      
+      .stats {
+        flex-direction: column;
+      }
+      
       .filters {
         flex-direction: column;
       }
       
       .filter-group {
         width: 100%;
+      }
+      
+      h1 {
+        flex-direction: column;
+        gap: 12px;
+        align-items: flex-start;
       }
     }
   </style>

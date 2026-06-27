@@ -23,7 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Auto search if phone is in URL
     const urlParams = new URLSearchParams(window.location.search);
     const phone = urlParams.get('phone');
-    if (phone) {
+    if (phone && phoneInput) {
         phoneInput.value = phone;
         doSearch();
     }
@@ -40,9 +40,15 @@ async function initConfigs() {
     }
 }
 
-async function doSearch() {
-    const phoneInput = document.getElementById('phoneInput');
-    const phone = phoneInput.value.trim().replace(/\D/g, '');
+async function doSearch(phoneOverride) {
+    let phone;
+    
+    if (phoneOverride) {
+        phone = phoneOverride;
+    } else {
+        const phoneInput = document.getElementById('phoneInput');
+        phone = phoneInput?.value?.trim()?.replace(/\D/g, '') || '';
+    }
     
     if (!phone || phone.length < 9) {
         alert('Vui lòng nhập số điện thoại hợp lệ');
@@ -99,7 +105,7 @@ function renderDashboard(data) {
             productSummaryWrap.innerHTML = productSummary.map(p => `
                 <li class="flex justify-between items-center text-sm text-slate-700 py-1 border-b border-slate-50 last:border-0">
                     <span class="font-medium">• ${p.name}</span>
-                    <span class="font-bold text-brand-600"> — ${p.quantity}</span>
+                    <span class="font-bold text-blue-600"> — ${p.quantity}</span>
                 </li>
             `).join('');
         } else {
@@ -233,7 +239,7 @@ function renderOrdersList(orders) {
     orderCountText.textContent = `${orders.length} đơn hàng`;
     if (orders.length > 0) {
         ordersWrap.innerHTML = orders.map(o => `
-            <div class="bg-white border border-slate-200 rounded-lg p-3 hover:border-brand-300 hover:shadow-md transition relative group">
+            <div class="bg-white border border-slate-200 rounded-lg p-3 hover:border-blue-300 hover:shadow-md transition relative group">
                 <div class="flex justify-between items-start mb-2">
                     <div>
                         <div class="text-[10px] font-bold text-slate-400 uppercase">#${o.orderId || o.systemId}</div>

@@ -5,184 +5,516 @@
     <link rel="icon" type="image/jpeg" href="/meraicon.ico">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - MeraGroup</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="/css/theme.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <style>
         body {
-            font-family: 'Plus Jakarta Sans', sans-serif;
-            background: #0d0d18;
-            color: #e9e6f7;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #f7f7f4;
+            color: #26251e;
             overflow-x: hidden;
         }
-        .glass-card {
-            background: rgba(30, 30, 45, 0.6);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            border-radius: 20px;
-            transition: all 0.3s ease;
+        .sidebar {
+            width: 280px;
+            background: #ffffff;
+            border-right: 1px solid #e6e5e0;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            z-index: 50;
         }
-        .glass-card:hover {
-            border-color: rgba(99, 102, 241, 0.4);
-            transform: translateY(-5px);
-            box-shadow: 0 10px 30px rgba(99, 102, 241, 0.1);
-        }
-        .sidebar-item {
+        .sidebar-logo-icon {
+            width: 40px;
+            height: 40px;
+            background: #1456f0;
+            border-radius: 8px;
             display: flex;
             align-items: center;
-            padding: 12px 16px;
-            border-radius: 12px;
-            color: #aba9b9;
-            transition: all 0.2s;
-        }
-        .sidebar-item:hover {
-            background: rgba(99, 102, 241, 0.1);
-            color: #9396ff;
-        }
-        .sidebar-item.active {
-            background: linear-gradient(135deg, #6366F1 0%, #A855F7 100%);
+            justify-content: center;
+            font-weight: 700;
+            font-size: 18px;
             color: white;
-            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
         }
-        .gradient-text {
-            background: linear-gradient(135deg, #a3a6ff 0%, #c180ff 100%);
-            -webkit-background-clip: text;
-            background-clip: text;
-            -webkit-text-fill-color: transparent;
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            border-radius: 8px;
+            color: #5a5852;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            margin-bottom: 2px;
+            border: 1px solid transparent;
         }
-        .btn-lark {
-            background: linear-gradient(135deg, #6366F1 0%, #A855F7 100%);
-            transition: transform 0.2s, box-shadow 0.2s;
+        .nav-item:hover {
+            background: #fafaf7;
+            color: #26251e;
+            border-color: #e6e5e0;
         }
-        .btn-lark:hover {
-            transform: scale(1.02);
-            box-shadow: 0 0 20px rgba(99, 102, 241, 0.5);
+        .nav-item.active {
+            background: #1456f0;
+            color: white;
+            border-color: #1456f0;
+        }
+        .nav-item.active:hover {
+            background: #0d47a1;
+            border-color: #0d47a1;
+        }
+        .nav-section-title {
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.88px;
+            color: #807d72;
+            padding: 0 12px;
+            margin-bottom: 8px;
+            margin-top: 16px;
+        }
+        .glass-card {
+            background: #ffffff;
+            border: 1px solid #e6e5e0;
+            border-radius: 12px;
+            transition: all 0.2s ease;
+        }
+        .glass-card:hover {
+            border-color: #cfcdc4;
+        }
+        .btn-primary {
+            background: #1456f0;
+            color: white;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+        }
+        .btn-primary:hover {
+            background: #0d47a1;
+        }
+        .btn-secondary {
+            background: #ffffff;
+            color: #26251e;
+            border: 1px solid #cfcdc4;
+            padding: 10px 18px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+        }
+        .btn-secondary:hover {
+            background: #e6e5e0;
+        }
+        .btn-danger {
+            background: rgba(207, 45, 86, 0.08);
+            color: #cf2d56;
+            border: 1px solid rgba(207, 45, 86, 0.2);
+            padding: 10px 18px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+        }
+        .btn-danger:hover {
+            background: rgba(207, 45, 86, 0.15);
+        }
+        .feature-group { margin-bottom: 2rem; }
+        .feature-group-title {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.88px;
+            color: #807d72;
+            margin-bottom: 0.75rem;
+            padding-left: 4px;
+            border-left: 3px solid #1456f0;
+            padding-left: 10px;
+        }
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 12px;
+        }
+        .feature-card {
+            background: #ffffff;
+            border: 1px solid #e6e5e0;
+            border-radius: 12px;
+            padding: 16px 18px;
+            transition: all 0.2s ease;
+            cursor: default;
+            position: relative;
+            overflow: hidden;
+        }
+        .feature-card:hover {
+            border-color: #cfcdc4;
+        }
+        .feature-card a.card-link {
+            position: absolute;
+            inset: 0;
+            z-index: 0;
+            border-radius: 12px;
+        }
+        .feature-card .card-content { position: relative; z-index: 1; }
+        .route-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 10px;
+            font-weight: 600;
+            padding: 3px 8px;
+            border-radius: 9999px;
+            font-family: 'JetBrains Mono', monospace;
+            letter-spacing: 0.03em;
+        }
+        .badge-get { background: rgba(31, 138, 101, 0.08); color: #1f8a65; border: 1px solid rgba(31, 138, 101, 0.15); }
+        .badge-post { background: rgba(180, 83, 9, 0.08); color: #b45309; border: 1px solid rgba(180, 83, 9, 0.15); }
+        .badge-page { background: rgba(20, 86, 240, 0.08); color: #1456f0; border: 1px solid rgba(20, 86, 240, 0.15); }
+        .badge-api { background: rgba(192, 168, 221, 0.2); color: #8b5fa8; border: 1px solid rgba(192, 168, 221, 0.3); }
+        .path-text {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            color: #5a5852;
+            word-break: break-all;
+            margin-top: 4px;
+        }
+        .copy-btn {
+            position: absolute;
+            top: 10px; right: 10px;
+            background: rgba(20, 86, 240, 0.08);
+            border: 1px solid rgba(20, 86, 240, 0.15);
+            border-radius: 6px;
+            padding: 3px 8px;
+            font-size: 10px;
+            font-weight: 500;
+            color: #1456f0;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.2s;
+            z-index: 2;
+        }
+        .feature-card:hover .copy-btn { opacity: 1; }
+        .copy-btn:hover { background: rgba(20, 86, 240, 0.15); }
+        .stats-value {
+            font-size: 32px;
+            font-weight: 600;
+            color: #26251e;
+            letter-spacing: -0.5px;
+        }
+        .text-muted {
+            color: #807d72;
+        }
+        .section-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #26251e;
+        }
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            background: #26251e;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 14px;
+            color: #f7f7f4;
+        }
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: #e6e5e0;
+            border-radius: 8px;
+            margin-bottom: 12px;
+        }
+        .user-name {
+            font-size: 14px;
+            font-weight: 600;
+            color: #26251e;
+        }
+        .user-meta {
+            font-size: 11px;
+            color: #807d72;
+        }
+        .quick-link {
+            display: block;
+            padding: 12px 16px;
+            background: #fafaf7;
+            border: 1px solid #e6e5e0;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            color: #5a5852;
+            text-decoration: none;
+            transition: all 0.2s ease;
+            margin-bottom: 8px;
+        }
+        .quick-link:hover {
+            background: #e6e5e0;
+            color: #26251e;
+            border-color: #cfcdc4;
+        }
+        .badge-pill {
+            display: inline-flex;
+            align-items: center;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 4px 10px;
+            border-radius: 9999px;
+            background: #e6e5e0;
+            color: #26251e;
+        }
+        @media (max-width: 1024px) {
+            .main-content {
+                margin-left: 0 !important;
+                padding: 24px !important;
+            }
+            
+            footer {
+                left: 0 !important;
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr) !important;
+            }
+            
+            .grid-3 {
+                grid-template-columns: 1fr !important;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+                width: 280px;
+                position: fixed;
+                top: 0;
+                left: 0;
+                height: 100vh;
+                z-index: 100;
+                transition: transform 0.3s ease;
+            }
+            .sidebar.open {
+                transform: translateX(0);
+            }
+            .sidebar-overlay {
+                display: none;
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0,0,0,0.5);
+                z-index: 99;
+            }
+            .sidebar-overlay.show {
+                display: block;
+            }
+            .mobile-menu-btn {
+                display: flex !important;
+            }
+            .main-content {
+                margin-left: 0 !important;
+                padding: 16px !important;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr !important;
+            }
+            
+            .feature-grid {
+                grid-template-columns: 1fr !important;
+            }
+            
+            /* Reduce font sizes on mobile */
+            .main-header h1 {
+                font-size: 20px !important;
+                padding-left: 50px;
+            }
+            .section-title {
+                font-size: 16px !important;
+            }
+            .stats-value {
+                font-size: 24px !important;
+            }
+            .glass-card {
+                padding: 16px !important;
+            }
+            .feature-card {
+                padding: 12px !important;
+            }
+            .feature-card h4, .quick-link {
+                font-size: 13px !important;
+            }
+            footer {
+                left: 0 !important;
+                padding: 12px 16px !important;
+                font-size: 10px !important;
+            }
+            .grid-3 {
+                padding-left: 0 !important;
+            }
         }
     </style>
 </head>
 <body class="min-h-screen flex">
 
+    <!-- Sidebar Overlay for mobile -->
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+    <!-- Mobile Menu Button -->
+    <button class="mobile-menu-btn" onclick="toggleSidebar()" style="display: none; position: fixed; top: 12px; left: 12px; z-index: 101; background: white; border: 1px solid #e6e5e0; border-radius: 8px; padding: 10px; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+    </button>
+
     <!-- Sidebar -->
-    <aside class="w-72 bg-[#13131F] border-r border-[#242434] p-6 flex flex-col fixed h-full h-screen">
-        <div class="mb-10 flex items-center gap-3">
-            <div class="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center font-bold text-xl">M</div>
-            <span class="text-xl font-extrabold tracking-tight">Mera<span class="gradient-text">Group</span></span>
+    <aside class="sidebar">
+        <div class="sidebar-header" style="padding: 24px 20px; border-bottom: 1px solid #e6e5e0;">
+            <div class="sidebar-logo" style="display: flex; align-items: center; gap: 12px; text-decoration: none;">
+                <div class="sidebar-logo-icon">M</div>
+                <span style="font-size: 20px; font-weight: 700; color: #26251e;">Mera<span style="color: #1456f0;">Group</span></span>
+            </div>
         </div>
 
-        <nav class="flex-1 space-y-2 overflow-y-auto">
-            <div class="text-[10px] uppercase font-bold text-slate-500 mb-2 px-1">Menu Chính</div>
+        <nav style="flex: 1; padding: 16px 12px; overflow-y: auto;">
+            <div class="nav-section-title">Menu Chính</div>
             
-            <a href="/" class="sidebar-item active">
-                <span class="mr-3">🏠</span> Dashboard
+            <a href="/" class="nav-item active">
+                <span>🏠</span> Dashboard
             </a>
             
-            <a href="/saleReport" class="sidebar-item">
-                <span class="mr-3">📊</span> Sale Report 1
+            <a href="/saleReport" class="nav-item">
+                <span>📊</span> Sale Report 1
             </a>
             
-            <a href="/stats" class="sidebar-item">
-                <span class="mr-3">📈</span> Stats Lịch Hẹn
+            <a href="/stats" class="nav-item">
+                <span>📈</span> Stats Lịch Hẹn
             </a>
 
-            <div class="pt-4 text-[10px] uppercase font-bold text-slate-500 mb-2 px-1">Tra cứu & POS</div>
+            <div class="nav-section-title">Tra cứu & POS</div>
             
-            <a href="/dongbo" class="sidebar-item">
-                <span class="mr-3">🔄</span> Đồng Bộ
-            </a>
-            
-            <a href="/search-info" class="sidebar-item">
-                <span class="mr-3">🔎</span> Tìm Khách Hàng
+            <a href="/dongbo" class="nav-item">
+                <span>🔄</span> Đồng Bộ
             </a>
             
-            <a href="/searchInfo" class="sidebar-item">
-                <span class="mr-3">🕵️</span> Tra Cứu Của SALE
-            </a>
-
-            <a href="/pancake-orders" class="sidebar-item">
-                <span class="mr-3">📦</span> Danh Sách Đơn POS
-            </a>
-
-            <div class="pt-4 text-[10px] uppercase font-bold text-slate-500 mb-2 px-1">Hệ Thống</div>
-            
-            <a href="/config" class="sidebar-item">
-                <span class="mr-3">⚙️</span> Cấu Hình Webhook
+            <a href="/search-info" class="nav-item">
+                <span>🔎</span> Tìm Khách Hàng
             </a>
             
-            <a href="/lark/token" class="sidebar-item">
-                <span class="mr-3">🔑</span> Token & Base
+            <a href="/searchInfo" class="nav-item">
+                <span>🕵️</span> Tra Cứu Của SALE
             </a>
 
-            <a href="/admin/pos-users-baselark" class="sidebar-item">
-                <span class="mr-3">🔗</span> Mapping BaseLark
+            <a href="/pancake-orders" class="nav-item">
+                <span>📦</span> Danh Sách Đơn POS
             </a>
 
-            <a href="/logs" class="sidebar-item">
-                <span class="mr-3">📝</span> Logs Realtime
+            <div class="nav-section-title">Hệ Thống</div>
+            
+            <a href="/config" class="nav-item">
+                <span>⚙️</span> Cấu Hình Webhook
+            </a>
+            
+            <a href="/lark/token" class="nav-item">
+                <span>🔑</span> Token & Base
             </a>
 
-            <a href="/test-api.html" class="sidebar-item">
-                <span class="mr-3">🧪</span> Công cụ Sync
+            <a href="/admin/pos-users-baselark" class="nav-item">
+                <span>🔗</span> Mapping BaseLark
+            </a>
+
+            <a href="/logs" class="nav-item">
+                <span>📝</span> Logs Realtime
+            </a>
+
+            <a href="/test-api.html" class="nav-item">
+                <span>🧪</span> Công cụ Sync
             </a>
         </nav>
 
-        <div class="mt-auto pt-6 border-t border-[#242434]" th:if="${isAuthenticated}">
-            <div class="flex items-center gap-3 mb-4">
-                <div class="w-10 h-10 bg-slate-700 rounded-full flex items-center justify-center text-sm font-bold">AD</div>
-                <div class="flex-1 min-w-0">
-                    <p class="text-sm font-semibold truncate" th:text="${userName ?: 'Admin User'}"></p>
-                    <p class="text-[10px] text-slate-500" th:text="'Hết hạn: ' + ${#strings.substring(tokenExpiresAt, 11, 16)}"></p>
+        <div style="padding: 16px; border-top: 1px solid #e6e5e0;" th:if="${isAuthenticated}">
+            <div class="user-info">
+                <div class="user-avatar">AD</div>
+                <div>
+                    <p class="user-name" th:text="${userName ?: 'Admin User'}">Admin User</p>
+                    <p class="user-meta" th:text="'Hết hạn: ' + ${#strings.substring(tokenExpiresAt, 11, 16)}">Hết hạn: --:--</p>
                 </div>
             </div>
             <a href="/lark/logout" id="sidebar-logout-btn"
                onclick="return confirm('Bạn có chắc muốn đăng xuất không?')"
-               class="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-xs font-bold text-red-400 border border-red-500/30 bg-red-500/10 hover:bg-red-500/20 hover:border-red-400/50 transition-all duration-200">
+               class="btn-danger" style="width: 100%; justify-content: center;">
                 <span>🚪</span> Đăng Xuất
             </a>
         </div>
     </aside>
 
     <!-- Main Content -->
-    <main class="flex-1 ml-72 p-10">
+    <main class="main-content" style="margin-left: 280px; padding: 48px; min-height: 100vh;">
         
-        <!-- Header / Top Bar -->
-        <header class="flex justify-between items-center mb-12">
+        <!-- Header -->
+        <header class="main-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 48px; padding-bottom: 32px; border-bottom: 1px solid #e6e5e0;">
             <div>
-                <h1 class="text-3xl font-extrabold" th:text="${isAuthenticated ? 'Chào mừng quay trở lại!' : 'Hệ Thống MeraGroup'}"></h1>
-                <p class="text-slate-500 mt-1" th:text="${isAuthenticated ? 'Bức tranh tổng thể về hiệu suất bán hàng của bạn.' : 'Vui lòng đăng nhập để truy cập các tính năng.'}"></p>
+                <h1 style="font-size: 28px; font-weight: 600; color: #26251e; letter-spacing: -0.5px; margin-bottom: 4px;" th:text="${isAuthenticated ? 'Chào mừng quay trở lại!' : 'Hệ Thống MeraGroup'}"></h1>
+                <p class="text-muted" style="font-size: 14px;" th:text="${isAuthenticated ? 'Bức tranh tổng thể về hiệu suất bán hàng của bạn.' : 'Vui lòng đăng nhập để truy cập các tính năng.'}"></p>
             </div>
             
-            <div class="flex items-center gap-4" th:if="${!isAuthenticated}">
-                <a th:href="${authUrl}" class="btn-lark px-6 py-3 rounded-full font-bold text-sm flex items-center gap-2">
-                    <span>🚀 Đăng nhập với Lark</span>
+            <div style="display: flex; align-items: center; gap: 16px;" th:if="${!isAuthenticated}">
+                <a th:href="${authUrl}" class="btn-primary" style="padding: 12px 24px; height: 44px;">
+                    <span>🚀</span> Đăng nhập với Lark
                 </a>
             </div>
             
-            <div class="flex items-center gap-4" th:if="${isAuthenticated}">
-                <div class="relative">
-                    <span class="absolute -top-1 -right-1 w-3 h-3 bg-red-500 border-2 border-[#0d0d18] rounded-full"></span>
-                    <span class="text-xl">🔔</span>
-                </div>
-                <a href="/config" class="px-5 py-2 glass-card text-sm font-bold border-none hover:bg-white hover:text-black">
+            <div style="display: flex; align-items: center; gap: 16px;" th:if="${isAuthenticated}">
+                <a href="/config" class="btn-secondary">
                     Tải Báo Cáo
                 </a>
                 <a href="/lark/logout" id="header-logout-btn"
                    onclick="return confirm('Bạn có chắc muốn đăng xuất không?')"
-                   class="flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold text-red-400 border border-red-500/30 bg-red-500/10 hover:bg-red-500/20 hover:border-red-400/60 transition-all duration-200">
+                   class="btn-danger">
                     <span>🚪</span> Đăng Xuất
                 </a>
             </div>
         </header>
 
         <!-- Unauthenticated View -->
-        <div th:if="${!isAuthenticated}" class="flex flex-col items-center justify-center py-20 text-center">
-            <div class="w-32 h-32 bg-indigo-500/10 rounded-full flex items-center justify-center mb-8 animate-pulse">
-                <span class="text-6xl">🔒</span>
+        <div th:if="${!isAuthenticated}" style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 80px 0; text-align: center;">
+            <div style="width: 120px; height: 120px; background: rgba(20, 86, 240, 0.08); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 32px;">
+                <span style="font-size: 48px;">🔒</span>
             </div>
-            <h2 class="text-2xl font-bold mb-4">Bạn chưa đăng nhập</h2>
-            <p class="text-slate-400 max-w-md mb-8">
+            <h2 style="font-size: 24px; font-weight: 600; margin-bottom: 16px;">Bạn chưa đăng nhập</h2>
+            <p class="text-muted" style="max-width: 400px; margin-bottom: 32px; font-size: 14px;">
                 Hệ thống báo cáo và quản lý tệp khách hàng yêu cầu quyền truy cập từ tài khoản Lark nội bộ.
             </p>
-            <a th:href="${authUrl}" class="btn-lark px-10 py-4 rounded-full font-bold text-lg shadow-xl">
-                Authorize with Lark Suite
+            <a th:href="${authUrl}" class="btn-primary" style="padding: 14px 32px; height: 48px; font-size: 16px;">
+                Đăng nhập với Lark
             </a>
         </div>
 
@@ -190,136 +522,46 @@
         <div th:if="${isAuthenticated}">
             
             <!-- Hero / Overview Stats -->
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
-                <div class="glass-card p-6">
-                    <p class="text-slate-500 text-xs font-bold uppercase tracking-wider mb-2">Trạng thái Token</p>
-                    <div class="flex items-end justify-between">
-                        <span class="text-2xl font-bold text-green-400">Hoạt động</span>
-                        <span class="text-xs text-slate-500" th:text="${tokenExpiresAt}">-</span>
+            <div class="stats-grid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 48px;">
+                <div class="glass-card" style="padding: 24px;">
+                    <p class="text-muted" style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.88px; margin-bottom: 8px;">Trạng thái Token</p>
+                    <div style="display: flex; align-items: flex-end; justify-content: space-between;">
+                        <span class="stats-value" style="color: #1f8a65;">Hoạt động</span>
+                    </div>
+                    <p class="text-muted" style="font-size: 12px; margin-top: 8px;" th:text="${tokenExpiresAt}">-</p>
+                </div>
+                <div class="glass-card" style="padding: 24px; border-left: 3px solid #1456f0;">
+                    <p class="text-muted" style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.88px; margin-bottom: 8px;">Modules Sẵn Sàng</p>
+                    <div style="display: flex; align-items: flex-end; justify-content: space-between;">
+                        <span class="stats-value">12</span>
+                        <span style="font-size: 12px; font-weight: 600; color: #1f8a65;">↑ 100%</span>
                     </div>
                 </div>
-                <div class="glass-card p-6 border-l-4 border-indigo-500">
-                    <p class="text-slate-500 text-xs font-bold uppercase tracking-wider mb-2">Modules Sẵn Sàng</p>
-                    <div class="flex items-end justify-between">
-                        <span class="text-2xl font-bold">12</span>
-                        <span class="text-xs text-green-500">↑ 100%</span>
+                <div class="glass-card" style="padding: 24px;">
+                    <p class="text-muted" style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.88px; margin-bottom: 8px;">Đơn hàng mới (Today)</p>
+                    <div style="display: flex; align-items: flex-end; justify-content: space-between;">
+                        <span class="stats-value">156</span>
+                        <span style="font-size: 12px; font-weight: 600; color: #1f8a65;">↑ 12%</span>
                     </div>
                 </div>
-                <!-- Mock stats for visual effect -->
-                <div class="glass-card p-6">
-                    <p class="text-slate-500 text-xs font-bold uppercase tracking-wider mb-2">Đơn hàng mới (Today)</p>
-                    <div class="flex items-end justify-between">
-                        <span class="text-2xl font-bold">156</span>
-                        <span class="text-xs text-green-500">↑ 12%</span>
-                    </div>
-                </div>
-                <div class="glass-card p-6">
-                    <p class="text-slate-500 text-xs font-bold uppercase tracking-wider mb-2">Tỉ lệ chốt</p>
-                    <div class="flex items-end justify-between">
-                        <span class="text-2xl font-bold">24.5%</span>
-                        <span class="text-xs text-red-500">↓ 2%</span>
+                <div class="glass-card" style="padding: 24px;">
+                    <p class="text-muted" style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.88px; margin-bottom: 8px;">Tỉ lệ chốt</p>
+                    <div style="display: flex; align-items: flex-end; justify-content: space-between;">
+                        <span class="stats-value">24.5%</span>
+                        <span style="font-size: 12px; font-weight: 600; color: #cf2d56;">↓ 2%</span>
                     </div>
                 </div>
             </div>
 
             <!-- ========== FEATURE MAP SECTION ========== -->
-            <div class="mb-10">
-                <div class="flex items-center justify-between mb-6">
+            <div style="margin-bottom: 48px;">
+                <div class="section-header" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px;">
                     <div>
-                        <h2 class="text-xl font-extrabold">🗺️ Chức Năng & Đường Dẫn Hệ Thống</h2>
-                        <p class="text-slate-500 text-xs mt-1">Toàn bộ các tính năng và API endpoints trong dự án MeraGroup v2</p>
+                        <h2 class="section-title">🗺️ Chức Năng & Đường Dẫn Hệ Thống</h2>
+                        <p class="text-muted" style="font-size: 13px; margin-top: 4px;">Toàn bộ các tính năng và API endpoints trong dự án MeraGroup v2</p>
                     </div>
-                    <span class="text-[11px] bg-indigo-600/20 text-indigo-300 border border-indigo-500/30 px-3 py-1 rounded-full font-semibold">v2.0</span>
+                    <span class="badge-pill">v2.0</span>
                 </div>
-
-                <style>
-                    .feature-group { margin-bottom: 2rem; }
-                    .feature-group-title {
-                        font-size: 11px;
-                        font-weight: 700;
-                        text-transform: uppercase;
-                        letter-spacing: 0.08em;
-                        color: #64748b;
-                        margin-bottom: 0.75rem;
-                        padding-left: 4px;
-                        border-left: 3px solid #6366f1;
-                        padding-left: 10px;
-                    }
-                    .feature-grid {
-                        display: grid;
-                        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-                        gap: 12px;
-                    }
-                    .feature-card {
-                        background: rgba(30, 30, 45, 0.5);
-                        border: 1px solid rgba(255,255,255,0.05);
-                        border-radius: 14px;
-                        padding: 16px 18px;
-                        transition: all 0.25s ease;
-                        cursor: default;
-                        position: relative;
-                        overflow: hidden;
-                    }
-                    .feature-card::before {
-                        content: '';
-                        position: absolute;
-                        inset: 0;
-                        background: linear-gradient(135deg, rgba(99,102,241,0.06) 0%, transparent 60%);
-                        opacity: 0;
-                        transition: opacity 0.25s;
-                        border-radius: 14px;
-                    }
-                    .feature-card:hover {
-                        border-color: rgba(99,102,241,0.35);
-                        transform: translateY(-3px);
-                        box-shadow: 0 8px 24px rgba(99,102,241,0.12);
-                    }
-                    .feature-card:hover::before { opacity: 1; }
-                    .feature-card a.card-link {
-                        position: absolute;
-                        inset: 0; z-index: 0;
-                        border-radius: 14px;
-                    }
-                    .feature-card .card-content { position: relative; z-index: 1; }
-                    .route-badge {
-                        display: inline-flex;
-                        align-items: center;
-                        gap: 5px;
-                        font-size: 10px;
-                        font-weight: 700;
-                        padding: 2px 8px;
-                        border-radius: 6px;
-                        font-family: monospace;
-                        letter-spacing: 0.03em;
-                    }
-                    .badge-get { background: rgba(34,197,94,0.15); color: #4ade80; border: 1px solid rgba(34,197,94,0.25); }
-                    .badge-post { background: rgba(251,191,36,0.15); color: #fbbf24; border: 1px solid rgba(251,191,36,0.25); }
-                    .badge-page { background: rgba(99,102,241,0.15); color: #a3a6ff; border: 1px solid rgba(99,102,241,0.3); }
-                    .badge-api { background: rgba(168,85,247,0.15); color: #c084fc; border: 1px solid rgba(168,85,247,0.25); }
-                    .path-text {
-                        font-family: 'Courier New', monospace;
-                        font-size: 12px;
-                        color: #c7d0e8;
-                        word-break: break-all;
-                        margin-top: 4px;
-                    }
-                    .copy-btn {
-                        position: absolute;
-                        top: 10px; right: 10px;
-                        background: rgba(99,102,241,0.15);
-                        border: 1px solid rgba(99,102,241,0.2);
-                        border-radius: 7px;
-                        padding: 3px 8px;
-                        font-size: 10px;
-                        color: #a3a6ff;
-                        cursor: pointer;
-                        opacity: 0;
-                        transition: opacity 0.2s;
-                        z-index: 2;
-                    }
-                    .feature-card:hover .copy-btn { opacity: 1; }
-                    .copy-btn:hover { background: rgba(99,102,241,0.3); }
-                </style>
 
                 <!-- GROUP 1: MENU CHÍNH -->
                 <div class="feature-group">
@@ -329,13 +571,13 @@
                             <a href="/" class="card-link"></a>
                             <button class="copy-btn" onclick="copyPath(event,'/')">copy</button>
                             <div class="card-content">
-                                <div class="flex items-center gap-2 mb-2">
-                                    <span class="text-xl">🏠</span>
-                                    <span class="font-bold text-sm">Dashboard / Trang Chủ</span>
+                                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                                    <span style="font-size: 20px;">🏠</span>
+                                    <span style="font-weight: 600; font-size: 14px;">Dashboard / Trang Chủ</span>
                                     <span class="route-badge badge-page">PAGE</span>
                                 </div>
                                 <div class="path-text">GET /</div>
-                                <p class="text-[11px] text-slate-500 mt-2">Trang chính. Nếu chưa đăng nhập → login Lark OAuth. Nếu đã đăng nhập → dashboard tổng quan.</p>
+                                <p style="font-size: 11px; color: #807d72; margin-top: 8px;">Trang chính. Nếu chưa đăng nhập → login Lark OAuth. Nếu đã đăng nhập → dashboard tổng quan.</p>
                             </div>
                         </div>
 
@@ -343,13 +585,13 @@
                             <a href="/saleReport" class="card-link"></a>
                             <button class="copy-btn" onclick="copyPath(event,'/saleReport')">copy</button>
                             <div class="card-content">
-                                <div class="flex items-center gap-2 mb-2">
-                                    <span class="text-xl">📊</span>
-                                    <span class="font-bold text-sm">Báo Cáo Sale 1</span>
+                                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                                    <span style="font-size: 20px;">📊</span>
+                                    <span style="font-weight: 600; font-size: 14px;">Báo Cáo Sale 1</span>
                                     <span class="route-badge badge-page">PAGE</span>
                                 </div>
                                 <div class="path-text">GET /saleReport</div>
-                                <p class="text-[11px] text-slate-500 mt-2">Thống kê tin nhắn, đơn chốt, tỉ lệ hủy của từng tư vấn viên. Hỗ trợ export Excel.</p>
+                                <p style="font-size: 11px; color: #807d72; margin-top: 8px;">Thống kê tin nhắn, đơn chốt, tỉ lệ hủy của từng tư vấn viên. Hỗ trợ export Excel.</p>
                             </div>
                         </div>
 
@@ -357,13 +599,13 @@
                             <a href="/stats" class="card-link"></a>
                             <button class="copy-btn" onclick="copyPath(event,'/stats')">copy</button>
                             <div class="card-content">
-                                <div class="flex items-center gap-2 mb-2">
-                                    <span class="text-xl">📈</span>
-                                    <span class="font-bold text-sm">Thống Kê Lịch Hẹn</span>
+                                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                                    <span style="font-size: 20px;">📈</span>
+                                    <span style="font-weight: 600; font-size: 14px;">Thống Kê Lịch Hẹn</span>
                                     <span class="route-badge badge-page">PAGE</span>
                                 </div>
                                 <div class="path-text">GET /stats</div>
-                                <p class="text-[11px] text-slate-500 mt-2">KPI lịch hẹn CSKH: tổng khách, tổng lịch, hoàn thành, muộn/quá hạn.</p>
+                                <p style="font-size: 11px; color: #807d72; margin-top: 8px;">KPI lịch hẹn CSKH: tổng khách, tổng lịch, hoàn thành, muộn/quá hạn.</p>
                             </div>
                         </div>
 
@@ -371,13 +613,13 @@
                             <a href="/logs" class="card-link"></a>
                             <button class="copy-btn" onclick="copyPath(event,'/logs')">copy</button>
                             <div class="card-content">
-                                <div class="flex items-center gap-2 mb-2">
-                                    <span class="text-xl">📝</span>
-                                    <span class="font-bold text-sm">Logs Realtime</span>
+                                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                                    <span style="font-size: 20px;">📝</span>
+                                    <span style="font-weight: 600; font-size: 14px;">Logs Realtime</span>
                                     <span class="route-badge badge-page">PAGE</span>
                                 </div>
                                 <div class="path-text">GET /logs</div>
-                                <p class="text-[11px] text-slate-500 mt-2">Xem log hệ thống realtime — webhook events, sync jobs, token refresh.</p>
+                                <p style="font-size: 11px; color: #807d72; margin-top: 8px;">Xem log hệ thống realtime — webhook events, sync jobs, token refresh.</p>
                             </div>
                         </div>
 
@@ -385,13 +627,13 @@
                             <a href="/report" class="card-link"></a>
                             <button class="copy-btn" onclick="copyPath(event,'/report')">copy</button>
                             <div class="card-content">
-                                <div class="flex items-center gap-2 mb-2">
-                                    <span class="text-xl">📋</span>
-                                    <span class="font-bold text-sm">Report (Legacy)</span>
+                                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                                    <span style="font-size: 20px;">📋</span>
+                                    <span style="font-weight: 600; font-size: 14px;">Report (Legacy)</span>
                                     <span class="route-badge badge-page">PAGE</span>
                                 </div>
                                 <div class="path-text">GET /report</div>
-                                <p class="text-[11px] text-slate-500 mt-2">Báo cáo cũ lấy từ Lark Bitable — tóm tắt Sales Summary theo bảng.</p>
+                                <p style="font-size: 11px; color: #807d72; margin-top: 8px;">Báo cáo cũ lấy từ Lark Bitable — tóm tắt Sales Summary theo bảng.</p>
                             </div>
                         </div>
                     </div>
@@ -405,13 +647,13 @@
                             <a href="/search-info" class="card-link"></a>
                             <button class="copy-btn" onclick="copyPath(event,'/search-info')">copy</button>
                             <div class="card-content">
-                                <div class="flex items-center gap-2 mb-2">
-                                    <span class="text-xl">🔎</span>
-                                    <span class="font-bold text-sm">Tìm Khách Hàng 360°</span>
+                                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                                    <span style="font-size: 20px;">🔎</span>
+                                    <span style="font-weight: 600; font-size: 14px;">Tìm Khách Hàng 360°</span>
                                     <span class="route-badge badge-page">PAGE</span>
                                 </div>
                                 <div class="path-text">GET /search-info</div>
-                                <p class="text-[11px] text-slate-500 mt-2">Tra cứu khách hàng theo SĐT từ Pancake POS + Lark Bitable. Hiển thị đơn hàng, ghi chú, lịch hẹn.</p>
+                                <p style="font-size: 11px; color: #807d72; margin-top: 8px;">Tra cứu khách hàng theo SĐT từ Pancake POS + Lark Bitable.</p>
                             </div>
                         </div>
 
@@ -419,27 +661,13 @@
                             <a href="/searchInfo" class="card-link"></a>
                             <button class="copy-btn" onclick="copyPath(event,'/searchInfo')">copy</button>
                             <div class="card-content">
-                                <div class="flex items-center gap-2 mb-2">
-                                    <span class="text-xl">🕵️</span>
-                                    <span class="font-bold text-sm">Tra Cứu Của SALE</span>
+                                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                                    <span style="font-size: 20px;">🕵️</span>
+                                    <span style="font-weight: 600; font-size: 14px;">Tra Cứu Của SALE</span>
                                     <span class="route-badge badge-page">PAGE</span>
                                 </div>
                                 <div class="path-text">GET /searchInfo</div>
-                                <p class="text-[11px] text-slate-500 mt-2">Giao diện tra cứu dành riêng cho Sale — tìm thông tin khách từ Bitable.</p>
-                            </div>
-                        </div>
-
-                        <div class="feature-card">
-                            <a href="/tra_cuu_khach_hang" class="card-link"></a>
-                            <button class="copy-btn" onclick="copyPath(event,'/tra_cuu_khach_hang')">copy</button>
-                            <div class="card-content">
-                                <div class="flex items-center gap-2 mb-2">
-                                    <span class="text-xl">🔍</span>
-                                    <span class="font-bold text-sm">Tra Cứu Khách Hàng (v1)</span>
-                                    <span class="route-badge badge-page">PAGE</span>
-                                </div>
-                                <div class="path-text">GET /tra_cuu_khach_hang</div>
-                                <p class="text-[11px] text-slate-500 mt-2">Tìm kiếm khách hàng song song trên nhiều Base Lark theo SĐT.</p>
+                                <p style="font-size: 11px; color: #807d72; margin-top: 8px;">Giao diện tra cứu dành riêng cho Sale — tìm thông tin khách từ Bitable.</p>
                             </div>
                         </div>
 
@@ -447,13 +675,13 @@
                             <a href="/pancake-orders" class="card-link"></a>
                             <button class="copy-btn" onclick="copyPath(event,'/pancake-orders')">copy</button>
                             <div class="card-content">
-                                <div class="flex items-center gap-2 mb-2">
-                                    <span class="text-xl">📦</span>
-                                    <span class="font-bold text-sm">Danh Sách Đơn POS</span>
+                                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                                    <span style="font-size: 20px;">📦</span>
+                                    <span style="font-weight: 600; font-size: 14px;">Danh Sách Đơn POS</span>
                                     <span class="route-badge badge-page">PAGE</span>
                                 </div>
                                 <div class="path-text">GET /pancake-orders</div>
-                                <p class="text-[11px] text-slate-500 mt-2">Xem danh sách đơn hàng từ Pancake POS đã đồng bộ vào DB nội bộ.</p>
+                                <p style="font-size: 11px; color: #807d72; margin-top: 8px;">Xem danh sách đơn hàng từ Pancake POS đã đồng bộ vào DB nội bộ.</p>
                             </div>
                         </div>
 
@@ -461,27 +689,13 @@
                             <a href="/dongbo" class="card-link"></a>
                             <button class="copy-btn" onclick="copyPath(event,'/dongbo')">copy</button>
                             <div class="card-content">
-                                <div class="flex items-center gap-2 mb-2">
-                                    <span class="text-xl">🔄</span>
-                                    <span class="font-bold text-sm">Đồng Bộ Dữ Liệu</span>
+                                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                                    <span style="font-size: 20px;">🔄</span>
+                                    <span style="font-weight: 600; font-size: 14px;">Đồng Bộ Dữ Liệu</span>
                                     <span class="route-badge badge-page">PAGE</span>
                                 </div>
                                 <div class="path-text">GET /dongbo</div>
-                                <p class="text-[11px] text-slate-500 mt-2">Trang quản lý đồng bộ: đơn hàng, sản phẩm, khách hàng, nhân viên từ POS/Lark.</p>
-                            </div>
-                        </div>
-
-                        <div class="feature-card">
-                            <a href="/test-api.html" class="card-link"></a>
-                            <button class="copy-btn" onclick="copyPath(event,'/test-api.html')">copy</button>
-                            <div class="card-content">
-                                <div class="flex items-center gap-2 mb-2">
-                                    <span class="text-xl">🧪</span>
-                                    <span class="font-bold text-sm">Công Cụ Sync POS</span>
-                                    <span class="route-badge badge-page">PAGE</span>
-                                </div>
-                                <div class="path-text">GET /test-api.html</div>
-                                <p class="text-[11px] text-slate-500 mt-2">UI để force sync đơn hàng từ Pancake POS vào DB theo khoảng thời gian tùy chọn.</p>
+                                <p style="font-size: 11px; color: #807d72; margin-top: 8px;">Trang quản lý đồng bộ: đơn hàng, sản phẩm, khách hàng, nhân viên từ POS/Lark.</p>
                             </div>
                         </div>
                     </div>
@@ -495,13 +709,13 @@
                             <a href="/config" class="card-link"></a>
                             <button class="copy-btn" onclick="copyPath(event,'/config')">copy</button>
                             <div class="card-content">
-                                <div class="flex items-center gap-2 mb-2">
-                                    <span class="text-xl">⚙️</span>
-                                    <span class="font-bold text-sm">Cấu Hình Webhook</span>
+                                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                                    <span style="font-size: 20px;">⚙️</span>
+                                    <span style="font-weight: 600; font-size: 14px;">Cấu Hình Webhook</span>
                                     <span class="route-badge badge-page">PAGE</span>
                                 </div>
                                 <div class="path-text">GET /config</div>
-                                <p class="text-[11px] text-slate-500 mt-2">Quản lý webhook status 1 & 6, xem danh sách Base/Table CSKH, token Lark.</p>
+                                <p style="font-size: 11px; color: #807d72; margin-top: 8px;">Quản lý webhook status 1 & 6, xem danh sách Base/Table CSKH, token Lark.</p>
                             </div>
                         </div>
 
@@ -509,55 +723,13 @@
                             <a href="/lark/token" class="card-link"></a>
                             <button class="copy-btn" onclick="copyPath(event,'/lark/token')">copy</button>
                             <div class="card-content">
-                                <div class="flex items-center gap-2 mb-2">
-                                    <span class="text-xl">🔑</span>
-                                    <span class="font-bold text-sm">Token & Base Info</span>
+                                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                                    <span style="font-size: 20px;">🔑</span>
+                                    <span style="font-weight: 600; font-size: 14px;">Token & Base Info</span>
                                     <span class="route-badge badge-page">PAGE</span>
                                 </div>
                                 <div class="path-text">GET /lark/token</div>
-                                <p class="text-[11px] text-slate-500 mt-2">Xem user access token, refresh token, app token, danh sách Bitable tables đã kết nối.</p>
-                            </div>
-                        </div>
-
-                        <div class="feature-card">
-                            <a href="/lark" class="card-link"></a>
-                            <button class="copy-btn" onclick="copyPath(event,'/lark')">copy</button>
-                            <div class="card-content">
-                                <div class="flex items-center gap-2 mb-2">
-                                    <span class="text-xl">🦅</span>
-                                    <span class="font-bold text-sm">Lark Login Page</span>
-                                    <span class="route-badge badge-page">PAGE</span>
-                                </div>
-                                <div class="path-text">GET /lark</div>
-                                <p class="text-[11px] text-slate-500 mt-2">Trang đăng nhập riêng của Lark OAuth — dành cho cấu hình /lark/oauth/callback.</p>
-                            </div>
-                        </div>
-
-                        <div class="feature-card">
-                            <a href="/lark/logout" class="card-link"></a>
-                            <button class="copy-btn" onclick="copyPath(event,'/lark/logout')">copy</button>
-                            <div class="card-content">
-                                <div class="flex items-center gap-2 mb-2">
-                                    <span class="text-xl">🚪</span>
-                                    <span class="font-bold text-sm">Đăng Xuất</span>
-                                    <span class="route-badge badge-get">GET</span>
-                                </div>
-                                <div class="path-text">GET /lark/logout</div>
-                                <p class="text-[11px] text-slate-500 mt-2">Xóa session, đăng xuất người dùng → redirect về /search-config.</p>
-                            </div>
-                        </div>
-
-                        <div class="feature-card">
-                            <a href="/lark/token/refresh" class="card-link"></a>
-                            <button class="copy-btn" onclick="copyPath(event,'/lark/token/refresh')">copy</button>
-                            <div class="card-content">
-                                <div class="flex items-center gap-2 mb-2">
-                                    <span class="text-xl">🔄</span>
-                                    <span class="font-bold text-sm">Làm Mới Token Thủ Công</span>
-                                    <span class="route-badge badge-get">GET</span>
-                                </div>
-                                <div class="path-text">GET /lark/token/refresh</div>
-                                <p class="text-[11px] text-slate-500 mt-2">Kích hoạt TokenRefreshScheduler làm mới token ngay lập tức → redirect về /token.</p>
+                                <p style="font-size: 11px; color: #807d72; margin-top: 8px;">Xem user access token, refresh token, app token, danh sách Bitable tables đã kết nối.</p>
                             </div>
                         </div>
 
@@ -565,13 +737,13 @@
                             <a href="/admin" class="card-link"></a>
                             <button class="copy-btn" onclick="copyPath(event,'/admin')">copy</button>
                             <div class="card-content">
-                                <div class="flex items-center gap-2 mb-2">
-                                    <span class="text-xl">🛡️</span>
-                                    <span class="font-bold text-sm">Admin Dashboard</span>
+                                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                                    <span style="font-size: 20px;">🛡️</span>
+                                    <span style="font-weight: 600; font-size: 14px;">Admin Dashboard</span>
                                     <span class="route-badge badge-page">PAGE</span>
                                 </div>
                                 <div class="path-text">GET /admin</div>
-                                <p class="text-[11px] text-slate-500 mt-2">Trang quản trị — tương tự trang chủ nhưng dành cho admin, kiểm tra token.</p>
+                                <p style="font-size: 11px; color: #807d72; margin-top: 8px;">Trang quản trị — tương tự trang chủ nhưng dành cho admin, kiểm tra token.</p>
                             </div>
                         </div>
                     </div>
@@ -584,233 +756,84 @@
                         <div class="feature-card">
                             <button class="copy-btn" onclick="copyPath(event,'/api/search-info?phone=0900000000')">copy</button>
                             <div class="card-content">
-                                <div class="flex items-center gap-2 mb-2">
-                                    <span class="text-xl">📡</span>
-                                    <span class="font-bold text-sm">Search Info 360°</span>
+                                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                                    <span style="font-size: 20px;">📡</span>
+                                    <span style="font-weight: 600; font-size: 14px;">Search Info 360°</span>
                                     <span class="route-badge badge-api">API</span>
                                     <span class="route-badge badge-get">GET</span>
                                 </div>
                                 <div class="path-text">GET /api/search-info?phone=...</div>
-                                <p class="text-[11px] text-slate-500 mt-2">Tìm kiếm thông tin 360° khách hàng qua SĐT: Pancake POS + Lark Bitable.</p>
+                                <p style="font-size: 11px; color: #807d72; margin-top: 8px;">Tìm kiếm thông tin 360° khách hàng qua SĐT: Pancake POS + Lark Bitable.</p>
                             </div>
                         </div>
 
                         <div class="feature-card">
                             <button class="copy-btn" onclick="copyPath(event,'/api/saleReport/data?range=CurrentMonth')">copy</button>
                             <div class="card-content">
-                                <div class="flex items-center gap-2 mb-2">
-                                    <span class="text-xl">📊</span>
-                                    <span class="font-bold text-sm">Sale Report Data</span>
+                                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                                    <span style="font-size: 20px;">📊</span>
+                                    <span style="font-weight: 600; font-size: 14px;">Sale Report Data</span>
                                     <span class="route-badge badge-api">API</span>
                                     <span class="route-badge badge-get">GET</span>
                                 </div>
                                 <div class="path-text">GET /api/saleReport/data?range=</div>
-                                <p class="text-[11px] text-slate-500 mt-2">Trả JSON thống kê sale (CurrentMonth / LastMonth). Có cache session + disk.</p>
+                                <p style="font-size: 11px; color: #807d72; margin-top: 8px;">Trả JSON thống kê sale (CurrentMonth / LastMonth). Có cache session + disk.</p>
                             </div>
                         </div>
 
                         <div class="feature-card">
                             <button class="copy-btn" onclick="copyPath(event,'/api/stats/data?customerMonth=CurrentMonth')">copy</button>
                             <div class="card-content">
-                                <div class="flex items-center gap-2 mb-2">
-                                    <span class="text-xl">📈</span>
-                                    <span class="font-bold text-sm">Stats Data</span>
+                                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                                    <span style="font-size: 20px;">📈</span>
+                                    <span style="font-weight: 600; font-size: 14px;">Stats Data</span>
                                     <span class="route-badge badge-api">API</span>
                                     <span class="route-badge badge-get">GET</span>
                                 </div>
                                 <div class="path-text">GET /api/stats/data?customerMonth=</div>
-                                <p class="text-[11px] text-slate-500 mt-2">Dữ liệu thống kê lịch hẹn nhân viên: totalKhach, totalLich, totalHoanThanh.</p>
+                                <p style="font-size: 11px; color: #807d72; margin-top: 8px;">Dữ liệu thống kê lịch hẹn nhân viên: totalKhach, totalLich, totalHoanThanh.</p>
                             </div>
                         </div>
 
                         <div class="feature-card">
                             <button class="copy-btn" onclick="copyPath(event,'/api/orders/sync')">copy</button>
                             <div class="card-content">
-                                <div class="flex items-center gap-2 mb-2">
-                                    <span class="text-xl">🔄</span>
-                                    <span class="font-bold text-sm">Sync POS Orders</span>
+                                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                                    <span style="font-size: 20px;">🔄</span>
+                                    <span style="font-weight: 600; font-size: 14px;">Sync POS Orders</span>
                                     <span class="route-badge badge-api">API</span>
                                     <span class="route-badge badge-post">POST</span>
                                 </div>
                                 <div class="path-text">POST /api/orders/sync</div>
-                                <p class="text-[11px] text-slate-500 mt-2">Đồng bộ đơn hàng từ Pancake POS vào DB. Body: startDate, endDate, status, pageSize.</p>
+                                <p style="font-size: 11px; color: #807d72; margin-top: 8px;">Đồng bộ đơn hàng từ Pancake POS vào DB. Body: startDate, endDate, status, pageSize.</p>
                             </div>
                         </div>
 
                         <div class="feature-card">
                             <button class="copy-btn" onclick="copyPath(event,'/api/orders/preview')">copy</button>
                             <div class="card-content">
-                                <div class="flex items-center gap-2 mb-2">
-                                    <span class="text-xl">👁️</span>
-                                    <span class="font-bold text-sm">Preview POS Orders</span>
+                                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                                    <span style="font-size: 20px;">👁️</span>
+                                    <span style="font-weight: 600; font-size: 14px;">Preview POS Orders</span>
                                     <span class="route-badge badge-api">API</span>
                                     <span class="route-badge badge-post">POST</span>
                                 </div>
                                 <div class="path-text">POST /api/orders/preview</div>
-                                <p class="text-[11px] text-slate-500 mt-2">Xem trước danh sách đơn từ Pancake API mà không lưu vào DB.</p>
-                            </div>
-                        </div>
-
-                        <div class="feature-card">
-                            <button class="copy-btn" onclick="copyPath(event,'/api/tra_cuu_khach_hang?phoneNumber=0900000000')">copy</button>
-                            <div class="card-content">
-                                <div class="flex items-center gap-2 mb-2">
-                                    <span class="text-xl">🔍</span>
-                                    <span class="font-bold text-sm">Tra Cứu KH API</span>
-                                    <span class="route-badge badge-api">API</span>
-                                    <span class="route-badge badge-get">GET</span>
-                                </div>
-                                <div class="path-text">GET /api/tra_cuu_khach_hang?phoneNumber=</div>
-                                <p class="text-[11px] text-slate-500 mt-2">API JSON tra cứu khách hàng song song trên nhiều Lark Base theo SĐT.</p>
-                            </div>
-                        </div>
-
-                        <div class="feature-card">
-                            <button class="copy-btn" onclick="copyPath(event,'/api/sync_tu_choi_cham')">copy</button>
-                            <div class="card-content">
-                                <div class="flex items-center gap-2 mb-2">
-                                    <span class="text-xl">🚫</span>
-                                    <span class="font-bold text-sm">Sync Từ Chối Chăm</span>
-                                    <span class="route-badge badge-api">API</span>
-                                    <span class="route-badge badge-get">GET</span>
-                                </div>
-                                <div class="path-text">GET /api/sync_tu_choi_cham</div>
-                                <p class="text-[11px] text-slate-500 mt-2">Đồng bộ khách hàng có "Tên Liệu Trình" = "Từ chối chăm" sang bảng đích.</p>
-                            </div>
-                        </div>
-
-                        <div class="feature-card">
-                            <button class="copy-btn" onclick="copyPath(event,'/api/sync_dang_cham')">copy</button>
-                            <div class="card-content">
-                                <div class="flex items-center gap-2 mb-2">
-                                    <span class="text-xl">💆</span>
-                                    <span class="font-bold text-sm">Sync Đang Chăm</span>
-                                    <span class="route-badge badge-api">API</span>
-                                    <span class="route-badge badge-get">GET</span>
-                                </div>
-                                <div class="path-text">GET /api/sync_dang_cham</div>
-                                <p class="text-[11px] text-slate-500 mt-2">Đồng bộ khách hàng có "Tên Liệu Trình" = "Đang chăm" sang bảng đích.</p>
-                            </div>
-                        </div>
-
-                        <div class="feature-card">
-                            <button class="copy-btn" onclick="copyPath(event,'/api/exchanges?phone=0900000000')">copy</button>
-                            <div class="card-content">
-                                <div class="flex items-center gap-2 mb-2">
-                                    <span class="text-xl">💬</span>
-                                    <span class="font-bold text-sm">Lịch Sử Trao Đổi</span>
-                                    <span class="route-badge badge-api">API</span>
-                                    <span class="route-badge badge-get">GET</span>
-                                </div>
-                                <div class="path-text">GET /api/exchanges?phone=</div>
-                                <p class="text-[11px] text-slate-500 mt-2">Lấy lịch sử trao đổi của khách từ Bitable table "Trao Đổi" theo SĐT.</p>
-                            </div>
-                        </div>
-
-                        <div class="feature-card">
-                            <button class="copy-btn" onclick="copyPath(event,'/api/config/status')">copy</button>
-                            <div class="card-content">
-                                <div class="flex items-center gap-2 mb-2">
-                                    <span class="text-xl">🔧</span>
-                                    <span class="font-bold text-sm">Webhook Config Status</span>
-                                    <span class="route-badge badge-api">API</span>
-                                    <span class="route-badge badge-get">GET</span>
-                                </div>
-                                <div class="path-text">GET /api/config/status</div>
-                                <p class="text-[11px] text-slate-500 mt-2">Kiểm tra trạng thái webhook status1 & status6 (bật/tắt).</p>
-                            </div>
-                        </div>
-
-                        <div class="feature-card">
-                            <button class="copy-btn" onclick="copyPath(event,'/saleReport/export?range=CurrentMonth')">copy</button>
-                            <div class="card-content">
-                                <div class="flex items-center gap-2 mb-2">
-                                    <span class="text-xl">📥</span>
-                                    <span class="font-bold text-sm">Export Sale Excel</span>
-                                    <span class="route-badge badge-api">API</span>
-                                    <span class="route-badge badge-get">GET</span>
-                                </div>
-                                <div class="path-text">GET /saleReport/export?range=</div>
-                                <p class="text-[11px] text-slate-500 mt-2">Xuất file Excel (.xlsx) báo cáo sale tháng hiện tại hoặc tháng trước.</p>
+                                <p style="font-size: 11px; color: #807d72; margin-top: 8px;">Xem trước danh sách đơn từ Pancake API mà không lưu vào DB.</p>
                             </div>
                         </div>
 
                         <div class="feature-card">
                             <button class="copy-btn" onclick="copyPath(event,'/api/orders/sync/health')">copy</button>
                             <div class="card-content">
-                                <div class="flex items-center gap-2 mb-2">
-                                    <span class="text-xl">❤️</span>
-                                    <span class="font-bold text-sm">Health Check</span>
+                                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                                    <span style="font-size: 20px;">❤️</span>
+                                    <span style="font-weight: 600; font-size: 14px;">Health Check</span>
                                     <span class="route-badge badge-api">API</span>
                                     <span class="route-badge badge-get">GET</span>
                                 </div>
                                 <div class="path-text">GET /api/orders/sync/health</div>
-                                <p class="text-[11px] text-slate-500 mt-2">Kiểm tra OrderSyncController và các service bean có hoạt động không.</p>
-                            </div>
-                        </div>
-
-                        <div class="feature-card">
-                            <button class="copy-btn" onclick="copyPath(event,'/updateTTC')">copy</button>
-                            <div class="card-content">
-                                <div class="flex items-center gap-2 mb-2">
-                                    <span class="text-xl">⚡</span>
-                                    <span class="font-bold text-sm">Shortcut Sync TTC</span>
-                                    <span class="route-badge badge-api">API</span>
-                                    <span class="route-badge badge-get">GET</span>
-                                </div>
-                                <div class="path-text">GET /updateTTC</div>
-                                <p class="text-[11px] text-slate-500 mt-2">Shortcut URL để chạy nhanh sync "Từ chối chăm" — alias của /api/sync_tu_choi_cham.</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- OAUTH ROUTES -->
-                <div class="feature-group">
-                    <div class="feature-group-title">🔐 OAuth & Xác Thực</div>
-                    <div class="feature-grid">
-                        <div class="feature-card">
-                            <div class="card-content">
-                                <div class="flex items-center gap-2 mb-2">
-                                    <span class="text-xl">🔐</span>
-                                    <span class="font-bold text-sm">OAuth Callback</span>
-                                    <span class="route-badge badge-get">GET</span>
-                                </div>
-                                <div class="path-text">GET /oauth/callback</div>
-                                <p class="text-[11px] text-slate-500 mt-2">Lark OAuth callback sau khi người dùng authorize → lưu token → redirect về /.</p>
-                            </div>
-                        </div>
-                        <div class="feature-card">
-                            <div class="card-content">
-                                <div class="flex items-center gap-2 mb-2">
-                                    <span class="text-xl">🔒</span>
-                                    <span class="font-bold text-sm">Lark OAuth Callback</span>
-                                    <span class="route-badge badge-get">GET</span>
-                                </div>
-                                <div class="path-text">GET /lark/oauth/callback</div>
-                                <p class="text-[11px] text-slate-500 mt-2">Callback của Lark OAuth flow thứ 2 → tự động lấy App Token, Base IDs, Table IDs.</p>
-                            </div>
-                        </div>
-                        <div class="feature-card">
-                            <div class="card-content">
-                                <div class="flex items-center gap-2 mb-2">
-                                    <span class="text-xl">🔄</span>
-                                    <span class="font-bold text-sm">Config Refresh</span>
-                                    <span class="route-badge badge-post">POST</span>
-                                </div>
-                                <div class="path-text">POST /config/refresh</div>
-                                <p class="text-[11px] text-slate-500 mt-2">Làm mới toàn bộ dữ liệu config: All Bases, User Configs, Sale Tables.</p>
-                            </div>
-                        </div>
-                        <div class="feature-card">
-                            <div class="card-content">
-                                <div class="flex items-center gap-2 mb-2">
-                                    <span class="text-xl">♻️</span>
-                                    <span class="font-bold text-sm">Sale Report Refresh</span>
-                                    <span class="route-badge badge-post">POST</span>
-                                </div>
-                                <div class="path-text">POST /saleReport/refresh</div>
-                                <p class="text-[11px] text-slate-500 mt-2">Xóa cache sale report (session + disk) → tải lại dữ liệu mới từ Lark.</p>
+                                <p style="font-size: 11px; color: #807d72; margin-top: 8px;">Kiểm tra OrderSyncController và các service bean có hoạt động không.</p>
                             </div>
                         </div>
                     </div>
@@ -827,8 +850,8 @@
                     const btn = event.target;
                     const orig = btn.textContent;
                     btn.textContent = '✓ ok';
-                    btn.style.background = 'rgba(34,197,94,0.2)';
-                    btn.style.color = '#4ade80';
+                    btn.style.background = 'rgba(31, 138, 101, 0.15)';
+                    btn.style.color = '#1f8a65';
                     setTimeout(() => {
                         btn.textContent = orig;
                         btn.style.background = '';
@@ -839,83 +862,89 @@
             </script>
 
             <!-- Dashboard Grid -->
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div class="grid-3" style="display: grid; grid-template-columns: 2fr 1fr; gap: 24px;">
                 
-                <!-- Sale Insights (Quick Access) -->
-                <div class="lg:col-span-2 space-y-8">
-                    <div class="glass-card p-8">
-                        <div class="flex justify-between items-center mb-8">
-                            <h3 class="text-xl font-bold">💡 Hoạt động hệ thống</h3>
-                            <a href="/logs" class="text-sm text-indigo-400 font-bold hover:underline">Xem tất cả logs</a>
+                <!-- Sale Insights -->
+                <div style="display: flex; flex-direction: column; gap: 24px;">
+                    <div class="glass-card" style="padding: 32px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                            <h3 style="font-size: 18px; font-weight: 600;">💡 Hoạt động hệ thống</h3>
+                            <a href="/logs" style="font-size: 13px; font-weight: 500; color: #1456f0; text-decoration: none;">Xem tất cả logs</a>
                         </div>
                         
-                        <div class="space-y-6">
-                            <div class="flex items-center gap-4">
-                                <div class="w-10 h-10 rounded-lg bg-green-500/20 flex items-center justify-center text-green-500">✓</div>
+                        <div style="display: flex; flex-direction: column; gap: 16px;">
+                            <div style="display: flex; align-items: center; gap: 16px;">
+                                <div style="width: 40px; height: 40px; border-radius: 8px; background: rgba(31, 138, 101, 0.1); display: flex; align-items: center; justify-content: center; color: #1f8a65; font-weight: 600;">✓</div>
                                 <div>
-                                    <p class="text-sm font-semibold">Đồng bộ Pancake POS thành công</p>
-                                    <p class="text-[10px] text-slate-500">Vừa xong • 12 đơn hàng mới đã được cập nhật</p>
+                                    <p style="font-size: 14px; font-weight: 500;">Đồng bộ Pancake POS thành công</p>
+                                    <p style="font-size: 11px; color: #807d72;">Vừa xong • 12 đơn hàng mới đã được cập nhật</p>
                                 </div>
                             </div>
-                            <div class="flex items-center gap-4">
-                                <div class="w-10 h-10 rounded-lg bg-indigo-500/20 flex items-center justify-center text-indigo-500">⚙</div>
+                            <div style="display: flex; align-items: center; gap: 16px;">
+                                <div style="width: 40px; height: 40px; border-radius: 8px; background: rgba(20, 86, 240, 0.1); display: flex; align-items: center; justify-content: center; color: #1456f0; font-weight: 600;">⚙</div>
                                 <div>
-                                    <p class="text-sm font-semibold">Tự động refresh token Lark</p>
-                                    <p class="text-[10px] text-slate-500">10 phút trước • Token đã được gia hạn thêm 2 tiếng</p>
+                                    <p style="font-size: 14px; font-weight: 500;">Tự động refresh token Lark</p>
+                                    <p style="font-size: 11px; color: #807d72;">10 phút trước • Token đã được gia hạn thêm 2 tiếng</p>
                                 </div>
                             </div>
                         </div>
                     </div>
 
                     <!-- Quick Navigation Cards -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <a href="/saleReport" class="glass-card p-8 flex flex-col gap-4 group">
-                            <div class="w-12 h-12 rounded-2xl bg-indigo-600 flex items-center justify-center text-2xl group-hover:scale-110 transition">📊</div>
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;">
+                        <a href="/saleReport" class="glass-card" style="padding: 24px; text-decoration: none; display: flex; flex-direction: column; gap: 12px;">
+                            <div style="width: 48px; height: 48px; border-radius: 8px; background: rgba(20, 86, 240, 0.1); display: flex; align-items: center; justify-content: center; font-size: 24px;">📊</div>
                             <div>
-                                <h4 class="text-lg font-bold">Báo Cáo Sale 1</h4>
-                                <p class="text-xs text-slate-500 mt-1">Tổng hợp mess, đơn chốt và tỉ lệ hủy theo từng tư vấn viên.</p>
+                                <h4 style="font-size: 16px; font-weight: 600; color: #26251e;">Báo Cáo Sale 1</h4>
+                                <p style="font-size: 12px; color: #807d72; margin-top: 4px;">Tổng hợp mess, đơn chốt và tỉ lệ hủy theo từng tư vấn viên.</p>
                             </div>
                         </a>
-                        <a href="/stats" class="glass-card p-8 flex flex-col gap-4 group">
-                            <div class="w-12 h-12 rounded-2xl bg-purple-600 flex items-center justify-center text-2xl group-hover:scale-110 transition">📈</div>
+                        <a href="/stats" class="glass-card" style="padding: 24px; text-decoration: none; display: flex; flex-direction: column; gap: 12px;">
+                            <div style="width: 48px; height: 48px; border-radius: 8px; background: rgba(31, 138, 101, 0.1); display: flex; align-items: center; justify-content: center; font-size: 24px;">📈</div>
                             <div>
-                                <h4 class="text-lg font-bold">Thống Kê Lịch Hẹn</h4>
-                                <p class="text-xs text-slate-500 mt-1">Theo dõi KPI lịch hẹn của CSKH, trạng thái muộn/quá hạn.</p>
+                                <h4 style="font-size: 16px; font-weight: 600; color: #26251e;">Thống Kê Lịch Hẹn</h4>
+                                <p style="font-size: 12px; color: #807d72; margin-top: 4px;">Theo dõi KPI lịch hẹn của CSKH, trạng thái muộn/quá hạn.</p>
                             </div>
                         </a>
                     </div>
                 </div>
 
                 <!-- Right Sidebar Inside Content -->
-                <div class="space-y-6">
-                    <div class="glass-card p-6 bg-gradient-to-br from-indigo-900/20 to-transparent">
-                        <h3 class="font-bold mb-4 flex items-center gap-2">
+                <div style="display: flex; flex-direction: column; gap: 16px;">
+                    <div class="glass-card" style="padding: 24px;">
+                        <h3 style="font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
                             <span>🚀</span> Lối tắt nhanh
                         </h3>
-                        <div class="space-y-3">
-                            <a href="/dongbo" class="block p-3 rounded-xl bg-white/5 hover:bg-white/10 transition text-sm font-semibold text-indigo-400">🔄 Đồng bộ dữ liệu</a>
-                            <a href="/searchCustomer" class="block p-3 rounded-xl bg-white/5 hover:bg-white/10 transition text-sm">🔍 Tìm kiếm số điện thoại</a>
-                            <a href="/pancake-orders" class="block p-3 rounded-xl bg-white/5 hover:bg-white/10 transition text-sm">🛒 Kiểm tra đơn Pancake</a>
-                            <a href="/config" class="block p-3 rounded-xl bg-white/5 hover:bg-white/10 transition text-sm">⚡ Cài đặt Webhook Status</a>
-                            <a href="/test-api.html" class="block p-3 rounded-xl bg-white/5 hover:bg-white/10 transition text-sm">🧪 Force Sync Tool</a>
-                        </div>
+                        <a href="/dongbo" class="quick-link">🔄 Đồng bộ dữ liệu</a>
+                        <a href="/searchCustomer" class="quick-link">🔍 Tìm kiếm số điện thoại</a>
+                        <a href="/pancake-orders" class="quick-link">🛒 Kiểm tra đơn Pancake</a>
+                        <a href="/config" class="quick-link">⚡ Cài đặt Webhook Status</a>
+                        <a href="/test-api.html" class="quick-link">🧪 Force Sync Tool</a>
                     </div>
 
-                    <div class="glass-card p-6">
-                        <h3 class="font-bold mb-4">Hỗ trợ nội bộ</h3>
-                        <p class="text-xs text-slate-500 mb-4">Nếu gặp lỗi về token hoặc kết nối Bitable, vui lòng liên hệ Admin qua kênh Lark.</p>
-                        <button class="w-full py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-xs font-bold transition">Nhắn cho Admin</button>
+                    <div class="glass-card" style="padding: 24px;">
+                        <h3 style="font-weight: 600; margin-bottom: 12px;">Hỗ trợ nội bộ</h3>
+                        <p style="font-size: 12px; color: #807d72; margin-bottom: 16px;">Nếu gặp lỗi về token hoặc kết nối Bitable, vui lòng liên hệ Admin qua kênh Lark.</p>
+                        <button style="width: 100%; padding: 10px 16px; background: #e6e5e0; border: none; border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer;">Nhắn cho Admin</button>
                     </div>
                 </div>
-
             </div>
         </div>
 
     </main>
 
-    <footer class="fixed bottom-0 left-72 right-0 p-4 bg-[#0d0d18]/80 backdrop-blur-sm text-center text-[10px] text-slate-600 border-t border-white/5">
-        MeraGroup Dashboard v2.0 • Data integration with Lark & Pancake • &copy; 2025 All rights reserved.
+    <footer style="position: fixed; bottom: 0; left: 280px; right: 0; padding: 16px 48px; background: #f7f7f4; border-top: 1px solid #e6e5e0; text-align: center; font-size: 12px; color: #807d72;">
+        MeraGroup Dashboard v2.0
     </footer>
+
+    <script>
+        function toggleSidebar() {
+            const sidebar = document.querySelector('.sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            sidebar.classList.toggle('open');
+            overlay.classList.toggle('show');
+        }
+    </script>
 
 </body>
 </html>

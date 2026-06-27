@@ -4,310 +4,446 @@
   <meta charset="UTF-8" />
     <link rel="icon" type="image/jpeg" href="/meraicon.ico">
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Sale Report</title>
+  <title>Sale Report | MeraGroup</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <style>
-    :root{
-      --header:#6673ff;
-      --row-alt:#f5f3ff;
-      --text:#334155;
-      --muted:#64748b;
-      --shadow: 0 12px 30px rgba(17,24,39,.10);
-      --radius: 14px;
+    :root {
+      --color-primary: #1456f0;
+      --color-primary-hover: #0d47a1;
+      --color-canvas: #f7f7f4;
+      --color-canvas-soft: #fafaf7;
+      --color-surface: #ffffff;
+      --color-ink: #26251e;
+      --color-body: #5a5852;
+      --color-muted: #807d72;
+      --color-hairline: #e6e5e0;
+      --color-hairline-strong: #cfcdc4;
+      --color-on-primary: #ffffff;
+      --color-success: #1f8a65;
+      --color-error: #cf2d56;
+      --color-warning: #b45309;
     }
-    body{
-      margin:0;
-      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
-      background:#f7f7fb;
-      color:var(--text);
-      padding:24px;
-    }
-    .topbar{
-      display:flex;
-      gap:12px;
-      align-items:center;
-      justify-content:space-between;
-      margin-bottom:14px;
-      flex-wrap:wrap;
-    }
-    .title{
-      font-size:20px;
-      font-weight:900;
-      color:#0f172a;
-      display:flex;
-      gap:10px;
-      align-items:center;
-    }
-    .meta{
-      font-size:13px;
-      color:var(--muted);
-      margin-top:4px;
-    }
-    .actions{
-      display:flex;
-      gap:10px;
-      align-items:center;
-      flex-wrap:wrap;
-    }
-    select, button{
-      border:1px solid #e5e7eb;
-      border-radius:10px;
-      padding:10px 12px;
-      font-size:14px;
-      background:#fff;
-      cursor:pointer;
-    }
-    input.search{
-      border:1px solid #e5e7eb;
-      border-radius:10px;
-      padding:10px 12px;
-      font-size:14px;
-      background:#fff;
-      width:260px;
-    }
-    button.primary{
-      background: var(--header);
-      color:#fff;
-      border:none;
-      font-weight:800;
-    }
-    button.ghost{ background:#fff; font-weight:800; }
-
-    .alert{
-      padding:12px 14px;
-      border-radius:12px;
-      background:#fff;
-      border:1px solid #e5e7eb;
-      margin:12px 0;
-      font-size:14px;
-    }
-    .alert.error{ border-color:#fecaca; background:#fff1f2; color:#991b1b; }
-
-    .table-card{
-      background:#fff;
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      overflow:hidden;
-      width: 1800px;
-      margin-left: -200px;
-    }
-    .table-scroll{
-      max-height: 78vh;
-      overflow:auto;
-    }
-    table{ width:100%; border-collapse: collapse; min-width: 1200px; }
-    thead th{
-      background: var(--header);
-      color:#fff;
-      text-align:left;
-      font-weight:900;
-      padding: 14px 16px;
-      position: sticky;
-      top:0;
-      z-index:2;
-      white-space:nowrap;
-      cursor: default;
-    }
-    thead th.sortable{ cursor:pointer; }
-    thead th .sort-indicator{ margin-left:8px; font-size:12px; opacity:0.9 }
-    tbody td{
-      padding: 12px 16px;
-      border-top:1px solid #eef2ff;
-      font-size:14px;
-      vertical-align:middle;
-      white-space:nowrap;
-    }
-    tbody tr:nth-child(even){ background: var(--row-alt); }
-    tbody tr:hover{ background:#edeaff; }
-
-    .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size:12px; }
-    .center{ text-align:center; }
-
-    .pill{
-      display:inline-flex;
-      align-items:center;
-      justify-content:center;
-      padding:6px 10px;
-      border-radius:999px;
-      font-weight:900;
-      font-size:12px;
-      color:#fff;
-    }
-    .pill.green{ background:#16a34a; }
-    .pill.orange{ background:#f97316; }
-    .pill.red{ background:#ef4444; }
-
-    .no-token{
-      max-width: 720px;
-      margin: 80px auto 0;
-      background:#fff;
-      border-radius: 16px;
-      box-shadow: var(--shadow);
-      padding: 24px;
-      text-align:center;
-    }
-    .no-token a{ color: var(--header); text-decoration:none; font-weight:900; }
-    /* Header styles copied from stats.html to provide consistent page header */
-    header {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      /* make header span full viewport width despite body padding */
-      /* margin:-50px;
-      padding: 1rem 24px; */
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1); 
-      height: 78px;
-      margin-top: -25px;
-      margin-left: -50px;
-      width: 2000px;
-    }
-    .container { max-width: 1400px; margin: 0 auto; padding: 0 20px; }
-    .header-content { display: flex; justify-content: space-between; align-items: center; padding-top: 10px;}
-    .logo { font-size: 1.8rem; font-weight: bold; }
-    nav ul { list-style: none; display: flex; gap: 1rem; }
-    nav a { color: white; text-decoration: none; transition: opacity 0.3s; font-weight: 500; }
-    nav a:hover { opacity: 0.8; }
-    nav a.active {
-      font-weight: bold;
-      color: #ffd700 !important;
-      text-decoration: underline;
-    }
-    .content-section { padding: 2rem 0; }
-    .section-title { font-size: 1.4rem; margin-bottom: 1rem; color: #667eea; display:flex; align-items:center; gap:0.5rem }
     
-    /* Loading popup */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    html, body {
+      height: 100%;
+      overflow: hidden;
+    }
+    
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--color-canvas);
+      color: var(--color-ink);
+      display: flex;
+      flex-direction: column;
+      padding: 20px 24px;
+      height: 100vh;
+      font-size: 15px;
+    }
+    
+    /* Header - compact */
+    .page-header {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+      flex-shrink: 0;
+    }
+    
+    .page-title {
+      font-size: 22px;
+      font-weight: 600;
+      color: var(--color-ink);
+    }
+    
+    .page-meta {
+      font-size: 12px;
+      color: var(--color-muted);
+      margin-top: 2px;
+    }
+    
+    .page-actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-shrink: 0;
+    }
+    
+    /* Form Elements */
+    select, input.search {
+      border: 1px solid var(--color-hairline);
+      border-radius: 6px;
+      padding: 8px 12px;
+      font-size: 13px;
+      font-family: inherit;
+      background: var(--color-surface);
+      color: var(--color-ink);
+      cursor: pointer;
+    }
+    
+    select:focus, input.search:focus {
+      outline: none;
+      border-color: var(--color-primary);
+    }
+    
+    input.search {
+      width: 220px;
+    }
+    
+    button {
+      border: 1px solid var(--color-hairline);
+      border-radius: 6px;
+      padding: 8px 14px;
+      font-size: 13px;
+      font-weight: 500;
+      font-family: inherit;
+      background: var(--color-surface);
+      color: var(--color-ink);
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    
+    button:hover {
+      background: var(--color-canvas-soft);
+    }
+    
+    button.primary {
+      background: var(--color-primary);
+      color: white;
+      border: none;
+    }
+    
+    button.primary:hover {
+      background: var(--color-primary-hover);
+    }
+    
+    button.success {
+      background: var(--color-success);
+      color: white;
+      border: none;
+    }
+    
+    /* Alert */
+    .alert {
+      padding: 12px 16px;
+      border-radius: 6px;
+      background: var(--color-surface);
+      border: 1px solid var(--color-hairline);
+      margin-bottom: 16px;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+    
+    .alert.error {
+      background: rgba(207, 45, 86, 0.08);
+      border-color: rgba(207, 45, 86, 0.2);
+      color: var(--color-error);
+    }
+    
+    /* Table Container - fills remaining space */
+    .table-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: var(--color-surface);
+      border: 1px solid var(--color-hairline);
+      border-radius: 8px;
+      overflow: hidden;
+      min-height: 0;
+    }
+    
+    /* Table wrapper for sticky header */
+    .table-wrapper {
+      flex: 1;
+      overflow: auto;
+      position: relative;
+    }
+    
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 800px;
+    }
+    
+    thead {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    
+    thead th {
+      background: var(--color-primary);
+      color: white;
+      text-align: left;
+      font-weight: 600;
+      padding: 10px 12px;
+      white-space: nowrap;
+      font-size: 12px;
+      letter-spacing: 0.3px;
+    }
+    
+    thead th.sortable {
+      cursor: pointer;
+    }
+    
+    thead th.sortable:hover {
+      background: var(--color-primary-hover);
+    }
+    
+    thead th .sort-indicator {
+      margin-left: 6px;
+      font-size: 11px;
+      opacity: 0.7;
+    }
+    
+    tbody td {
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--color-hairline);
+      font-size: 13px;
+      vertical-align: middle;
+      white-space: nowrap;
+    }
+    
+    tbody tr:nth-child(even) {
+      background: var(--color-canvas-soft);
+    }
+    
+    tbody tr:hover {
+      background: rgba(20, 86, 240, 0.04);
+    }
+    
+    /* Footer - fixed at bottom */
+    tfoot {
+      position: sticky;
+      bottom: 0;
+      z-index: 5;
+    }
+    
+    tfoot tr {
+      background: var(--color-canvas);
+      font-weight: 600;
+    }
+    
+    tfoot td {
+      padding: 10px 12px;
+      border-top: 2px solid var(--color-primary);
+      font-size: 12px;
+      color: var(--color-ink);
+    }
+    
+    .center {
+      text-align: center;
+    }
+    
+    /* Pills */
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 3px 8px;
+      border-radius: 9999px;
+      font-weight: 600;
+      font-size: 11px;
+      color: white;
+    }
+    
+    .pill.green { background: var(--color-success); }
+    .pill.red { background: var(--color-error); }
+    
+    /* No Token */
+    .no-token {
+      max-width: 500px;
+      margin: auto;
+      background: var(--color-surface);
+      border: 1px solid var(--color-hairline);
+      border-radius: 8px;
+      padding: 24px;
+      text-align: center;
+    }
+    
+    .no-token h2 {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+    
+    .no-token p {
+      color: var(--color-muted);
+      font-size: 13px;
+      margin-bottom: 12px;
+    }
+    
+    .no-token a {
+      color: var(--color-primary);
+      text-decoration: none;
+      font-weight: 600;
+    }
+    
+    /* Loading */
     .loading-overlay {
       position: fixed;
       top: 0;
       left: 0;
       right: 0;
       bottom: 0;
-      background: rgba(0, 0, 0, 0.5);
+      background: rgba(247, 247, 244, 0.95);
       display: flex;
       align-items: center;
       justify-content: center;
       z-index: 9999;
     }
+    
     .loading-content {
       background: white;
-      padding: 2rem;
-      border-radius: 12px;
+      padding: 24px 40px;
+      border-radius: 8px;
       text-align: center;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+      border: 1px solid var(--color-hairline);
     }
+    
     .loading-spinner {
-      border: 4px solid #f3f3f3;
-      border-top: 4px solid #667eea;
+      border: 3px solid var(--color-hairline);
+      border-top: 3px solid var(--color-primary);
       border-radius: 50%;
-      width: 40px;
-      height: 40px;
-      animation: spin 1s linear infinite;
-      margin: 0 auto 1rem;
+      width: 32px;
+      height: 32px;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 12px;
     }
+    
     @keyframes spin {
       0% { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
     }
+    
     .loading-overlay.hidden {
       display: none;
+    }
+    
+    /* Responsive */
+    @media (max-width: 1024px) {
+      .main-content {
+        margin-left: 280px;
+        padding: 32px;
+      }
+    }
+    
+    @media (max-width: 768px) {
+      body {
+        padding: 12px;
+        height: auto;
+        overflow: auto;
+      }
+      
+      .page-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+      }
+      
+      .page-actions {
+        width: 100%;
+        flex-wrap: wrap;
+      }
+      
+      input.search {
+        width: 100%;
+      }
+      
+      .table-container {
+        height: auto;
+        min-height: 400px;
+      }
     }
   </style>
 </head>
 
 <body>
-<header>
-  <div class="container">
-    <div class="header-content">
-      <div class="logo">📊 MeraGroup</div>
-      <nav>
-        <ul>
-<!--          <li><a href="/">Dashboard</a></li>-->
-          <li><a href="/saleReport" style="font-size: 25px" class="active">SALE 1</a></li>
-          <li><a href="/stats" style="font-size: 25px">SALE 2</a></li>
-<!--          <li><a href="/config">Cấu Hình</a></li>-->
-        </ul>
-      </nav>
-    </div>
-  </div>
-</header>
 
 <!-- Loading popup -->
 <div id="loadingOverlay" class="loading-overlay hidden">
   <div class="loading-content">
     <div class="loading-spinner"></div>
-    <div>Đang tải dữ liệu...</div>
+    <div style="font-size: 13px; color: var(--color-body);">Đang tải dữ liệu...</div>
   </div>
 </div>
 
 <div id="noTokenSection" class="no-token" style="display:none;">
-  <h2 style="margin:0 0 10px 0;">Chưa có token 😵‍💫</h2>
-  <div style="color:var(--muted)">Đăng nhập Lark trước rồi quay lại trang report nha.</div>
-  <div style="margin-top:14px;">
-    <a href="/">👉 Về trang đăng nhập</a>
+  <h2>Chưa có token</h2>
+  <div style="color:var(--color-muted)">Đăng nhập Lark trước rồi quay lại trang report.</div>
+  <div style="margin-top:12px;">
+    <a href="/">→ Về trang đăng nhập</a>
   </div>
 </div>
 
-<div id="contentSection" style="display:none;">
-  <section class="content-section">
-    <div class="container">
-  <div class="topbar">
+<div id="contentSection" style="display:none; flex: 1; display: flex; flex-direction: column; min-height: 0;">
+  <div class="page-header">
     <div>
-      <div class="title">📈 Sale Report (Tổng hợp theo tư vấn viên)</div>
-      <div class="meta" id="metaInfo">
-        <!-- Will be populated by JavaScript -->
-      </div>
+      <div class="page-title">📈 Sale Report (Tổng hợp theo tư vấn viên)</div>
+      <div class="page-meta" id="metaInfo"></div>
     </div>
 
-    <div class="actions">
-      <input id="searchInput" class="search" type="search" placeholder="Tìm theo tên tư vấn viên" />
+    <div class="page-actions">
+      <input id="searchInput" class="search" type="search" placeholder="Tìm tư vấn viên..." />
 
-      <form method="get" action="/saleReport" id="rangeForm">
+      <form method="get" action="/saleReport" id="rangeForm" style="display: flex; gap: 6px; align-items: center;">
         <select name="range" id="rangeSelect">
           <option value="CurrentMonth" id="optCurrentMonth">Tháng này</option>
           <option value="LastMonth" id="optLastMonth">Tháng trước</option>
         </select>
-        <button class="ghost" type="submit">Lọc</button>
+        <button type="submit">Lọc</button>
       </form>
 
       <form method="post" action="/saleReport/refresh" id="refreshForm">
         <input type="hidden" name="range" id="refreshRange" />
-        <button class="primary" type="submit">🔄 Làm mới dữ liệu</button>
+        <button class="primary" type="submit">🔄 Làm mới</button>
       </form>
 
-      <a href="#" id="exportExcelBtn" class="primary" style="text-decoration: none; display: inline-block; padding: 10px 20px; border-radius: 8px; background: #28a745; color: white; border: none; cursor: pointer; font-size: 14px; font-weight: 500;">
-        📥 Xuất Excel
+      <a href="#" id="exportExcelBtn" class="success" style="text-decoration: none; padding: 8px 14px; border-radius: 6px; background: #1f8a65; color: white; border: none; cursor: pointer; font-size: 13px; font-weight: 500;">
+        📥 Excel
       </a>
     </div>
   </div>
 
   <div id="errorAlert" class="alert error" style="display:none;">
-    <b>Lỗi:</b> <span id="errorText"></span>
+    <strong>Lỗi:</strong> <span id="errorText"></span>
   </div>
 
-  <div class="table-card">
-    <div class="table-scroll">
+  <div class="table-container">
+    <div class="table-wrapper">
       <table>
         <thead>
         <tr>
-          <th style="width:70px;">#</th>
-          <th style="min-width:220px;">Tư vấn viên</th>
+          <th style="width:50px;">#</th>
+          <th style="min-width:180px;">Tư vấn viên</th>
           <th class="center">Nhu cầu</th>
           <th class="center">Trùng</th>
           <th class="center">Rác</th>
           <th class="center">Không tương tác</th>
-          <th class="center" title="Tổng mess">Tổng mess</th>
-          <th class="center" title="Tổng đơn (orders.status=3)">Tổng đơn</th>
-          <th class="center" title="Hủy (orders.status=6)">Hủy</th>
-          <th class="center" title="Đơn/mess nhu cầu">Đơn/mess nhu cầu</th>
-          <th class="center" title="Đơn/mess tổng = Tổng đơn / Tổng mess">Đơn/mess tổng</th>
-          <th class="center" title="Tỉ lệ hủy = Hủy / Tổng đơn">Tỉ lệ hủy</th>
-          <!-- <th style="min-width:220px;">Table ID</th> -->
+          <th class="center">Tổng mess</th>
+          <th class="center">Tổng đơn</th>
+          <th class="center">Hủy</th>
+          <th class="center">Đơn/mess NC</th>
+          <th class="center">Đơn/mess Tổng</th>
+          <th class="center">Tỉ lệ hủy</th>
         </tr>
         </thead>
 
-        <tbody id="tableBody">
-        <!-- Data will be populated by JavaScript -->
-        </tbody>
-        <tfoot id="tableFoot" style="background:#e0e7ff; font-weight:900;">
-          <tr style="height:45px;">
+        <tbody id="tableBody"></tbody>
+
+        <tfoot id="tableFoot">
+          <tr>
             <td colspan="2" class="center">TỔNG</td>
             <td class="center" id="totalNhuCau">0</td>
             <td class="center" id="totalTrung">0</td>
@@ -324,17 +460,14 @@
       </table>
     </div>
   </div>
-    </div>
-  </section>
 </div>
 
 <script>
-// Dùng chung cho sort/filter, được cập nhật sau khi load data
 let saleRows = [];
 let saleOriginalRows = [];
 
 document.addEventListener('DOMContentLoaded', function(){
-  const table = document.querySelector('.table-card table');
+  const table = document.querySelector('table');
   if(!table) return;
   const tbody = table.querySelector('tbody');
   saleRows = Array.from(tbody.querySelectorAll('tr')).filter(r=> r.querySelectorAll('td').length>0);
@@ -343,16 +476,15 @@ document.addEventListener('DOMContentLoaded', function(){
   const optCurrentMonth = document.getElementById('optCurrentMonth');
   const optLastMonth = document.getElementById('optLastMonth');
 
-  // Cập nhật label tháng động
   const now = new Date();
-  const currentMonth = now.getMonth() + 1; // 1-12
+  const currentMonth = now.getMonth() + 1;
   const lastMonth = currentMonth === 1 ? 12 : currentMonth - 1;
   if (optCurrentMonth) optCurrentMonth.textContent = `Tháng ${currentMonth}`;
   if (optLastMonth) optLastMonth.textContent = `Tháng ${lastMonth}`;
 
   const ths = Array.from(table.querySelectorAll('thead th'));
   ths.forEach((th, idx)=>{
-    if(idx===0) return; // skip index column
+    if(idx===0 || idx===10 || idx===11) return;
     th.classList.add('sortable');
     const span = document.createElement('span');
     span.className = 'sort-indicator';
@@ -378,7 +510,6 @@ document.addEventListener('DOMContentLoaded', function(){
     if(!text) return '';
     const cleaned = text.replace('%','').trim();
     if(cleaned==='') return '';
-    // Xử lý số dạng 1.234,5% -> 1234.5 để sort đúng
     const normalized = cleaned.replace(/\./g,'').replace(',', '.');
     const n = parseFloat(normalized);
     if(!isNaN(n)) return n;
@@ -416,7 +547,6 @@ document.addEventListener('DOMContentLoaded', function(){
       const text = nameCell ? nameCell.textContent.toLowerCase() : '';
       r.style.display = q === '' || text.indexOf(q) !== -1 ? '' : 'none';
     });
-    // Update totals based on visible rows only
     updateTotalsFromVisibleRows();
     const activeTh = ths.find(t=> t.dataset.sortState && t.dataset.sortState!=='none');
     if(activeTh){
@@ -454,10 +584,8 @@ document.addEventListener('DOMContentLoaded', function(){
   if(searchInput){
     searchInput.addEventListener('input', ()=>{ applyFilter(); });
   }
-
 });
 
-// Load data from API
 (async function() {
   const loadingOverlay = document.getElementById('loadingOverlay');
   const noTokenSection = document.getElementById('noTokenSection');
@@ -469,13 +597,11 @@ document.addEventListener('DOMContentLoaded', function(){
   const rangeSelect = document.getElementById('rangeSelect');
   const refreshRange = document.getElementById('refreshRange');
   
-  // Get range from URL params
   const urlParams = new URLSearchParams(window.location.search);
   const range = urlParams.get('range') || 'CurrentMonth';
   rangeSelect.value = range;
   refreshRange.value = range;
   
-  // Show loading
   loadingOverlay.classList.remove('hidden');
   
   try {
@@ -489,25 +615,23 @@ document.addEventListener('DOMContentLoaded', function(){
       return;
     }
     
-    contentSection.style.display = 'block';
+    contentSection.style.display = 'flex';
     
     if (data.error) {
-      errorAlert.style.display = 'block';
+      errorAlert.style.display = 'flex';
       errorText.textContent = data.error;
       return;
     }
     
-    // Update meta info
     let metaHtml = '';
     if (data.fetchedAt) {
-      metaHtml += ` • Thống kê lần cuối: <b>${data.fetchedAt}</b>`;
+      metaHtml += `Cập nhật: <strong>${data.fetchedAt}</strong>`;
     }
     if (data.totalAgents != null) {
-      metaHtml += ` • Tư vấn viên: <b>${data.totalAgents}</b>`;
+      metaHtml += ` • <strong>${data.totalAgents}</strong> tư vấn viên`;
     }
     metaInfo.innerHTML = metaHtml;
     
-    // Render table
     if (data.rows && data.rows.length > 0) {
       tableBody.innerHTML = '';
       data.rows.forEach((row, index) => {
@@ -524,20 +648,13 @@ document.addEventListener('DOMContentLoaded', function(){
           <td class="center">${formatNumber(row.tongMess || 0)}</td>
           <td class="center">${formatNumber(row.tongDon || 0)}</td>
           <td class="center">${formatNumber(row.donHuyDb || 0)}</td>
-          <td class="center">
-            <span class="center">${formatPercent(row.donPerMessNhuCau || 0)}</span>
-          </td>
-          <td class="center">
-            <span class="center">${formatPercent(row.donPerMessTong || 0)}</span>
-          </td>
-          <td class="center">
-            <span class="pill ${tiLeHuyClass}">${formatPercent(tiLeHuy)}</span>
-          </td>
+          <td class="center">${formatPercent(row.donPerMessNhuCau || 0)}</td>
+          <td class="center">${formatPercent(row.donPerMessTong || 0)}</td>
+          <td class="center"><span class="pill ${tiLeHuyClass}">${formatPercent(tiLeHuy)}</span></td>
         `;
         tableBody.appendChild(tr);
       });
 
-      // Calculate and update totals
       let totalNhuCau = 0, totalTrung = 0, totalRac = 0, totalKhongTuongTac = 0;
       let totalDonHuy = 0, totalTongMess = 0, totalTongDon = 0;
       data.rows.forEach(row => {
@@ -559,7 +676,6 @@ document.addEventListener('DOMContentLoaded', function(){
       const totalTiLeHuy = totalTongDon > 0 ? (totalDonHuy / totalTongDon * 100) : 0;
       document.getElementById('totalTiLeHuy').textContent = formatPercent(totalTiLeHuy);
 
-      // Reinitialize table functionality
       setTimeout(() => {
         const tbody = document.querySelector('tbody');
         if (tbody) {
@@ -568,13 +684,13 @@ document.addEventListener('DOMContentLoaded', function(){
         }
       }, 100);
     } else {
-      tableBody.innerHTML = '<tr><td colspan="12" style="text-align:center;padding:2rem;">Không có dữ liệu</td></tr>';
+      tableBody.innerHTML = '<tr><td colspan="12" style="text-align:center;padding:2rem;color:var(--color-muted);">Không có dữ liệu</td></tr>';
     }
     
   } catch (error) {
     loadingOverlay.classList.add('hidden');
-    contentSection.style.display = 'block';
-    errorAlert.style.display = 'block';
+    contentSection.style.display = 'flex';
+    errorAlert.style.display = 'flex';
     errorText.textContent = 'Lỗi khi tải dữ liệu: ' + error.message;
   }
 })();
@@ -593,7 +709,6 @@ function escapeHtml(text) {
   return div.innerHTML;
 }
 
-// Export Excel functionality
 document.addEventListener('DOMContentLoaded', function() {
   const exportBtn = document.getElementById('exportExcelBtn');
   if (exportBtn) {
@@ -602,8 +717,6 @@ document.addEventListener('DOMContentLoaded', function() {
       const urlParams = new URLSearchParams(window.location.search);
       const range = urlParams.get('range') || 'CurrentMonth';
       const exportUrl = `/saleReport/export?range=${encodeURIComponent(range)}`;
-      
-      // Tạo link tạm để download
       const link = document.createElement('a');
       link.href = exportUrl;
       link.download = '';

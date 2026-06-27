@@ -34,6 +34,32 @@
     .btn-save:hover { background-color: #45a049; }
     .btn-save:disabled { background-color: #ccc; cursor: not-allowed; }
     .loading { opacity: 0.5; pointer-events: none; }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+      body { padding: 12px; }
+      
+      .container, body { max-width: 100%; }
+      
+      .form-section { padding: 16px; }
+      
+      .form-group { margin-bottom: 12px; }
+      
+      .form-group label {
+        display: block;
+        width: 100%;
+        margin-bottom: 4px;
+      }
+      
+      .form-group input,
+      .form-group select { width: 100%; }
+      
+      .section { padding: 12px; overflow-x: auto; }
+      
+      table { font-size: 11px; }
+      
+      th, td { padding: 4px; }
+    }
   </style>
 </head>
 <body>

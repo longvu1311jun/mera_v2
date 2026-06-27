@@ -153,6 +153,30 @@
         .stat-item:last-child { border-bottom: none; }
         .stat-label { color: #888; font-size: 13px; }
         .stat-value { font-weight: 600; color: #e9e6f7; }
+        
+        /* Responsive */
+        @media (max-width: 1024px) {
+          header.px-8 {
+            padding-left: 16px;
+            padding-right: 16px;
+          }
+        }
+        
+        @media (max-width: 768px) {
+          main.p-8 {
+            padding: 16px !important;
+          }
+          
+          .grid {
+            grid-template-columns: 1fr !important;
+          }
+          
+          .header-content {
+            flex-direction: column;
+            gap: 12px;
+            align-items: flex-start;
+          }
+        }
     </style>
 </head>
 <body class="min-h-screen">

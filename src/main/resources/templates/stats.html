@@ -1,313 +1,501 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
 <head>
   <meta charset="UTF-8">
     <link rel="icon" type="image/jpeg" href="/meraicon.ico">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Thống kê lịch hẹn</title>
+  <title>Thống kê lịch hẹn | MeraGroup</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --color-primary: #1456f0;
+      --color-primary-hover: #0d47a1;
+      --color-canvas: #f7f7f4;
+      --color-canvas-soft: #fafaf7;
+      --color-surface: #ffffff;
+      --color-ink: #26251e;
+      --color-body: #5a5852;
+      --color-muted: #807d72;
+      --color-hairline: #e6e5e0;
+      --color-hairline-strong: #cfcdc4;
+      --color-on-primary: #ffffff;
+      --color-success: #1f8a65;
+      --color-error: #cf2d56;
+      --color-warning: #b45309;
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    html, body {
+      height: 100%;
+      overflow: hidden;
+    }
+    
     body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      line-height: 1.6;
-      color: #333;
-      background: #f8f9fa;
-    }
-    header {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      padding: 1rem 0;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    }
-    .container { max-width: 1400px; margin: 0 auto; padding: 0 20px; }
-    .header-content { display: flex; justify-content: space-between; align-items: center; }
-    .logo { font-size: 1.8rem; font-weight: bold; }
-    nav ul { list-style: none; display: flex; gap: 2rem; }
-    nav a { color: white; text-decoration: none; transition: opacity 0.3s; font-weight: 500; }
-    nav a:hover { opacity: 0.8; }
-    nav a.active {
-      font-weight: bold;
-      color: #ffd700 !important;
-      text-decoration: underline;
-    }
-    .content-section { padding: 3rem 0; }
-    .section-title { 
-      font-size: 2rem; 
-      margin-bottom: 2rem; 
-      color: #667eea; 
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--color-canvas);
+      color: var(--color-ink);
       display: flex;
+      flex-direction: column;
+      padding: 20px 24px;
+      height: 100vh;
+      font-size: 15px;
+    }
+    
+    /* Header - compact */
+    .page-header {
+      display: flex;
+      gap: 16px;
       align-items: center;
-      gap: 1rem;
+      justify-content: space-between;
+      margin-bottom: 16px;
+      flex-shrink: 0;
     }
-    .table-wrapper {
-      background: white;
-      border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-      overflow-x: auto;
+    
+    .page-title {
+      font-size: 22px;
+      font-weight: 600;
+      color: var(--color-ink);
     }
-    table { 
-      width: 100%; 
-      border-collapse: collapse; 
-      min-width: 800px;
-      table-layout: fixed;
+    
+    .page-meta {
+      font-size: 12px;
+      color: var(--color-muted);
+      margin-top: 2px;
     }
-    thead { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
-    th { 
-      padding: 1.2rem 1rem; 
-      text-align: left; 
-      font-weight: 600; 
-      border-bottom: 2px solid #667eea;
-      position: sticky;
-      top: 0;
-      vertical-align: middle;
+    
+    .page-actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-shrink: 0;
     }
-    td { 
-      padding: 1rem; 
-      border-bottom: 1px solid #e0e0e0; 
-      vertical-align: middle;
-      word-wrap: break-word;
+    
+    /* Month Toggle Buttons */
+    .month-toggle {
+      display: flex;
+      background: var(--color-surface);
+      border: 1px solid var(--color-hairline);
+      border-radius: 6px;
+      overflow: hidden;
     }
-    tbody tr { transition: background-color 0.3s; }
-    tbody tr:hover { background-color: #f0f4ff; }
-    tbody tr:last-child td { border-bottom: none; }
-    .stt { 
-      color: #667eea; 
-      font-weight: 600; 
-      width: 60px; 
-      text-align: center; 
-      vertical-align: middle;
-    }
-    .number-cell { 
-      text-align: right; 
-      font-weight: 500; 
-      font-size: 1rem;
-      vertical-align: middle;
-      padding-right: 1.5rem;
-    }
-    .employee-name { 
-      font-weight: 600; 
-      color: #333; 
-      vertical-align: middle;
-    }
-    th:nth-child(1) { width: 60px; text-align: center; }
-    th:nth-child(2) { width: auto; }
-    th:nth-child(3), 
-    th:nth-child(4), 
-    th:nth-child(5), 
-    th:nth-child(6), 
-    th:nth-child(7) { 
-      width: 200px; 
-      text-align: right; 
-      padding-right: 1.5rem;
-    }
-    footer { background: #333; color: white; text-align: center; padding: 2rem 0; margin-top: 3rem; }
-    .alert {
-      padding: 1rem;
-      border-radius: 4px;
-      margin-bottom: 1rem;
-    }
-    .alert-success {
-      background: #d4edda;
-      color: #155724;
-      border: 1px solid #c3e6cb;
-    }
-    .alert-error {
-      background: #f8d7da;
-      color: #721c24;
-      border: 1px solid #f5c6cb;
-    }
-    .refresh-btn {
-      display: inline-block;
-      padding: 0.8rem 1.5rem;
-      background: #28a745;
-      color: white;
-      text-decoration: none;
-      border-radius: 4px;
+    
+    .month-btn {
+      padding: 8px 14px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--color-muted);
+      background: transparent;
       border: none;
       cursor: pointer;
-      transition: background 0.3s;
-      font-size: 1rem;
+      transition: all 0.15s ease;
+      text-decoration: none;
+    }
+    
+    .month-btn:hover {
+      background: var(--color-canvas-soft);
+      color: var(--color-ink);
+    }
+    
+    .month-btn.active {
+      background: var(--color-primary);
+      color: white;
+    }
+    
+    .month-btn.active:hover {
+      background: var(--color-primary-hover);
+    }
+    
+    /* Form Elements */
+    select, input.search {
+      border: 1px solid var(--color-hairline);
+      border-radius: 6px;
+      padding: 8px 12px;
+      font-size: 13px;
+      font-family: inherit;
+      background: var(--color-surface);
+      color: var(--color-ink);
+      cursor: pointer;
+    }
+    
+    select:focus, input.search:focus {
+      outline: none;
+      border-color: var(--color-primary);
+    }
+    
+    input.search {
+      width: 200px;
+    }
+    
+    button {
+      border: 1px solid var(--color-hairline);
+      border-radius: 6px;
+      padding: 8px 14px;
+      font-size: 13px;
       font-weight: 500;
-      margin-bottom: 1rem;
+      font-family: inherit;
+      background: var(--color-surface);
+      color: var(--color-ink);
+      cursor: pointer;
+      transition: all 0.15s ease;
     }
-    .refresh-btn:hover {
-      background: #218838;
+    
+    button:hover {
+      background: var(--color-canvas-soft);
     }
+    
+    button.primary {
+      background: var(--color-primary);
+      color: white;
+      border: none;
+    }
+    
+    button.primary:hover {
+      background: var(--color-primary-hover);
+    }
+    
+    button.success {
+      background: var(--color-success);
+      color: white;
+      border: none;
+    }
+    
+    /* Alert */
+    .alert {
+      padding: 12px 16px;
+      border-radius: 6px;
+      margin-bottom: 16px;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+    
+    .alert.error {
+      background: rgba(207, 45, 86, 0.08);
+      border: 1px solid rgba(207, 45, 86, 0.2);
+      color: var(--color-error);
+    }
+    
+    .alert.success {
+      background: rgba(31, 138, 101, 0.08);
+      border: 1px solid rgba(31, 138, 101, 0.2);
+      color: var(--color-success);
+    }
+    
+    /* Summary Cards - compact row */
     .stats-summary {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 1rem;
-      margin-bottom: 2rem;
+      display: flex;
+      gap: 12px;
+      margin-bottom: 16px;
+      flex-shrink: 0;
     }
+    
     .summary-card {
-      background: white;
-      padding: 1.5rem;
+      background: var(--color-surface);
+      border: 1px solid var(--color-hairline);
       border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      padding: 14px 18px;
+      flex: 1;
       text-align: center;
     }
-    .summary-card h3 {
-      color: #667eea;
-      font-size: 0.9rem;
-      margin-bottom: 0.5rem;
-      text-transform: uppercase;
-    }
-    .summary-card .value {
-      font-size: 2rem;
-      font-weight: bold;
-      color: #333;
-    }
-    .month-btn {
-      color: #667eea;
-      background: transparent;
-      border: 1px solid #667eea;
-    }
-    .month-btn:hover {
-      background: #f0f4ff;
-    }
-    .month-btn.active {
-      background: #667eea;
-      color: white;
-      border-color: #667eea;
-    }
-    /* Search + sort styles (reuse from saleReport) */
-    .search-input {
-      border:1px solid #e5e7eb;
-      border-radius:10px;
-      padding:10px 12px;
-      font-size:14px;
-      background:#fff;
-      width:260px;
-    }
-    thead th.sortable{ cursor:pointer; }
-    thead th .sort-indicator{ margin-left:8px; font-size:12px; opacity:0.9 }
     
-    /* Loading popup */
+    .summary-card h3 {
+      color: var(--color-muted);
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+    }
+    
+    .summary-card .value {
+      font-size: 22px;
+      font-weight: 600;
+      color: var(--color-ink);
+    }
+    
+    /* Table Container */
+    .table-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: var(--color-surface);
+      border: 1px solid var(--color-hairline);
+      border-radius: 8px;
+      overflow: hidden;
+      min-height: 0;
+    }
+    
+    .table-wrapper {
+      flex: 1;
+      overflow: auto;
+      position: relative;
+    }
+    
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 800px;
+    }
+    
+    thead {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    
+    thead th {
+      background: var(--color-primary);
+      color: white;
+      text-align: left;
+      font-weight: 600;
+      padding: 12px 14px;
+      white-space: nowrap;
+      font-size: 13px;
+      letter-spacing: 0.3px;
+    }
+    
+    thead th.sortable {
+      cursor: pointer;
+    }
+    
+    thead th.sortable:hover {
+      background: var(--color-primary-hover);
+    }
+    
+    thead th .sort-indicator {
+      margin-left: 6px;
+      font-size: 11px;
+      opacity: 0.7;
+    }
+    
+    tbody td {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--color-hairline);
+      font-size: 14px;
+      vertical-align: middle;
+    }
+    
+    tbody tr:nth-child(even) {
+      background: var(--color-canvas-soft);
+    }
+    
+    tbody tr:hover {
+      background: rgba(20, 86, 240, 0.04);
+    }
+    
+    /* Footer - fixed at bottom */
+    tfoot {
+      position: sticky;
+      bottom: 0;
+      z-index: 5;
+    }
+    
+    tfoot tr {
+      background: var(--color-canvas);
+      font-weight: 600;
+    }
+    
+    tfoot td {
+      padding: 10px 12px;
+      border-top: 2px solid var(--color-primary);
+      font-size: 12px;
+      color: var(--color-ink);
+    }
+    
+    .stt {
+      color: var(--color-primary);
+      font-weight: 600;
+      text-align: center;
+      width: 50px;
+    }
+    
+    .number-cell {
+      text-align: center;
+      font-weight: 500;
+    }
+    
+    .employee-name {
+      font-weight: 600;
+      color: var(--color-ink);
+    }
+    
+    /* Loading */
     .loading-overlay {
       position: fixed;
       top: 0;
       left: 0;
       right: 0;
       bottom: 0;
-      background: rgba(0, 0, 0, 0.5);
+      background: rgba(247, 247, 244, 0.95);
       display: flex;
       align-items: center;
       justify-content: center;
       z-index: 9999;
     }
+    
     .loading-content {
       background: white;
-      padding: 2rem;
-      border-radius: 12px;
+      padding: 24px 40px;
+      border-radius: 8px;
       text-align: center;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+      border: 1px solid var(--color-hairline);
     }
+    
     .loading-spinner {
-      border: 4px solid #f3f3f3;
-      border-top: 4px solid #667eea;
+      border: 3px solid var(--color-hairline);
+      border-top: 3px solid var(--color-primary);
       border-radius: 50%;
-      width: 40px;
-      height: 40px;
-      animation: spin 1s linear infinite;
-      margin: 0 auto 1rem;
+      width: 32px;
+      height: 32px;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 12px;
     }
+    
     @keyframes spin {
       0% { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
     }
+    
     .loading-overlay.hidden {
       display: none;
+    }
+    
+    /* Responsive */
+    @media (max-width: 1024px) {
+      .main-content {
+        margin-left: 280px;
+        padding: 32px;
+      }
+      
+      .stats-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+      }
+      
+      .grid-3 {
+        grid-template-columns: 1fr !important;
+      }
+    }
+    
+    @media (max-width: 768px) {
+      body {
+        padding: 12px;
+        height: auto;
+        overflow: auto;
+      }
+      
+      .page-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+      }
+      
+      .page-actions {
+        width: 100%;
+        flex-wrap: wrap;
+      }
+      
+      .stats-summary {
+        flex-wrap: wrap;
+      }
+      
+      .summary-card {
+        min-width: calc(50% - 6px);
+      }
+      
+      input.search {
+        width: 100%;
+      }
+      
+      .table-container {
+        height: auto;
+        min-height: 400px;
+      }
+      
+      .month-toggle {
+        width: 100%;
+      }
+      
+      .month-btn {
+        flex: 1;
+        text-align: center;
+      }
     }
   </style>
 </head>
 <body>
+
 <!-- Loading popup -->
 <div id="loadingOverlay" class="loading-overlay hidden">
   <div class="loading-content">
     <div class="loading-spinner"></div>
-    <div>Đang tải dữ liệu...</div>
+    <div style="font-size: 13px; color: var(--color-body);">Đang tải dữ liệu...</div>
   </div>
 </div>
-<header>
-  <div class="container">
-    <div class="header-content">
-      <div class="logo">📊 MeraGroup</div>
-      <nav>
-        <ul>
-<!--          <li><a href="/">Dashboard</a></li>-->
-          <li><a href="/saleReport" style="font-size: 25px">SALE 1</a></li>
-          <li><a href="/stats" style="font-size: 25px" class="active">SALE 2</a></li>
-<!--          <li><a href="/config">Cấu Hình</a></li>-->
-        </ul>
-      </nav>
-    </div>
+
+<div class="page-header">
+  <div>
+    <div class="page-title">📈 Thống Kê Lịch Hẹn</div>
+    <div class="page-meta" id="fetchedAtInfo"></div>
   </div>
-</header>
 
-<section class="content-section">
-  <div class="container">
-    <h1 class="section-title">📈 Thống Kê Lịch Hẹn</h1>
+  <div class="page-actions">
+    <input id="searchInput" class="search" type="search" placeholder="Tìm nhân viên..." />
 
-    <!-- Search by employee name -->
-    <div style="margin-bottom: 1rem; display:flex; justify-content:flex-end;">
-      <input id="searchInput" class="search-input" type="search" placeholder="Tìm theo tên nhân viên" />
+    <div class="month-toggle">
+      <a href="/stats?customerMonth=CurrentMonth" id="currentMonthBtn" class="month-btn active">📅 Tháng Này</a>
+      <a href="/stats?customerMonth=LastMonth" id="lastMonthBtn" class="month-btn">📆 Tháng Trước</a>
     </div>
 
-    <div id="errorAlert" class="alert alert-error" style="display:none;"></div>
-    <div id="successAlert" class="alert alert-success" style="display:none;"></div>
+    <form action="/stats/refresh" method="post" id="refreshForm">
+      <input type="hidden" name="customerMonth" id="refreshCustomerMonth" />
+      <button type="submit" class="primary">🔄 Làm mới</button>
+    </form>
 
-    <div style="margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
-      <div style="display: flex; align-items: center; gap: 1rem;">
-        <div id="fetchedAtInfo" style="color: #666; font-size: 0.9rem;">
-          <!-- Will be populated by JavaScript -->
-        </div>
-      </div>
-      <div style="display: flex; align-items: center; gap: 1rem;">
-        <!-- Nút chọn lọc tháng -->
-        <div style="display: flex; gap: 0.5rem; background: white; padding: 0.5rem; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-          <a href="/stats?customerMonth=CurrentMonth" id="currentMonthBtn" class="month-btn active"
-             style="padding: 0.5rem 1rem; text-decoration: none; border-radius: 4px; transition: all 0.3s; font-weight: 500;">
-            📅 Tháng Này
-          </a>
-          <a href="/stats?customerMonth=LastMonth" id="lastMonthBtn" class="month-btn"
-             style="padding: 0.5rem 1rem; text-decoration: none; border-radius: 4px; transition: all 0.3s; font-weight: 500;">
-            📆 Tháng Trước
-          </a>
-        </div>
-        <form action="/stats/refresh" method="post" style="display: inline;" id="refreshForm">
-          <input type="hidden" name="customerMonth" id="refreshCustomerMonth" />
-          <button type="submit" class="refresh-btn">🔄 Làm Mới Dữ Liệu</button>
-        </form>
-        <a href="#" id="exportStatsBtn" class="refresh-btn" style="background:#28a745; text-decoration:none; display:inline-block; padding:0.8rem 1.5rem; border-radius:4px; border:none; color:white; font-weight:500;">📥 Xuất Excel</a>
-      </div>
-    </div>
+    <a href="#" id="exportStatsBtn" style="text-decoration: none; padding: 8px 14px; border-radius: 6px; background: #1f8a65; color: white; border: none; cursor: pointer; font-size: 13px; font-weight: 500;">
+      📥 Excel
+    </a>
+  </div>
+</div>
 
-    <!-- Summary Cards -->
-    <div class="stats-summary" id="summaryCards" style="display:none;">
-      <div class="summary-card">
-        <h3>Tổng Nhân Viên</h3>
-        <div class="value" id="totalEmployees">0</div>
-      </div>
-      <div class="summary-card">
-        <h3>Tổng Khách Hàng</h3>
-        <div class="value" id="totalKhach">0</div>
-      </div>
-      <div class="summary-card">
-        <h3>Tổng Lịch Hẹn</h3>
-        <div class="value" id="totalLich">0</div>
-      </div>
-      <div class="summary-card">
-        <h3>Hoàn Thành</h3>
-        <div class="value" id="totalHoanThanh">0</div>
-      </div>
-    </div>
+<div id="errorAlert" class="alert error" style="display:none;"></div>
+<div id="successAlert" class="alert success" style="display:none;"></div>
 
-    <!-- Stats Table -->
-    <div class="table-wrapper">
-      <table class="stats-table">
-        <thead>
+<!-- Summary Cards -->
+<div class="stats-summary" id="summaryCards" style="display:none;">
+  <div class="summary-card">
+    <h3>Tổng NV</h3>
+    <div class="value" id="totalEmployees">0</div>
+  </div>
+  <div class="summary-card">
+    <h3>Tổng Khách</h3>
+    <div class="value" id="totalKhach">0</div>
+  </div>
+  <div class="summary-card">
+    <h3>Tổng Lịch</h3>
+    <div class="value" id="totalLich">0</div>
+  </div>
+  <div class="summary-card">
+    <h3>Hoàn Thành</h3>
+    <div class="value" id="totalHoanThanh">0</div>
+  </div>
+</div>
+
+<!-- Table -->
+<div class="table-container">
+  <div class="table-wrapper">
+    <table class="stats-table">
+      <thead>
         <tr>
-          <th>STT</th>
+          <th style="width:50px;">STT</th>
           <th>Tên Nhân Viên</th>
           <th>Tổng Khách</th>
           <th>Tổng Lịch</th>
@@ -315,119 +503,140 @@
           <th>Hoàn Thành</th>
           <th>Quá Hạn</th>
         </tr>
-        </thead>
-        <tbody id="tableBody">
-        <!-- Data will be populated by JavaScript -->
-        </tbody>
-      </table>
-    </div>
-
+      </thead>
+      <tbody id="tableBody"></tbody>
+      <tfoot id="tableFoot">
+        <tr>
+          <td colspan="2" class="stt">TỔNG</td>
+          <td class="number-cell" id="totalKhachFoot">0</td>
+          <td class="number-cell" id="totalLichFoot">0</td>
+          <td class="number-cell" id="totalMuonFoot">0</td>
+          <td class="number-cell" id="totalHoanThanhFoot">0</td>
+          <td class="number-cell" id="totalQuaHanFoot">0</td>
+        </tr>
+      </tfoot>
+    </table>
   </div>
-</section>
-
-<footer>
-  <p>&copy; 2025 Công Ty. Bảo lưu mọi quyền.</p>
-</footer>
+</div>
 
 <script>
-  // Biến dùng chung cho sort/filter ở trang stats
-  let statsRows = [];
-  let statsOriginalRows = [];
+let statsRows = [];
+let statsOriginalRows = [];
 
-  document.addEventListener('DOMContentLoaded', function(){
-    const table = document.querySelector('.stats-table');
-    if(!table) return;
-    const tbody = table.querySelector('tbody');
-    statsRows = Array.from(tbody.querySelectorAll('tr')).filter(r=> r.querySelectorAll('td').length>0);
-    statsOriginalRows = statsRows.slice();
-    const searchInput = document.getElementById('searchInput');
-    const currentMonthBtn = document.getElementById('currentMonthBtn');
-    const lastMonthBtn = document.getElementById('lastMonthBtn');
-    const exportStatsBtn = document.getElementById('exportStatsBtn');
+document.addEventListener('DOMContentLoaded', function(){
+  const table = document.querySelector('.stats-table');
+  if(!table) return;
+  const tbody = table.querySelector('tbody');
+  statsRows = Array.from(tbody.querySelectorAll('tr')).filter(r=> r.querySelectorAll('td').length>0);
+  statsOriginalRows = statsRows.slice();
+  const searchInput = document.getElementById('searchInput');
+  const currentMonthBtn = document.getElementById('currentMonthBtn');
+  const lastMonthBtn = document.getElementById('lastMonthBtn');
+  const exportStatsBtn = document.getElementById('exportStatsBtn');
 
-    // Dynamic month labels
-    const now = new Date();
-    const currentMonth = now.getMonth() + 1;
-    const lastMonth = currentMonth === 1 ? 12 : currentMonth - 1;
-    if (currentMonthBtn) currentMonthBtn.textContent = `📅 Tháng ${currentMonth}`;
-    if (lastMonthBtn) lastMonthBtn.textContent = `📆 Tháng ${lastMonth}`;
+  const now = new Date();
+  const currentMonth = now.getMonth() + 1;
+  const lastMonth = currentMonth === 1 ? 12 : currentMonth - 1;
+  if (currentMonthBtn) currentMonthBtn.textContent = `📅 Tháng ${currentMonth}`;
+  if (lastMonthBtn) lastMonthBtn.textContent = `📆 Tháng ${lastMonth}`;
 
-    const ths = Array.from(table.querySelectorAll('thead th'));
-    ths.forEach((th, idx)=>{
-      if(idx===0) return; // skip STT column
-      th.classList.add('sortable');
-      const span = document.createElement('span');
-      span.className = 'sort-indicator';
-      th.appendChild(span);
-      th.dataset.sortState = 'none';
-      th.addEventListener('click', ()=>{
-        const state = th.dataset.sortState;
-        const next = state==='none' ? 'asc' : state==='asc' ? 'desc' : 'none';
-        ths.forEach(t=>{ if(t!==th){ t.dataset.sortState='none'; const si = t.querySelector('.sort-indicator'); if(si) si.textContent=''; }});
-        th.dataset.sortState = next;
-        const ind = th.querySelector('.sort-indicator');
-        if(ind) ind.textContent = next==='asc' ? '▲' : next==='desc' ? '▼' : '';
-        if(next==='none'){
-          restoreOriginalOrder();
-          applyFilter();
-        } else {
-          sortByColumn(idx, next);
-        }
-      });
-    });
-
-    function parseCellValue(text){
-      if(!text) return '';
-      const trimmed = text.replace('%','').replace(/,/g,'').trim();
-      if(trimmed==='' ) return '';
-      const n = parseFloat(trimmed);
-      if(!isNaN(n)) return n;
-      return trimmed.toLowerCase();
-    }
-
-    function sortByColumn(idx, order){
-      const visible = statsRows.filter(r=> r.style.display !== 'none');
-      visible.sort((a,b)=>{
-        const aV = parseCellValue((a.children[idx]||{}).textContent||'');
-        const bV = parseCellValue((b.children[idx]||{}).textContent||'');
-        if(typeof aV === 'number' && typeof bV === 'number'){
-          return order==='asc' ? aV - bV : bV - aV;
-        } else {
-          return order==='asc' ? String(aV).localeCompare(String(bV)) : String(bV).localeCompare(String(aV));
-        }
-      });
-      const hidden = statsOriginalRows.filter(r=> r.style.display === 'none');
-      tbody.innerHTML = '';
-      visible.forEach(r=> tbody.appendChild(r));
-      hidden.forEach(r=> tbody.appendChild(r));
-    }
-
-    function restoreOriginalOrder(){
-      tbody.innerHTML = '';
-      statsOriginalRows.forEach(r=> tbody.appendChild(r));
-      statsRows = Array.from(tbody.querySelectorAll('tr')).filter(r=> r.querySelectorAll('td').length>0);
-    }
-
-    function applyFilter(){
-      const q = (searchInput ? searchInput.value : '').trim().toLowerCase();
-      statsRows.forEach(r=>{
-        const nameCell = r.children[1];
-        const text = nameCell ? nameCell.textContent.toLowerCase() : '';
-        r.style.display = q === '' || text.indexOf(q) !== -1 ? '' : 'none';
-      });
-      const activeTh = ths.find(t=> t.dataset.sortState && t.dataset.sortState!=='none');
-      if(activeTh){
-        sortByColumn(ths.indexOf(activeTh), activeTh.dataset.sortState);
+  const ths = Array.from(table.querySelectorAll('thead th'));
+  ths.forEach((th, idx)=>{
+    if(idx===0) return;
+    th.classList.add('sortable');
+    const span = document.createElement('span');
+    span.className = 'sort-indicator';
+    th.appendChild(span);
+    th.dataset.sortState = 'none';
+    th.addEventListener('click', ()=>{
+      const state = th.dataset.sortState;
+      const next = state==='none' ? 'asc' : state==='asc' ? 'desc' : 'none';
+      ths.forEach(t=>{ if(t!==th){ t.dataset.sortState='none'; const si = t.querySelector('.sort-indicator'); if(si) si.textContent=''; }});
+      th.dataset.sortState = next;
+      const ind = th.querySelector('.sort-indicator');
+      if(ind) ind.textContent = next==='asc' ? '▲' : next==='desc' ? '▼' : '';
+      if(next==='none'){
+        restoreOriginalOrder();
+        applyFilter();
+      } else {
+        sortByColumn(idx, next);
       }
-    }
-
-    if(searchInput){
-      searchInput.addEventListener('input', ()=>{ applyFilter(); });
-    }
-
+    });
   });
 
-// Load data from API
+  function parseCellValue(text){
+    if(!text) return '';
+    const trimmed = text.replace('%','').replace(/,/g,'').trim();
+    if(trimmed==='') return '';
+    const n = parseFloat(trimmed);
+    if(!isNaN(n)) return n;
+    return trimmed.toLowerCase();
+  }
+
+  function sortByColumn(idx, order){
+    const visible = statsRows.filter(r=> r.style.display !== 'none');
+    visible.sort((a,b)=>{
+      const aV = parseCellValue((a.children[idx]||{}).textContent||'');
+      const bV = parseCellValue((b.children[idx]||{}).textContent||'');
+      if(typeof aV === 'number' && typeof bV === 'number'){
+        return order==='asc' ? aV - bV : bV - aV;
+      } else {
+        return order==='asc' ? String(aV).localeCompare(String(bV)) : String(bV).localeCompare(String(aV));
+      }
+    });
+    const hidden = statsOriginalRows.filter(r=> r.style.display === 'none');
+    tbody.innerHTML = '';
+    visible.forEach(r=> tbody.appendChild(r));
+    hidden.forEach(r=> tbody.appendChild(r));
+  }
+
+  function restoreOriginalOrder(){
+    tbody.innerHTML = '';
+    statsOriginalRows.forEach(r=> tbody.appendChild(r));
+    statsRows = Array.from(tbody.querySelectorAll('tr')).filter(r=> r.querySelectorAll('td').length>0);
+    updateTotalsFromVisibleRows();
+  }
+
+  function applyFilter(){
+    const q = (searchInput ? searchInput.value : '').trim().toLowerCase();
+    statsRows.forEach(r=>{
+      const nameCell = r.children[1];
+      const text = nameCell ? nameCell.textContent.toLowerCase() : '';
+      r.style.display = q === '' || text.indexOf(q) !== -1 ? '' : 'none';
+    });
+    updateTotalsFromVisibleRows();
+    const activeTh = ths.find(t=> t.dataset.sortState && t.dataset.sortState!=='none');
+    if(activeTh){
+      sortByColumn(ths.indexOf(activeTh), activeTh.dataset.sortState);
+    }
+  }
+
+  function updateTotalsFromVisibleRows(){
+    let totalKhach = 0, totalLich = 0, totalMuon = 0, totalHoanThanh = 0, totalQuaHan = 0;
+    const visibleRows = statsRows.filter(r => r.style.display !== 'none');
+    visibleRows.forEach(tr => {
+      const cells = tr.children;
+      if (cells.length >= 7) {
+        totalKhach += parseInt(cells[2].textContent.replace(/\./g, '')) || 0;
+        totalLich += parseInt(cells[3].textContent.replace(/\./g, '')) || 0;
+        totalMuon += parseInt(cells[4].textContent.replace(/\./g, '')) || 0;
+        totalHoanThanh += parseInt(cells[5].textContent.replace(/\./g, '')) || 0;
+        totalQuaHan += parseInt(cells[6].textContent.replace(/\./g, '')) || 0;
+      }
+    });
+    document.getElementById('totalKhachFoot').textContent = formatNumber(totalKhach);
+    document.getElementById('totalLichFoot').textContent = formatNumber(totalLich);
+    document.getElementById('totalMuonFoot').textContent = formatNumber(totalMuon);
+    document.getElementById('totalHoanThanhFoot').textContent = formatNumber(totalHoanThanh);
+    document.getElementById('totalQuaHanFoot').textContent = formatNumber(totalQuaHan);
+  }
+
+  if(searchInput){
+    searchInput.addEventListener('input', ()=>{ applyFilter(); });
+  }
+
+});
+
 (async function() {
   const loadingOverlay = document.getElementById('loadingOverlay');
   const tableBody = document.getElementById('tableBody');
@@ -437,15 +646,13 @@
   const summaryCards = document.getElementById('summaryCards');
   const currentMonthBtn = document.getElementById('currentMonthBtn');
   const lastMonthBtn = document.getElementById('lastMonthBtn');
-  const refreshForm = document.getElementById('refreshForm');
   const refreshCustomerMonth = document.getElementById('refreshCustomerMonth');
+  const exportStatsBtn = document.getElementById('exportStatsBtn');
   
-  // Get customerMonth from URL params
   const urlParams = new URLSearchParams(window.location.search);
   const customerMonth = urlParams.get('customerMonth') || 'CurrentMonth';
   refreshCustomerMonth.value = customerMonth;
   
-  // Update active button
   if (customerMonth === 'CurrentMonth') {
     currentMonthBtn.classList.add('active');
     lastMonthBtn.classList.remove('active');
@@ -454,7 +661,6 @@
     lastMonthBtn.classList.add('active');
   }
   
-  // Show loading
   loadingOverlay.classList.remove('hidden');
   
   try {
@@ -464,36 +670,36 @@
     loadingOverlay.classList.add('hidden');
     
     if (data.error) {
-      errorAlert.style.display = 'block';
+      errorAlert.style.display = 'flex';
       errorAlert.textContent = data.error;
       return;
     }
     
-    // Update fetchedAt info
     if (data.fetchedAt) {
-      const fromCache = data.fromCache ? '📦 Dữ liệu từ cache - ' : '🔄 Dữ liệu mới - ';
+      const fromCache = data.fromCache ? '📦 Cache - ' : '🔄 Mới - ';
       const date = new Date(data.fetchedAt);
       const formattedDate = date.toLocaleString('vi-VN', {
         day: '2-digit',
         month: '2-digit',
         year: 'numeric',
         hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit'
+        minute: '2-digit'
       });
-      fetchedAtInfo.innerHTML = `${fromCache}Cập nhật lúc: <strong>${formattedDate}</strong>`;
+      fetchedAtInfo.innerHTML = `${fromCache}Cập nhật: <strong>${formattedDate}</strong>`;
     }
     
-    // Update summary cards
     if (data.statsList && data.statsList.length > 0) {
-      summaryCards.style.display = 'grid';
+      summaryCards.style.display = 'flex';
       document.getElementById('totalEmployees').textContent = data.statsList.length;
       document.getElementById('totalKhach').textContent = formatNumber(data.totalKhach || 0);
       document.getElementById('totalLich').textContent = formatNumber(data.totalLich || 0);
       document.getElementById('totalHoanThanh').textContent = formatNumber(data.totalHoanThanh || 0);
+      
+      document.getElementById('totalKhachFoot').textContent = formatNumber(data.totalKhach || 0);
+      document.getElementById('totalLichFoot').textContent = formatNumber(data.totalLich || 0);
+      document.getElementById('totalHoanThanhFoot').textContent = formatNumber(data.totalHoanThanh || 0);
     }
     
-    // Render table
     if (data.statsList && data.statsList.length > 0) {
       tableBody.innerHTML = '';
       data.statsList.forEach((stat, index) => {
@@ -501,16 +707,15 @@
         tr.innerHTML = `
           <td class="stt">${index + 1}</td>
           <td class="employee-name">${escapeHtml(stat.employeeName || '-')}</td>
-          <td class="number-cell" style="text-align: center">${formatNumber(stat.tongKhach || 0)}</td>
-          <td class="number-cell" style="text-align: center">${formatNumber(stat.tongLich || 0)}</td>
-          <td class="number-cell" style="text-align: center">${formatNumber(stat.hoanThanhMuon || 0)}</td>
-          <td class="number-cell" style="text-align: center">${formatNumber(stat.hoanThanh || 0)}</td>
-          <td class="number-cell" style="text-align: center">${formatNumber(stat.quaHan || 0)}</td>
+          <td class="number-cell">${formatNumber(stat.tongKhach || 0)}</td>
+          <td class="number-cell">${formatNumber(stat.tongLich || 0)}</td>
+          <td class="number-cell">${formatNumber(stat.hoanThanhMuon || 0)}</td>
+          <td class="number-cell">${formatNumber(stat.hoanThanh || 0)}</td>
+          <td class="number-cell">${formatNumber(stat.quaHan || 0)}</td>
         `;
         tableBody.appendChild(tr);
       });
       
-      // Reinitialize table functionality
       setTimeout(() => {
         const tbody = document.querySelector('tbody');
         if (tbody) {
@@ -519,10 +724,9 @@
         }
       }, 100);
     } else {
-      tableBody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 2rem; color: #666;">Không có dữ liệu thống kê. Vui lòng kiểm tra cấu hình tại <a href="/config">trang cấu hình</a>.</td></tr>';
+      tableBody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 2rem; color: var(--color-muted);">Không có dữ liệu. <a href="/config" style="color: var(--color-primary);">Cấu hình</a></td></tr>';
     }
     
-    // Export button handler
     if (exportStatsBtn) {
       exportStatsBtn.onclick = (e) => {
         e.preventDefault();
@@ -538,7 +742,7 @@
 
   } catch (error) {
     loadingOverlay.classList.add('hidden');
-    errorAlert.style.display = 'block';
+    errorAlert.style.display = 'flex';
     errorAlert.textContent = 'Lỗi khi tải dữ liệu: ' + error.message;
   }
 })();

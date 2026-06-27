@@ -7,435 +7,1014 @@
     <link rel="icon" type="image/jpeg" href="/meraicon.ico">
     <meta content="width=device-width, initial-scale=1.0" name="viewport" />
     <title>MeraGroup - Sales Command Dashboard</title>
-    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-    <link
-        href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Manrope:wght@400;500;600;700&amp;display=swap"
-        rel="stylesheet" />
-    <link
-        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
-        rel="stylesheet" />
-    <script id="tailwind-config">
-        tailwind.config = {
-            darkMode: "class",
-            theme: {
-                extend: {
-                    colors: {
-                        "primary": "#6366F1",
-                        "tertiary": "#EC4899",
-                        "background": "#F8FAFC",
-                        "surface": "#FFFFFF",
-                        "on-surface": "#1E293B",
-                        "on-surface-variant": "#64748B",
-                        "outline": "#E2E8F0",
-                        "surface-container": "#F1F5F9",
-                        "surface-container-high": "#E2E8F0",
-                        "surface-container-low": "#FFFFFF",
-                        "primary-dim": "#4F46E5",
-                        "secondary": "#8B5CF6",
-                        "error": "#EF4444",
-                        "on-primary": "#FFFFFF"
-                    },
-                    fontFamily: {
-                        "headline": ["Plus Jakarta Sans"],
-                        "body": ["Manrope"],
-                        "label": ["Manrope"]
-                    },
-                    borderRadius: { "DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px" },
-                },
-            },
-        }
-    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --color-primary: #1456f0;
+            --color-primary-hover: #0d47a1;
+            --color-canvas: #f7f7f4;
+            --color-canvas-soft: #fafaf7;
+            --color-surface: #ffffff;
+            --color-ink: #26251e;
+            --color-body: #5a5852;
+            --color-muted: #807d72;
+            --color-hairline: #e6e5e0;
+            --color-hairline-strong: #cfcdc4;
+            --color-on-primary: #ffffff;
+            --color-success: #1f8a65;
+            --color-warning: #b45309;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
-            background-color: #F8FAFC;
-            color: #1E293B;
-            font-family: 'Manrope', sans-serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: #f7f7f4;
+            color: #26251e;
             overflow-x: hidden;
+            min-height: 100vh;
         }
 
         .material-symbols-outlined {
             font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
         }
 
-        .clean-card {
-            background: #FFFFFF;
-            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
-            border: 1px solid #E2E8F0;
+        /* Sidebar */
+        .sidebar {
+            width: 280px;
+            height: 100vh;
+            position: fixed;
+            left: 0;
+            top: 0;
+            overflow-y: auto;
+            background: #ffffff;
+            border-right: 1px solid #e6e5e0;
+            display: flex;
+            flex-direction: column;
+            gap: 32px;
+            padding: 32px 24px;
+            z-index: 60;
         }
 
-        .glow-indigo-light {
-            box-shadow: 0 10px 15px -3px rgba(99, 102, 241, 0.08);
+        .sidebar-logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 0 8px;
         }
 
-        .text-gradient {
-            background: linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+        .sidebar-logo-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            background: #1456f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 700;
+            font-size: 18px;
+        }
+
+        .sidebar-brand {
+            font-size: 20px;
+            font-weight: 700;
+            color: #26251e;
+        }
+
+        .sidebar-brand span {
+            color: #1456f0;
+        }
+
+        .sidebar-subtitle {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.2em;
+            color: #807d72;
+            font-weight: 600;
+        }
+
+        /* Navigation */
+        .nav-menu {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            border-radius: 8px;
+            color: #5a5852;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+
+        .nav-item:hover {
+            background: #fafaf7;
+            color: #26251e;
+            border-color: #e6e5e0;
+        }
+
+        .nav-item.active {
+            background: rgba(20, 86, 240, 0.08);
+            color: #1456f0;
+        }
+
+        .nav-item .material-symbols-outlined {
+            font-size: 20px;
+        }
+
+        /* User Card */
+        .user-card {
+            padding: 16px;
+            border-radius: 12px;
+            background: #f7f7f4;
+            border: 1px solid #e6e5e0;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            object-fit: cover;
+            border: 2px solid rgba(20, 86, 240, 0.2);
+        }
+
+        .user-name {
+            font-size: 14px;
+            font-weight: 600;
+            color: #26251e;
+        }
+
+        .user-role {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: #807d72;
+            font-weight: 600;
+        }
+
+        /* Top Bar */
+        .top-bar {
+            position: fixed;
+            top: 0;
+            right: 0;
+            width: calc(100% - 280px);
+            height: 80px;
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid #e6e5e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 40px;
+            z-index: 50;
+        }
+
+        .breadcrumb {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            color: #807d72;
+        }
+
+        .breadcrumb-current {
+            color: #1456f0;
+            font-weight: 600;
+            border-bottom: 2px solid rgba(20, 86, 240, 0.2);
+            padding-bottom: 2px;
+        }
+
+        .top-actions {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .btn-primary {
+            background: #1456f0;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+        }
+
+        .btn-primary:hover {
+            background: #0d47a1;
+        }
+
+        .btn-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #807d72;
+            background: transparent;
+            border: 1px solid #e6e5e0;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-icon:hover {
+            background: #fafaf7;
+            color: #1456f0;
+        }
+
+        /* Main Content */
+        .main-content {
+            margin-left: 280px;
+            padding-top: 80px;
+            padding: 80px 40px 40px;
+            min-height: 100vh;
+        }
+
+        /* Hero Card */
+        .hero-card {
+            background: #ffffff;
+            border: 1px solid #e6e5e0;
+            border-radius: 12px;
+            padding: 40px;
+            margin-bottom: 48px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 300px;
+            height: 300px;
+            background: rgba(20, 86, 240, 0.05);
+            border-radius: 50%;
+            filter: blur(60px);
+        }
+
+        .hero-title {
+            font-size: 32px;
+            font-weight: 600;
+            color: #26251e;
+            letter-spacing: -0.5px;
+            margin-bottom: 12px;
+        }
+
+        .hero-subtitle {
+            font-size: 16px;
+            color: #5a5852;
+            max-width: 600px;
+            line-height: 1.6;
+        }
+
+        .hero-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        .date-picker {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            background: #f7f7f4;
+            border: 1px solid #e6e5e0;
+            border-radius: 8px;
+            font-size: 14px;
+            color: #5a5852;
+            cursor: pointer;
+        }
+
+        .date-picker:hover {
+            border-color: #cfcdc4;
+        }
+
+        /* Stats Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 48px;
+        }
+
+        .stat-card {
+            background: #ffffff;
+            border: 1px solid #e6e5e0;
+            border-radius: 12px;
+            padding: 24px;
+            transition: all 0.2s ease;
+        }
+
+        .stat-card:hover {
+            border-color: #cfcdc4;
+        }
+
+        .stat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 16px;
+        }
+
+        .stat-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .stat-change {
+            font-size: 12px;
+            font-weight: 600;
+            padding: 4px 8px;
+            border-radius: 6px;
+        }
+
+        .stat-change.positive {
+            background: rgba(31, 138, 101, 0.1);
+            color: #1f8a65;
+        }
+
+        .stat-change.negative {
+            background: rgba(207, 45, 86, 0.1);
+            color: #cf2d56;
+        }
+
+        .stat-label {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.88px;
+            color: #807d72;
+            margin-bottom: 8px;
+        }
+
+        .stat-value {
+            font-size: 28px;
+            font-weight: 600;
+            color: #26251e;
+            letter-spacing: -0.5px;
+        }
+
+        .stat-meta {
+            font-size: 11px;
+            color: #a09c92;
+            margin-top: 8px;
+        }
+
+        /* Insights Row */
+        .insights-row {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin-bottom: 48px;
+        }
+
+        .insight-card {
+            background: #ffffff;
+            padding: 20px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            border-left: 3px solid;
+        }
+
+        .insight-card.primary {
+            border-color: #1456f0;
+        }
+
+        .insight-card.success {
+            border-color: #1f8a65;
+        }
+
+        .insight-card.warning {
+            border-color: #b45309;
+        }
+
+        .insight-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .insight-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.88px;
+            color: #807d72;
+            font-weight: 600;
+        }
+
+        .insight-value {
+            font-size: 14px;
+            font-weight: 600;
+            color: #26251e;
+        }
+
+        /* Bento Grid */
+        .bento-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 24px;
+            margin-bottom: 48px;
+        }
+
+        .bento-card {
+            background: #ffffff;
+            border: 1px solid #e6e5e0;
+            border-radius: 12px;
+            padding: 32px;
+        }
+
+        .bento-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 32px;
+        }
+
+        .bento-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #26251e;
+        }
+
+        .bento-subtitle {
+            font-size: 12px;
+            color: #807d72;
+            margin-top: 4px;
+        }
+
+        .chart-legend {
+            display: flex;
+            gap: 16px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+            color: #5a5852;
+        }
+
+        .legend-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        /* Bar Chart */
+        .bar-chart {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .bar-item {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .bar-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            color: #5a5852;
+        }
+
+        .bar-value {
+            font-weight: 600;
+            color: #26251e;
+        }
+
+        .bar-track {
+            height: 8px;
+            background: #f7f7f4;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .bar-fill {
+            height: 100%;
+            border-radius: 4px;
+        }
+
+        /* Alerts Section */
+        .alerts-section {
+            margin-bottom: 48px;
+        }
+
+        .alerts-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .alerts-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+        }
+
+        .alert-card {
+            background: #ffffff;
+            padding: 24px;
+            border-radius: 12px;
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
+            border: 1px solid #e6e5e0;
+            transition: all 0.2s ease;
+        }
+
+        .alert-card:hover {
+            border-color: #cfcdc4;
+        }
+
+        .alert-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .alert-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #26251e;
+            margin-bottom: 8px;
+        }
+
+        .alert-desc {
+            font-size: 13px;
+            color: #5a5852;
+            line-height: 1.5;
+        }
+
+        .alert-action {
+            margin-top: 16px;
+            font-size: 12px;
+            font-weight: 600;
+            color: #1456f0;
+            text-decoration: underline;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Footer */
+        .footer {
+            margin-top: 80px;
+            padding-top: 32px;
+            border-top: 1px solid #e6e5e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .footer-links {
+            display: flex;
+            gap: 24px;
+        }
+
+        .footer-link {
+            font-size: 12px;
+            color: #5a5852;
+            text-decoration: none;
+        }
+
+        .footer-link:hover {
+            color: #1456f0;
+        }
+
+        .footer-copy {
+            font-size: 12px;
+            color: #807d72;
+        }
+
+        /* Background Decorations */
+        .bg-decoration {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .bg-orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+        }
+
+        .bg-orb-1 {
+            top: 10%;
+            left: 20%;
+            width: 400px;
+            height: 400px;
+            background: rgba(20, 86, 240, 0.03);
+        }
+
+        .bg-orb-2 {
+            bottom: 10%;
+            right: 10%;
+            width: 300px;
+            height: 300px;
+            background: rgba(31, 138, 101, 0.03);
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .sidebar {
+                width: 72px;
+                padding: 24px 12px;
+            }
+            .sidebar-brand,
+            .sidebar-subtitle,
+            .nav-item span,
+            .user-card > div {
+                display: none;
+            }
+            .nav-item {
+                justify-content: center;
+            }
+            .main-content {
+                margin-left: 72px;
+            }
+            .top-bar {
+                width: calc(100% - 72px);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            .main-content {
+                margin-left: 0;
+            }
+            .top-bar {
+                width: 100%;
+                padding: 0 24px;
+            }
+            .stats-grid,
+            .insights-row,
+            .bento-grid,
+            .alerts-grid {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
 
-<body class="antialiased text-on-surface">
-    <!-- SideNavBar Shell -->
-    <aside
-        class="h-screen w-72 fixed left-0 top-0 overflow-y-auto bg-white border-r border-slate-200 flex flex-col gap-8 py-10 px-6 z-[60]">
-        <div class="flex items-center gap-3 px-2">
-            <div class="w-10 h-10 rounded-xl bg-primary flex items-center justify-center shadow-lg shadow-primary/20">
-                <span class="material-symbols-outlined text-white"
-                    style="font-variation-settings: 'FILL' 1;">rocket_launch</span>
-            </div>
+<body class="antialiased">
+    <!-- Background Decorations -->
+    <div class="bg-decoration">
+        <div class="bg-orb bg-orb-1"></div>
+        <div class="bg-orb bg-orb-2"></div>
+    </div>
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-logo">
+            <div class="sidebar-logo-icon">M</div>
             <div>
-                <h1 class="text-2xl font-black text-primary font-headline tracking-tight">MeraGroup</h1>
-                <p class="text-[10px] uppercase tracking-[0.2em] text-on-surface-variant font-bold">Sales Command</p>
+                <div class="sidebar-brand">Mera<span>Group</span></div>
+                <div class="sidebar-subtitle">Sales Command</div>
             </div>
         </div>
-        <nav class="flex-1 flex flex-col gap-1">
-            <!-- Active Tab: Overview -->
-            <a class="bg-primary/5 text-primary rounded-2xl flex items-center gap-3 px-4 py-3 font-headline font-semibold tracking-tight text-sm active:scale-[0.97] transition-all duration-300"
-                href="#">
-                <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">dashboard</span>
+
+        <nav class="nav-menu">
+            <a href="#" class="nav-item active">
+                <span class="material-symbols-outlined">dashboard</span>
                 <span>Overview</span>
             </a>
-            <a class="text-slate-500 hover:bg-slate-50 hover:text-primary flex items-center gap-3 px-4 py-3 font-headline font-semibold tracking-tight text-sm active:scale-[0.97] transition-all duration-300 rounded-2xl"
-                href="#">
+            <a href="#" class="nav-item">
                 <span class="material-symbols-outlined">monitoring</span>
                 <span>Performance</span>
             </a>
-            <a class="text-slate-500 hover:bg-slate-50 hover:text-primary flex items-center gap-3 px-4 py-3 font-headline font-semibold tracking-tight text-sm active:scale-[0.97] transition-all duration-300 rounded-2xl"
-                href="#">
+            <a href="#" class="nav-item">
                 <span class="material-symbols-outlined">query_stats</span>
                 <span>Insights</span>
             </a>
-            <a class="text-slate-500 hover:bg-slate-50 hover:text-primary flex items-center gap-3 px-4 py-3 font-headline font-semibold tracking-tight text-sm active:scale-[0.97] transition-all duration-300 rounded-2xl"
-                href="#">
+            <a href="#" class="nav-item">
                 <span class="material-symbols-outlined">payments</span>
                 <span>Revenue</span>
             </a>
-            <a class="text-slate-500 hover:bg-slate-50 hover:text-primary flex items-center gap-3 px-4 py-3 font-headline font-semibold tracking-tight text-sm active:scale-[0.97] transition-all duration-300 rounded-2xl"
-                href="#">
+            <a href="#" class="nav-item">
                 <span class="material-symbols-outlined">group</span>
                 <span>Team</span>
             </a>
-            <a class="text-slate-500 hover:bg-slate-50 hover:text-primary flex items-center gap-3 px-4 py-3 font-headline font-semibold tracking-tight text-sm active:scale-[0.97] transition-all duration-300 rounded-2xl"
-                href="#">
+            <a href="#" class="nav-item">
                 <span class="material-symbols-outlined">settings</span>
                 <span>Settings</span>
             </a>
         </nav>
-        <div class="mt-auto flex flex-col gap-6">
-            <div class="p-4 rounded-2xl bg-slate-50 border border-slate-100 flex items-center gap-3">
-                <img alt="User Profile Avatar" class="w-10 h-10 rounded-full object-cover border-2 border-primary/20"
-                    data-alt="professional headshot of a confident male executive with short dark hair and a friendly expression in a modern office setting"
-                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuDZjP4nRQVgfBO7VNsdSjuUqe0CuUb86OGyLYvKnABxlscHGB6b1YZeZKOJjQFhz3FNYT3C7QSrAy_nIeyL_spbWi1PmWSe9RAE3Ys_fGQ2mIt1Q0_04jQBamieL1gcL-OsP-04GHLX9gMrMJ8SkczNfAjFHtRy-CH4_TTCcDfms7joeAjQrleym4fRB1ryT1KrL0CkMuRovXL4369UplKIw_5oZI64qjiPZlUw4EbBz1r4foCf0ONCuc51a98qqbYC4v1L7HvgK7C5" />
-                <div class="overflow-hidden">
-                    <p class="text-sm font-bold text-on-surface truncate">Admin</p>
-                    <p class="text-[10px] text-on-surface-variant uppercase font-bold tracking-wider">Quản lý</p>
-                </div>
-            </div>
-            <div class="flex flex-col gap-1">
-                <a class="text-slate-500 hover:text-primary flex items-center gap-3 px-4 py-2 text-xs font-semibold transition-colors"
-                    href="#">
-                    <span class="material-symbols-outlined text-sm">help</span>
-                    <span>Help Center</span>
-                </a>
-                <a class="text-slate-500 hover:text-error flex items-center gap-3 px-4 py-2 text-xs font-semibold transition-colors"
-                    href="#">
-                    <span class="material-symbols-outlined text-sm">logout</span>
-                    <span>Logout</span>
-                </a>
+
+        <div class="user-card">
+            <img alt="User Profile" class="user-avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDZjP4nRQVgfBO7VNsdSjuUqe0CuUb86OGyLYvKnABxlscHGB6b1YZeZKOJjQFhz3FNYT3C7QSrAy_nIeyL_spbWi1PmWSe9RAE3Ys_fGQ2mIt1Q0_04jQBamieL1gcL-OsP-04GHLX9gMrMJ8SkczNfAjFHtRy-CH4_TTCcDfms7joeAjQrleym4fRB1ryT1KrL0CkMuRovXL4369UplKIw_5oZI64qjiPZlUw4EbBz1r4foCf0ONCuc51a98qqbYC4v1L7HvgK7C5" />
+            <div>
+                <div class="user-name">Admin</div>
+                <div class="user-role">Quản lý</div>
             </div>
         </div>
     </aside>
-    <!-- TopAppBar Shell -->
-    <header
-        class="fixed top-0 right-0 w-[calc(100%-18rem)] z-50 bg-white/80 backdrop-blur-lg border-b border-slate-200 flex justify-between items-center h-20 px-10">
-        <div class="flex items-center gap-4">
-            <div class="flex items-center gap-2 text-on-surface-variant font-body text-sm font-medium">
-                <span>MeraGroup</span>
-                <span class="material-symbols-outlined text-xs">chevron_right</span>
-                <span class="text-primary font-bold border-b-2 border-primary/20 pb-1">Dashboard</span>
-            </div>
+
+    <!-- Top Bar -->
+    <header class="top-bar">
+        <div class="breadcrumb">
+            <span>MeraGroup</span>
+            <span class="material-symbols-outlined" style="font-size: 16px;">chevron_right</span>
+            <span class="breadcrumb-current">Dashboard</span>
         </div>
-        <div class="flex items-center gap-6">
-            <button
-                class="px-5 py-2.5 rounded-full bg-primary text-white text-sm font-bold shadow-lg shadow-primary/20 hover:bg-primary-dim transition-all active:scale-95">
+        <div class="top-actions">
+            <button class="btn-primary">
                 Tải Báo Cáo
             </button>
-            <div class="flex items-center gap-4">
-                <button
-                    class="w-10 h-10 rounded-full flex items-center justify-center text-slate-400 hover:text-primary hover:bg-slate-50 transition-all">
-                    <span class="material-symbols-outlined">notifications_active</span>
-                </button>
-                <div class="w-10 h-10 rounded-full overflow-hidden border border-slate-200">
-                    <img alt="Administrator Profile" class="w-full h-full object-cover"
-                        data-alt="portrait of a focused professional administrator in a minimalist setting with soft blue ambient lighting"
-                        src="https://lh3.googleusercontent.com/aida-public/AB6AXuDqgGx26qi0Xls1bMsmHmWuVDSKFuHqyjAsgOpAKY7yTTc0m8cHXQnmRC6ccRolnojf-edfYUCQq93Ol94yeBpxsqT1qlNaIz7dZpNoP8T91Gd0a-3BnEOH6s5u_Ab1y5TuS_8sfkQNLZaYsq5fVU095tHOCLTAjEiBszxaKDgWS5dDWXbrbZprkBWmM6HLewPjj_topZbrL78OHaHkHu_FMG_XJadHhXdzwpkHzVBYrLmXEaWa1kv7pum0HF_v7-7_dRykVcGQsSY_" />
-                </div>
-            </div>
+            <button class="btn-icon">
+                <span class="material-symbols-outlined">notifications</span>
+            </button>
+            <img alt="Administrator" class="user-avatar" style="width: 40px; height: 40px;" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDqgGx26qi0Xls1bMsmHmWuVDSKFuHqyjAsgOpAKY7yTTc0m8cHXQnmRC6ccRolnojf-edfYUCQq93Ol94yeBpxsqT1qlNaIz7dZpNoP8T91Gd0a-3BnEOH6s5u_Ab1y5TuS_8sfkQNLZaYsq5fVU095tHOCLTAjEiBszxaKDgWS5dDWXbrbZprkBWmM6HLewPjj_topZbrL78OHaHkHu_FMG_XJadHhXdzwpkHzVBYrLmXEaWa1kv7pum0HF_v7-7_dRykVcGQsSY_" />
         </div>
     </header>
-    <!-- Main Content Canvas -->
-    <main class="ml-72 pt-20 p-10 min-h-screen">
+
+    <!-- Main Content -->
+    <main class="main-content">
         <!-- Hero Section -->
-        <section class="mb-12 relative overflow-hidden rounded-xl p-10 clean-card">
-            <div class="absolute top-0 right-0 -mr-20 -mt-20 w-96 h-96 bg-primary/5 blur-[100px] rounded-full"></div>
-            <div class="absolute bottom-0 left-0 -ml-20 -mb-20 w-64 h-64 bg-secondary/5 blur-[80px] rounded-full"></div>
-            <div class="relative z-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
-                <div>
-                    <h2 class="text-4xl font-black font-headline tracking-tight mb-2 text-on-surface">Tổng quan hiệu
-                        suất bán hàng</h2>
-                    <p class="text-on-surface-variant text-lg max-w-2xl font-body">Xu hướng doanh số, hiệu quả nhân viên
-                        và chất lượng tệp khách hàng được cập nhật theo thời gian thực.</p>
-                </div>
-                <div class="flex items-center gap-3">
-                    <div
-                        class="bg-slate-100 px-4 py-2 rounded-xl border border-slate-200 flex items-center gap-3 cursor-pointer hover:bg-slate-200 transition-colors text-on-surface">
-                        <span class="material-symbols-outlined text-primary">calendar_today</span>
-                        <span class="text-sm font-medium">Tháng này</span>
-                        <span class="material-symbols-outlined text-xs">expand_more</span>
-                    </div>
-                </div>
+        <section class="hero-card">
+            <div>
+                <h1 class="hero-title">Tổng quan hiệu suất bán hàng</h1>
+                <p class="hero-subtitle">Xu hướng doanh số, hiệu quả nhân viên và chất lượng tệp khách hàng được cập nhật theo thời gian thực.</p>
+            </div>
+            <div class="hero-actions">
+                <button class="date-picker">
+                    <span class="material-symbols-outlined" style="color: #1456f0;">calendar_today</span>
+                    <span>Tháng này</span>
+                    <span class="material-symbols-outlined" style="font-size: 18px;">expand_more</span>
+                </button>
             </div>
         </section>
-        <!-- Overview Cards Row -->
-        <section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-            <!-- Card 1 -->
-            <div
-                class="clean-card p-6 rounded-xl glow-indigo-light group hover:translate-y-[-4px] transition-all duration-300">
-                <div class="flex justify-between items-start mb-4">
-                    <div class="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
-                        <span class="material-symbols-outlined"
-                            style="font-variation-settings: 'FILL' 1;">payments</span>
+
+        <!-- Stats Cards -->
+        <section class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-header">
+                    <div class="stat-icon" style="background: rgba(20, 86, 240, 0.1); color: #1456f0;">
+                        <span class="material-symbols-outlined">payments</span>
                     </div>
-                    <span class="text-xs font-bold px-2 py-1 rounded-lg bg-green-100 text-green-600">↑12.5%</span>
+                    <span class="stat-change positive">↑12.5%</span>
                 </div>
-                <p class="text-on-surface-variant text-xs font-bold uppercase tracking-widest mb-1">Tổng Doanh Thu</p>
-                <h3 class="text-2xl font-black font-headline text-on-surface">2,840,000,000đ</h3>
-                <p class="text-[10px] text-on-surface-variant/70 mt-2">So với 2.52B tháng trước</p>
+                <div class="stat-label">Tổng Doanh Thu</div>
+                <div class="stat-value">2,840,000,000đ</div>
+                <div class="stat-meta">So với 2.52B tháng trước</div>
             </div>
-            <!-- Card 2 -->
-            <div class="clean-card p-6 rounded-xl group hover:translate-y-[-4px] transition-all duration-300">
-                <div class="flex justify-between items-start mb-4">
-                    <div class="w-12 h-12 rounded-2xl bg-secondary/10 flex items-center justify-center text-secondary">
-                        <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">group</span>
+
+            <div class="stat-card">
+                <div class="stat-header">
+                    <div class="stat-icon" style="background: rgba(31, 138, 101, 0.1); color: #1f8a65;">
+                        <span class="material-symbols-outlined">group</span>
                     </div>
-                    <span class="text-xs font-bold px-2 py-1 rounded-lg bg-green-100 text-green-600">↑8.3%</span>
+                    <span class="stat-change positive">↑8.3%</span>
                 </div>
-                <p class="text-on-surface-variant text-xs font-bold uppercase tracking-widest mb-1">Khách Hàng Hoạt Động
-                </p>
-                <h3 class="text-2xl font-black font-headline text-on-surface">1,247</h3>
-                <p class="text-[10px] text-on-surface-variant/70 mt-2">Người dùng đang tương tác</p>
+                <div class="stat-label">Khách Hàng Hoạt Động</div>
+                <div class="stat-value">1,247</div>
+                <div class="stat-meta">Người dùng đang tương tác</div>
             </div>
-            <!-- Card 3 -->
-            <div class="clean-card p-6 rounded-xl group hover:translate-y-[-4px] transition-all duration-300">
-                <div class="flex justify-between items-start mb-4">
-                    <div class="w-12 h-12 rounded-2xl bg-tertiary/10 flex items-center justify-center text-tertiary">
-                        <span class="material-symbols-outlined"
-                            style="font-variation-settings: 'FILL' 1;">analytics</span>
+
+            <div class="stat-card">
+                <div class="stat-header">
+                    <div class="stat-icon" style="background: rgba(180, 83, 9, 0.1); color: #b45309;">
+                        <span class="material-symbols-outlined">analytics</span>
                     </div>
-                    <span class="text-xs font-bold px-2 py-1 rounded-lg bg-red-100 text-red-600">↓2.1%</span>
+                    <span class="stat-change negative">↓2.1%</span>
                 </div>
-                <p class="text-on-surface-variant text-xs font-bold uppercase tracking-widest mb-1">Tỉ Lệ Chuyển Đổi</p>
-                <h3 class="text-2xl font-black font-headline text-on-surface">23.4%</h3>
-                <p class="text-[10px] text-on-surface-variant/70 mt-2">Mục tiêu: 25.0%</p>
+                <div class="stat-label">Tỉ Lệ Chuyển Đổi</div>
+                <div class="stat-value">23.4%</div>
+                <div class="stat-meta">Mục tiêu: 25.0%</div>
             </div>
-            <!-- Card 4 -->
-            <div class="clean-card p-6 rounded-xl group hover:translate-y-[-4px] transition-all duration-300">
-                <div class="flex justify-between items-start mb-4">
-                    <div class="w-12 h-12 rounded-2xl bg-amber-100 flex items-center justify-center text-amber-600">
-                        <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">stars</span>
+
+            <div class="stat-card">
+                <div class="stat-header">
+                    <div class="stat-icon" style="background: rgba(20, 86, 240, 0.1); color: #1456f0;">
+                        <span class="material-symbols-outlined">stars</span>
                     </div>
-                    <span class="text-xs font-bold px-2 py-1 rounded-lg bg-amber-50 text-amber-700">Top Rank</span>
+                    <span class="stat-change positive">Top Rank</span>
                 </div>
-                <p class="text-on-surface-variant text-xs font-bold uppercase tracking-widest mb-1">Top Performer</p>
-                <div class="flex items-center gap-3">
-                    <div class="flex-1">
-                        <h3 class="text-lg font-black font-headline text-on-surface">Nguyễn Văn A</h3>
-                        <p class="text-xs text-amber-600 font-bold">156 đơn chốt</p>
-                    </div>
-                    <img alt="Top Performer Avatar" class="w-10 h-10 rounded-full border border-amber-200"
-                        data-alt="cheerful professional young man with a warm smile wearing a tailored shirt in a bright modern office"
-                        src="https://lh3.googleusercontent.com/aida-public/AB6AXuDTzYV0bRM6-IpTXoAfY_daM9I7c83lgmMp_EGgmb0khxnXUqPEvisvb41vR8Kl7M1L7YUe9YFm1T-BCulMkG3yn_yUly-FcD13aHpnQznIGIh7XzUa75OqS1-M8xzZjvDvvV17jZsRlYn1WRpKrsZ0OWMRs34uLjFzsQ3pjLFmm5KJe3Oa4fCEX0araik14e2wCPs69_3lPb7o2xSE86HRmpxd-lbRc1u_6S5Vxm3tJZqMIobANBeNTxe5D-Dyjf--THkUzGNnn8SE" />
-                </div>
-            </div>
-        </section>
-        <!-- Insights Row -->
-        <section class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-            <div
-                class="bg-white p-5 rounded-xl flex items-center gap-4 border-l-4 border-primary shadow-sm border-t border-r border-b border-slate-100">
-                <span class="material-symbols-outlined text-primary">person_celebrate</span>
-                <div>
-                    <p class="text-[10px] uppercase font-bold text-on-surface-variant">Best Sales Agent</p>
-                    <p class="text-sm font-semibold text-on-surface">Nhân viên chốt cao nhất tháng</p>
-                </div>
-            </div>
-            <div
-                class="bg-white p-5 rounded-xl flex items-center gap-4 border-l-4 border-secondary shadow-sm border-t border-r border-b border-slate-100">
-                <span class="material-symbols-outlined text-secondary">schedule</span>
-                <div>
-                    <p class="text-[10px] uppercase font-bold text-on-surface-variant">Peak Hours</p>
-                    <p class="text-sm font-semibold text-on-surface">14:00-17:00 (Doanh số tốt nhất)</p>
-                </div>
-            </div>
-            <div
-                class="bg-white p-5 rounded-xl flex items-center gap-4 border-l-4 border-tertiary shadow-sm border-t border-r border-b border-slate-100">
-                <span class="material-symbols-outlined text-tertiary">trending_up</span>
-                <div>
-                    <p class="text-[10px] uppercase font-bold text-on-surface-variant">Growth Insight</p>
-                    <p class="text-sm font-semibold text-on-surface">Nhóm khách tiềm năng tăng 34%</p>
-                </div>
-            </div>
-        </section>
-        <!-- Charts Section (Bento Grid Style) -->
-        <section class="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-12">
-            <!-- Large Area Chart Placeholder -->
-            <div class="lg:col-span-8 clean-card rounded-xl p-8 relative overflow-hidden">
-                <div class="flex justify-between items-center mb-10">
+                <div class="stat-label">Top Performer</div>
+                <div style="display: flex; align-items: center; gap: 12px;">
                     <div>
-                        <h4 class="text-xl font-bold font-headline text-on-surface">Xu hướng Doanh Số</h4>
-                        <p class="text-xs text-on-surface-variant">Thống kê theo tuần (7 ngày gần nhất)</p>
-                    </div>
-                    <div class="flex gap-2">
-                        <div
-                            class="flex items-center gap-2 px-3 py-1 bg-slate-50 rounded-lg text-[10px] font-bold text-primary">
-                            <span class="w-2 h-2 rounded-full bg-primary"></span> Tuần này
-                        </div>
-                        <div
-                            class="flex items-center gap-2 px-3 py-1 bg-slate-50 rounded-lg text-[10px] font-bold text-on-surface-variant">
-                            <span class="w-2 h-2 rounded-full bg-slate-400"></span> Tuần trước
-                        </div>
-                    </div>
-                </div>
-                <div class="h-64 flex items-end justify-between gap-4 relative">
-                    <!-- SVG Chart Mockup -->
-                    <div class="absolute inset-0 z-0">
-                        <svg class="w-full h-full" preserveaspectratio="none" viewbox="0 0 800 200">
-                            <defs>
-                                <lineargradient id="chartGradient" x1="0%" x2="0%" y1="0%" y2="100%">
-                                    <stop offset="0%" style="stop-color:#6366F1;stop-opacity:0.2"></stop>
-                                    <stop offset="100%" style="stop-color:#6366F1;stop-opacity:0"></stop>
-                                </lineargradient>
-                            </defs>
-                            <path d="M0,150 Q100,140 200,80 T400,100 T600,40 T800,70 L800,200 L0,200 Z"
-                                fill="url(#chartGradient)"></path>
-                            <path d="M0,150 Q100,140 200,80 T400,100 T600,40 T800,70" fill="none" stroke="#6366F1"
-                                stroke-linecap="round" stroke-width="3"></path>
-                            <circle cx="200" cy="80" fill="white" r="6" stroke="#6366F1" stroke-width="3"></circle>
-                            <circle cx="600" cy="40" fill="white" r="6" stroke="#6366F1" stroke-width="3"></circle>
-                        </svg>
-                    </div>
-                    <!-- Chart Labels -->
-                    <div
-                        class="w-full flex justify-between px-2 pt-2 text-[10px] font-bold text-on-surface-variant z-10">
-                        <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+                        <div style="font-size: 18px; font-weight: 600; color: #26251e;">Nguyễn Văn A</div>
+                        <div style="font-size: 12px; color: #1456f0; font-weight: 600;">156 đơn chốt</div>
                     </div>
                 </div>
             </div>
-            <!-- Horizontal Bar Chart -->
-            <div class="lg:col-span-4 clean-card rounded-xl p-8">
-                <h4 class="text-xl font-bold font-headline mb-6 text-on-surface">Top 5 Nhân Viên</h4>
-                <div class="space-y-6">
-                    <div class="space-y-2">
-                        <div class="flex justify-between text-xs font-bold text-on-surface">
+        </section>
+
+        <!-- Insights Row -->
+        <section class="insights-row">
+            <div class="insight-card primary">
+                <div class="insight-icon" style="background: rgba(20, 86, 240, 0.1); color: #1456f0;">
+                    <span class="material-symbols-outlined">person_celebrate</span>
+                </div>
+                <div>
+                    <div class="insight-label">Best Sales Agent</div>
+                    <div class="insight-value">Nhân viên chốt cao nhất tháng</div>
+                </div>
+            </div>
+            <div class="insight-card success">
+                <div class="insight-icon" style="background: rgba(31, 138, 101, 0.1); color: #1f8a65;">
+                    <span class="material-symbols-outlined">schedule</span>
+                </div>
+                <div>
+                    <div class="insight-label">Peak Hours</div>
+                    <div class="insight-value">14:00-17:00 (Doanh số tốt nhất)</div>
+                </div>
+            </div>
+            <div class="insight-card warning">
+                <div class="insight-icon" style="background: rgba(180, 83, 9, 0.1); color: #b45309;">
+                    <span class="material-symbols-outlined">trending_up</span>
+                </div>
+                <div>
+                    <div class="insight-label">Growth Insight</div>
+                    <div class="insight-value">Nhóm khách tiềm năng tăng 34%</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Bento Grid -->
+        <section class="bento-grid">
+            <!-- Chart Card -->
+            <div class="bento-card">
+                <div class="bento-header">
+                    <div>
+                        <div class="bento-title">Xu hướng Doanh Số</div>
+                        <div class="bento-subtitle">Thống kê theo tuần (7 ngày gần nhất)</div>
+                    </div>
+                    <div class="chart-legend">
+                        <div class="legend-item">
+                            <span class="legend-dot" style="background: #1456f0;"></span>
+                            Tuần này
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-dot" style="background: #a09c92;"></span>
+                            Tuần trước
+                        </div>
+                    </div>
+                </div>
+                <div style="height: 256px; display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; padding: 16px 0;">
+                    <svg width="100%" height="100%" viewBox="0 0 600 200" preserveAspectRatio="none">
+                        <defs>
+                            <lineargradient id="chartGradient" x1="0%" x2="0%" y1="0%" y2="100%">
+                                <stop offset="0%" style="stop-color:#1456f0;stop-opacity:0.15"></stop>
+                                <stop offset="100%" style="stop-color:#1456f0;stop-opacity:0"></stop>
+                            </lineargradient>
+                        </defs>
+                        <path d="M0,150 Q100,140 200,80 T400,100 T600,40 L600,200 L0,200 Z" fill="url(#chartGradient)"></path>
+                        <path d="M0,150 Q100,140 200,80 T400,100 T600,40" fill="none" stroke="#1456f0" stroke-width="2" stroke-linecap="round"></path>
+                        <circle cx="200" cy="80" fill="white" r="5" stroke="#1456f0" stroke-width="2"></circle>
+                        <circle cx="600" cy="40" fill="white" r="5" stroke="#1456f0" stroke-width="2"></circle>
+                    </svg>
+                </div>
+                <div style="display: flex; justify-content: space-between; padding: 0 16px; font-size: 11px; color: #807d72; font-weight: 500;">
+                    <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+                </div>
+            </div>
+
+            <!-- Top Employees Card -->
+            <div class="bento-card">
+                <div class="bento-header">
+                    <div class="bento-title">Top 5 Nhân Viên</div>
+                </div>
+                <div class="bar-chart">
+                    <div class="bar-item">
+                        <div class="bar-label">
                             <span>Nguyễn Văn A</span>
-                            <span class="text-primary">842M</span>
+                            <span class="bar-value" style="color: #1456f0;">842M</span>
                         </div>
-                        <div class="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
-                            <div class="h-full bg-primary rounded-full" style="width: 90%"></div>
+                        <div class="bar-track">
+                            <div class="bar-fill" style="width: 90%; background: #1456f0;"></div>
                         </div>
                     </div>
-                    <div class="space-y-2">
-                        <div class="flex justify-between text-xs font-bold text-on-surface">
+                    <div class="bar-item">
+                        <div class="bar-label">
                             <span>Trần Thị B</span>
-                            <span class="text-secondary">715M</span>
+                            <span class="bar-value" style="color: #1f8a65;">715M</span>
                         </div>
-                        <div class="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
-                            <div class="h-full bg-secondary rounded-full" style="width: 75%"></div>
+                        <div class="bar-track">
+                            <div class="bar-fill" style="width: 75%; background: #1f8a65;"></div>
                         </div>
                     </div>
-                    <div class="space-y-2">
-                        <div class="flex justify-between text-xs font-bold text-on-surface">
+                    <div class="bar-item">
+                        <div class="bar-label">
                             <span>Lê Văn C</span>
-                            <span class="text-indigo-400">620M</span>
+                            <span class="bar-value" style="color: #5a5852;">620M</span>
                         </div>
-                        <div class="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
-                            <div class="h-full bg-indigo-400 rounded-full" style="width: 65%"></div>
+                        <div class="bar-track">
+                            <div class="bar-fill" style="width: 65%; background: #5a5852;"></div>
                         </div>
                     </div>
-                    <div class="space-y-2">
-                        <div class="flex justify-between text-xs font-bold text-on-surface">
+                    <div class="bar-item">
+                        <div class="bar-label">
                             <span>Phạm Hoàng D</span>
-                            <span class="text-slate-400">410M</span>
+                            <span class="bar-value" style="color: #807d72;">410M</span>
                         </div>
-                        <div class="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
-                            <div class="h-full bg-slate-400 rounded-full" style="width: 45%"></div>
+                        <div class="bar-track">
+                            <div class="bar-fill" style="width: 45%; background: #807d72;"></div>
                         </div>
                     </div>
-                    <div class="space-y-2">
-                        <div class="flex justify-between text-xs font-bold text-on-surface">
+                    <div class="bar-item">
+                        <div class="bar-label">
                             <span>Hoàng Thị E</span>
-                            <span class="text-slate-400">258M</span>
+                            <span class="bar-value" style="color: #a09c92;">258M</span>
                         </div>
-                        <div class="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
-                            <div class="h-full bg-slate-300 rounded-full" style="width: 30%"></div>
+                        <div class="bar-track">
+                            <div class="bar-fill" style="width: 30%; background: #a09c92;"></div>
                         </div>
                     </div>
                 </div>
             </div>
         </section>
+
         <!-- Alerts Section -->
-        <section class="mb-12">
-            <div class="flex items-center gap-3 mb-6">
-                <span class="material-symbols-outlined text-tertiary">warning</span>
-                <h4 class="text-xl font-bold font-headline text-on-surface">Cảnh báo &amp; Cơ hội</h4>
+        <section class="alerts-section">
+            <div class="alerts-header">
+                <span class="material-symbols-outlined" style="color: #b45309; font-size: 24px;">warning</span>
+                <h2 class="bento-title">Cảnh báo & Cơ hội</h2>
             </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div
-                    class="p-6 rounded-xl bg-white border border-slate-200 flex items-start gap-4 hover:border-tertiary/30 transition-colors shadow-sm">
-                    <div
-                        class="w-10 h-10 rounded-full bg-tertiary/10 flex items-center justify-center text-tertiary shrink-0">
+            <div class="alerts-grid">
+                <div class="alert-card">
+                    <div class="alert-icon" style="background: rgba(180, 83, 9, 0.1); color: #b45309;">
                         <span class="material-symbols-outlined">trending_down</span>
                     </div>
                     <div>
-                        <p class="font-bold text-on-surface mb-1">3 nhân viên giảm doanh số liên tiếp</p>
-                        <p class="text-sm text-on-surface-variant">Cần xem xét lại quy trình tư vấn của nhóm Sales 2
-                            trong tuần vừa qua.</p>
-                        <button class="mt-4 text-xs font-bold text-tertiary underline uppercase tracking-widest">Xem Chi
-                            Tiết</button>
+                        <div class="alert-title">3 nhân viên giảm doanh số liên tiếp</div>
+                        <div class="alert-desc">Cần xem xét lại quy trình tư vấn của nhóm Sales 2 trong tuần vừa qua.</div>
+                        <div class="alert-action">Xem Chi Tiết</div>
                     </div>
                 </div>
-                <div
-                    class="p-6 rounded-xl bg-white border border-slate-200 flex items-start gap-4 hover:border-primary/30 transition-colors shadow-sm">
-                    <div
-                        class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                <div class="alert-card">
+                    <div class="alert-icon" style="background: rgba(20, 86, 240, 0.1); color: #1456f0;">
                         <span class="material-symbols-outlined">notification_important</span>
                     </div>
                     <div>
-                        <p class="font-bold text-on-surface mb-1">12 khách hàng chưa follow-up &gt; 7 ngày</p>
-                        <p class="text-sm text-on-surface-variant">Cơ hội chốt đơn có thể bị bỏ lỡ. Hệ thống đề xuất gán
-                            lại lead cho Team Lead.</p>
-                        <button class="mt-4 text-xs font-bold text-primary underline uppercase tracking-widest">Xử Lý
-                            Ngay</button>
+                        <div class="alert-title">12 khách hàng chưa follow-up > 7 ngày</div>
+                        <div class="alert-desc">Cơ hội chốt đơn có thể bị bỏ lỡ. Hệ thống đề xuất gán lại lead cho Team Lead.</div>
+                        <div class="alert-action">Xử Lý Ngay</div>
                     </div>
                 </div>
             </div>
         </section>
+
         <!-- Footer -->
-        <footer
-            class="mt-20 py-8 border-t border-slate-200 flex flex-col md:flex-row justify-between items-center gap-4 text-on-surface-variant text-xs">
-            <div class="flex gap-8">
-                <a class="hover:text-primary transition-colors" href="#">Hỗ trợ nội bộ</a>
-                <a class="hover:text-primary transition-colors" href="#">Chính sách dữ liệu</a>
+        <footer class="footer">
+            <div class="footer-links">
+                <a href="#" class="footer-link">Hỗ trợ nội bộ</a>
+                <a href="#" class="footer-link">Chính sách dữ liệu</a>
             </div>
-            <p>© 2025 MeraGroup. All rights reserved.</p>
+            <div class="footer-copy">© 2025 MeraGroup. All rights reserved.</div>
         </footer>
     </main>
-    <!-- Ambient Background Elements -->
-    <div class="fixed top-0 left-0 w-full h-full pointer-events-none -z-10 overflow-hidden">
-        <div class="absolute top-[20%] left-[10%] w-[500px] h-[500px] bg-primary/5 blur-[120px] rounded-full"></div>
-        <div class="absolute bottom-[10%] right-[10%] w-[400px] h-[400px] bg-secondary/5 blur-[100px] rounded-full">
-        </div>
-    </div>
 </body>
 
 </html>
