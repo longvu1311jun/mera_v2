@@ -231,15 +231,14 @@ public class WebhookPersistenceService {
                 }
             }
 
-            // Luu tung phone number
+            // Luu tung phone number - dung query chi tiết thay vi findAll()
             for (String phone : phoneNumbers) {
                 String normalizedPhone = normalizePhoneNumber(phone);
                 if (normalizedPhone != null && !normalizedPhone.isBlank()) {
-                    // Kiem tra da ton tai chua
-                    List<CustomerPhoneNumber> existing = customerPhoneNumberRepository.findAll();
-                    boolean exists = existing.stream()
-                            .anyMatch(cp -> cp.getCustomerId().equals(customerId) &&
-                                    normalizePhoneNumber(cp.getPhoneNumber()).equals(normalizedPhone));
+                    // Kiem tra da ton tai chua bang query chi tiet
+                    List<CustomerPhoneNumber> existing = customerPhoneNumberRepository
+                            .findByCustomerIdAndNormalizedPhone(customerId, normalizedPhone);
+                    boolean exists = !existing.isEmpty();
 
                     if (!exists) {
                         CustomerPhoneNumber cpn = new CustomerPhoneNumber();
