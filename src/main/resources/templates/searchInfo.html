@@ -27,9 +27,19 @@
         
         /* Mobile Responsive */
         @media (max-width: 640px) {
+            body {
+                overflow-y: auto !important;
+                -webkit-overflow-scrolling: touch;
+            }
+            
+            main {
+                overflow-y: auto !important;
+                -webkit-overflow-scrolling: touch;
+            }
+            
             /* Welcome message - smaller on mobile */
             #welcomeMessage {
-                min-height: calc(100vh - 100px);
+                min-height: calc(100vh - 80px);
             }
             
             /* Stack columns vertically on mobile */
@@ -129,7 +139,7 @@
         }
     </script>
 </head>
-<body class="text-slate-600 h-screen flex flex-col overflow-hidden bg-slate-50">
+<body class="text-slate-600 h-screen flex flex-col bg-slate-50 sm:overflow-hidden">
     
     <!-- Header -->
     <header class="bg-white shadow-sm border-b border-slate-200 flex-none z-50">
