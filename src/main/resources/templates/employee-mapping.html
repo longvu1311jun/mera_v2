@@ -540,11 +540,11 @@
         </div>
     </div>
 
-    <div class="save-bar" id="saveBar">
-        <span class="message">Có <span class="changed-count" id="changedCount">0</span> thay đổi chưa lưu</span>
-        <button class="btn btn-success" onclick="saveAll()">💾 Lưu tất cả</button>
-        <button class="btn btn-secondary" onclick="discardChanges()">Hủy</button>
-    </div>
+<!--    <div class="save-bar" id="saveBar">-->
+<!--        <span class="message">Có <span class="changed-count" id="changedCount">0</span> thay đổi chưa lưu</span>-->
+<!--        <button class="btn btn-success" onclick="saveAll()">💾 Lưu tất cả</button>-->
+<!--        <button class="btn btn-secondary" onclick="discardChanges()">Hủy</button>-->
+<!--    </div>-->
 
     <div id="toast" class="toast"></div>
 
@@ -626,21 +626,18 @@
 
         function updateHireDate(employeeId, hireDate) {
             if (!isEditMode) return;
-            
+
             changedHireDates.add(employeeId);
-            changedRows.add(employeeId);
-            
+            // REMOVED: changedRows.add(employeeId); - hire date change should NOT affect POS mapping
+
             const row = document.querySelector(`tr[data-lark-id="${employeeId}"]`);
             if (row) row.classList.add('changed');
-            
+
             updateChangedCount();
             updateSaveBar();
         }
 
         async function loadData() {
-            // #region debug log
-            fetch('http://127.0.0.1:7826/ingest/14c1b0f1-c2ef-44dc-96cc-f0553712eab0',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'d04ead'},body:JSON.stringify({sessionId:'d04ead',location:'employee-mapping.html:loadData:start',message:'loadData started',timestamp:Date.now(),runId:'debug',hypothesisId:'A,B,C'})}).catch(()=>{});
-            // #endregion
             
             try {
                 const [statsRes, larkRes, posRes] = await Promise.all([
@@ -649,10 +646,6 @@
                     fetch('/api/employee-mapping/pos-users')
                 ]);
                 
-                // #region debug log
-                fetch('http://127.0.0.1:7826/ingest/14c1b0f1-c2ef-44dc-96cc-f0553712eab0',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'d04ead'},body:JSON.stringify({sessionId:'d04ead',location:'employee-mapping.html:loadData:responses',message:'API responses received',data:{statsOk:statsRes.ok,larkOk:larkRes.ok,posOk:posRes.ok,statsStatus:statsRes.status,larkStatus:larkRes.status,posStatus:posRes.status},timestamp:Date.now(),runId:'debug',hypothesisId:'A,B,C'})}).catch(()=>{});
-                // #endregion
-
                 const stats = await statsRes.json();
                 document.getElementById('totalLark').textContent = stats.totalLark || 0;
                 document.getElementById('totalPos').textContent = stats.totalPos || 0;
@@ -663,10 +656,6 @@
                 larkData = [...allLarkData];
                 posUsers = await posRes.json();
                 
-                // #region debug log
-                fetch('http://127.0.0.1:7826/ingest/14c1b0f1-c2ef-44dc-96cc-f0553712eab0',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'d04ead'},body:JSON.stringify({sessionId:'d04ead',location:'employee-mapping.html:loadData:data',message:'Data loaded',data:{larkCount:allLarkData.length,posCount:posUsers.length,stats:stats},timestamp:Date.now(),runId:'debug',hypothesisId:'A,B,C'})}).catch(()=>{});
-                // #endregion
-
                 // Extract unique departments
                 const deptSet = new Set();
                 allLarkData.forEach(l => {
@@ -685,9 +674,6 @@
 
                 renderTable();
             } catch (e) {
-                // #region debug log
-                fetch('http://127.0.0.1:7826/ingest/14c1b0f1-c2ef-44dc-96cc-f0553712eab0',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'d04ead'},body:JSON.stringify({sessionId:'d04ead',location:'employee-mapping.html:loadData:error',message:'Load error',data:{error:e.message,stack:e.stack},timestamp:Date.now(),runId:'debug',hypothesisId:'A,B,C'})}).catch(()=>{});
-                // #endregion
                 console.error('Load error:', e);
                 showToast('Lỗi tải dữ liệu', 'error');
             }
@@ -802,10 +788,6 @@
             menu.classList.add('show');
             icon.classList.add('open');
             input.focus();
-
-            // #region agent log
-            fetch('http://127.0.0.1:7826/ingest/14c1b0f1-c2ef-44dc-96cc-f0553712eab0',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'d04ead'},body:JSON.stringify({sessionId:'d04ead',location:'employee-mapping.html:openDropdown',message:'dropdown opened',data:{menuDisplay:getComputedStyle(menu).display, menuVisibility:getComputedStyle(menu).visibility, menuHeight:menu.scrollHeight, menuOverflow:menu.style.overflow, containerScrollY:document.querySelector('.table-container')?.scrollTop, containerHeight:document.querySelector('.table-container')?.clientHeight},hypothesisId:'A,B',timestamp:Date.now()})}).catch(()=>{});
-            // #endregion
         }
 
         function closeAllDropdowns() {
@@ -922,52 +904,60 @@
 
             showLoading('Đang lưu...');
 
-            // Collect all updates (mapping + hire date in one call)
-            const allMappings = [];
-            
+            const mappingsToSave = [];
+            const hireDatesToSave = [];
+
             document.querySelectorAll('.searchable-select').forEach(select => {
                 const larkId = select.dataset.larkId;
                 const posId = select.dataset.selectedPos;
                 const originalPos = select.dataset.originalPos;
                 const hireInput = document.querySelector(`tr[data-lark-id="${larkId}"] .hire-date-input`);
                 const hireDate = hireInput ? hireInput.value : '';
-                
+
+                // Only save mapping if POS changed
                 if (changedRows.has(larkId)) {
-                    allMappings.push({
-                        larkEmployeeId: larkId,
-                        posUserId: posId || (originalPos ? null : undefined),
-                        hireDate: hireDate || undefined
-                    });
-                } else if (changedHireDates.has(larkId) && hireDate) {
-                    allMappings.push({
+                    if (posId !== originalPos) {
+                        mappingsToSave.push({
+                            larkEmployeeId: larkId,
+                            posUserId: posId || null
+                        });
+                    }
+                }
+
+                // Save hire date separately if changed
+                if (changedHireDates.has(larkId) && hireDate) {
+                    hireDatesToSave.push({
                         larkEmployeeId: larkId,
                         hireDate: hireDate
                     });
                 }
             });
-            
-            // Filter out undefined values
-            const cleanMappings = allMappings.map(m => {
-                const cleaned = {};
-                if (m.larkEmployeeId) cleaned.larkEmployeeId = m.larkEmployeeId;
-                if (m.posUserId !== undefined) cleaned.posUserId = m.posUserId;
-                if (m.hireDate) cleaned.hireDate = m.hireDate;
-                return cleaned;
-            }).filter(m => m.larkEmployeeId && (m.posUserId !== undefined || m.hireDate));
 
             try {
-                if (cleanMappings.length > 0) {
+                let saved = false;
+
+                if (mappingsToSave.length > 0) {
                     await fetch('/api/employee-mapping/save-all', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(cleanMappings)
+                        body: JSON.stringify(mappingsToSave)
                     });
+                    saved = true;
+                }
+
+                if (hireDatesToSave.length > 0) {
+                    await fetch('/api/employee-mapping/update-hire-dates', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(hireDatesToSave)
+                    });
+                    saved = true;
                 }
 
                 hideLoading();
                 changedRows.clear();
                 changedHireDates.clear();
-                showToast('Đã lưu thành công!', 'success');
+                showToast(saved ? 'Đã lưu thành công!' : 'Không có thay đổi', 'success');
                 
                 if (isEditMode) {
                     exitEditMode();
