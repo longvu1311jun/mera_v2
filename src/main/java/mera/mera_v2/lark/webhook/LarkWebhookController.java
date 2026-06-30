@@ -24,6 +24,8 @@ import mera.mera_v2.lark.webhook.config.SalesTablesConfig;
 import mera.mera_v2.lark.token.TokenStorageService;
 import mera.mera_v2.lark.webhook.scheduler2.TokenRefreshScheduler;
 import mera.mera_v2.repository.PendingFollowupNotificationRepository;
+import mera.mera_v2.pos.assignment.OrderAssignmentService;
+import mera.mera_v2.pos.assignment.AssignmentResult;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
@@ -99,19 +101,28 @@ public class LarkWebhookController {
     @Autowired(required = false)
     private CskhBaseMappingService cskhBaseMappingService;
 
+    @Autowired(required = false)
+    private OrderAssignmentService orderAssignmentService;
+
     private final ExecutorService executorService = Executors.newFixedThreadPool(5);
 
     @Value("${pancake.webhook.secret:}")
     private String expectedSecret;
-    
+
     @Value("${lark.bitable.app-token}")
     private String defaultAppToken;
-    
+
     @Value("${lark.bitable.table-id}")
     private String tableId;
-    
+
     @Value("${lark.bitable.auto-create:true}")
     private boolean autoCreateRecord;
+
+    @Value("${lark.bitable.auto-assign-cskh:true}")
+    private boolean autoAssignCskh;
+
+    @Value("${lark.bitable.assignment-notify:true}")
+    private boolean assignmentNotify;
 
     @PostMapping("/orders")
     public ResponseEntity<String> onOrderWebhook(
@@ -217,12 +228,36 @@ public class LarkWebhookController {
 
     private void processStatusLogic(Integer status, JsonNode webhookData, PosOrderWebhook orderWebhook) throws Exception {
         if (status == 1) {
-            log.info("Status = 1: Tao ban ghi moi");
-            if (autoCreateRecord) {
-                createBitableRecord(webhookData);
+            boolean hasTag = hasDongBoDataTag(webhookData);
+
+            if (hasTag) {
+                // Luồng Tag: Tạo bản ghi trực tiếp (giữ nguyên logic cũ)
+                log.info("Status = 1 with tag 'Đồng bộ DATA': Tao ban ghi truc tiep");
+                if (autoCreateRecord) {
+                    createBitableRecord(webhookData);
+                }
+            } else if (autoAssignCskh) {
+                // Luồng Auto Assign: Phân công CSKH cho nhân viên điểm danh
+                log.info("Status = 1: Phan cong CSKH tu dong cho nhan vien diem danh");
+                try {
+                    AssignmentResult result = orderAssignmentService.assignOrderToNextCskh(
+                            orderWebhook.getId(), orderWebhook);
+
+                    // Tạo bản ghi Lark Bitable sau khi update assigning_care_id
+                    if (autoCreateRecord) {
+                        createBitableRecord(webhookData);
+                    }
+
+                    // Gửi thông báo Lark cho CSKH
+                    if (assignmentNotify && result.getCskhOpenId() != null) {
+                        sendAssignmentNotification(result, orderWebhook);
+                    }
+                } catch (Exception e) {
+                    log.error("Loi khi phan cong CSKH tu dong: {}", e.getMessage(), e);
+                }
             }
         }
-        // Status = 6 da duoc bo xu ly
+        // Status = 6 giữ nguyên xử lý delete/update
     }
 
     private void logLatestAccountHistory(PosOrderWebhook orderWebhook) {
@@ -931,6 +966,57 @@ public class LarkWebhookController {
         } catch (Exception e) {
             log.error("[PendingFollowup] Failed to schedule notification for phone={}: {}",
                     phoneNumber, e.getMessage());
+        }
+    }
+
+    // ============== GỬI THÔNG BÁO PHÂN CÔNG CSKH ==============
+
+    /**
+     * Gửi thông báo Lark cho CSKH khi được phân công chăm sóc khách hàng.
+     */
+    private void sendAssignmentNotification(AssignmentResult result, PosOrderWebhook orderWebhook) {
+        if (result == null || result.getCskhOpenId() == null) {
+            log.warn("[AssignmentNotify] Skip notification - no openId");
+            return;
+        }
+
+        String cskhOpenId = result.getCskhOpenId();
+        String customerName = result.getCustomerName() != null ? result.getCustomerName() : "Khách hàng";
+        String customerPhone = result.getCustomerPhone() != null ? result.getCustomerPhone() : "N/A";
+        String employeeName = result.getEmployeeName() != null ? result.getEmployeeName() : "Nhân viên";
+
+        String messageContent = String.format(
+                "Ban duoc phan cong cham soc khach hang:\n" +
+                "- Ten khach: %s\n" +
+                "- So dien thoai: %s",
+                customerName, customerPhone
+        );
+
+        log.info("[AssignmentNotify] Sending notification to openId={}: {}", cskhOpenId, messageContent);
+
+        String tenantToken = null;
+        if (tenantTokenService != null) {
+            tenantToken = tenantTokenService.getTenantAccessToken();
+        }
+        if ((tenantToken == null || tenantToken.isBlank()) && tokenStorageServiceForTenant != null) {
+            tenantToken = tokenStorageServiceForTenant.getTenantAccessToken();
+        }
+
+        if (tenantToken == null || tenantToken.isBlank()) {
+            log.error("[AssignmentNotify] Tenant token is not available, cannot send message");
+            return;
+        }
+
+        if (restTemplate == null) {
+            log.error("[AssignmentNotify] RestTemplate is not available, cannot send message");
+            return;
+        }
+
+        try {
+            sendLarkMessage(tenantToken, cskhOpenId, messageContent);
+            log.info("[AssignmentNotify] Notification sent successfully to {} ({})", employeeName, cskhOpenId);
+        } catch (Exception e) {
+            log.error("[AssignmentNotify] Failed to send notification: {}", e.getMessage(), e);
         }
     }
 }

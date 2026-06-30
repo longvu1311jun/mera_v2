@@ -7,7 +7,7 @@ import mera.mera_v2.pos.sync.dto.OrderApiDto;
 import mera.mera_v2.pos.sync.dto.OrderListResponseDto;
 import mera.mera_v2.pos.sync.exception.ApiClientException;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
@@ -17,6 +17,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @Component
@@ -29,6 +30,12 @@ public class OrderApiClient {
 
   @Value("${api.order.api-key}")
   private String apiKey;
+
+  @Value("${pos.api.shop-id:}")
+  private String shopId;
+
+  @Value("${pos.api.base-url:https://pos.pages.fm/api/v1}")
+  private String posApiBaseUrl;
 
   public OrderApiClient(RestTemplate restTemplate) {
     this.restTemplate = restTemplate;
@@ -140,5 +147,63 @@ public class OrderApiClient {
   private String maskUrl(String url) {
     if (url == null) return "null";
     return url.replaceAll("api_key=[^&]*", "api_key=***");
+  }
+
+  /**
+   * Update assigning_care_id for an order via POS API.
+   *
+   * @param orderId         The order ID to update
+   * @param assigningCareId The new assigning_care_id value (POS user ID)
+   * @throws ApiClientException if the API call fails
+   */
+  public void updateAssigningCare(Long orderId, String assigningCareId) {
+    String actualShopId = (shopId != null && !shopId.isBlank()) ? shopId : "1546758";
+    String actualBaseUrl = posApiBaseUrl != null && !posApiBaseUrl.isBlank() ? posApiBaseUrl : "https://pos.pages.fm/api/v1";
+    String url = String.format("%s/shops/%s/orders/%s?api_key=%s",
+            actualBaseUrl, actualShopId, orderId, apiKey);
+
+    log.info("Updating order {} with assigning_care_id: {}", orderId, assigningCareId);
+    log.debug("Full URL: {}", maskUrl(url));
+
+    HttpHeaders headers = new HttpHeaders();
+    headers.setContentType(MediaType.APPLICATION_JSON);
+
+    Map<String, Object> body = Map.of("assigning_care_id", assigningCareId);
+    HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
+
+    try {
+      ResponseEntity<String> response = restTemplate.exchange(
+              url, HttpMethod.PUT, entity, String.class
+      );
+
+      if (!response.getStatusCode().is2xxSuccessful()) {
+        throw new ApiClientException(
+                "Failed to update order: " + response.getStatusCode(),
+                null,
+                response.getStatusCode(),
+                response.getBody()
+        );
+      }
+
+      log.info("Successfully updated order {} with assigning_care_id {}", orderId, assigningCareId);
+
+    } catch (HttpClientErrorException e) {
+      log.error("API client error {}: {}", e.getStatusCode(), e.getResponseBodyAsString());
+      throw new ApiClientException(
+              "API returned client error: " + e.getStatusCode(),
+              e,
+              e.getStatusCode(),
+              e.getResponseBodyAsString()
+      );
+
+    } catch (HttpServerErrorException e) {
+      log.error("API server error {}: {}", e.getStatusCode(), e.getResponseBodyAsString());
+      throw new ApiClientException(
+              "API returned server error: " + e.getStatusCode(),
+              e,
+              e.getStatusCode(),
+              e.getResponseBodyAsString()
+      );
+    }
   }
 }

@@ -52,4 +52,15 @@ public class EmployeeMapping {
 
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
+
+    @Transient
+    private int assignmentCountCache;
+
+    public int getAssignmentCountCache() {
+        return assignmentCountCache;
+    }
+
+    public void setAssignmentCountCache(int assignmentCountCache) {
+        this.assignmentCountCache = assignmentCountCache;
+    }
 }

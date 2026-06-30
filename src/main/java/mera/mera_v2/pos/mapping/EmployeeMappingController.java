@@ -51,6 +51,19 @@ public class EmployeeMappingController {
         return ResponseEntity.ok(Map.of("success", true, "saved", mappings.size()));
     }
 
+    @PostMapping("/update-hire-date")
+    public ResponseEntity<Map<String, Object>> updateHireDate(@RequestBody Map<String, String> request) {
+        String larkEmployeeId = request.get("larkEmployeeId");
+        String hireDateStr = request.get("hireDate");
+
+        if (larkEmployeeId == null || larkEmployeeId.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("success", false, "error", "Thiếu larkEmployeeId"));
+        }
+
+        mappingService.updateSingleHireDate(larkEmployeeId, hireDateStr);
+        return ResponseEntity.ok(Map.of("success", true));
+    }
+
     @PostMapping("/update-hire-dates")
     public ResponseEntity<Map<String, Object>> updateHireDates(@RequestBody List<Map<String, String>> updates) {
         mappingService.updateHireDates(updates);

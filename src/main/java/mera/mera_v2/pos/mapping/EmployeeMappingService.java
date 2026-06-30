@@ -157,6 +157,35 @@ public class EmployeeMappingService {
     }
 
     @Transactional
+    public void updateSingleHireDate(String larkEmployeeId, String hireDateStr) {
+        if (hireDateStr == null || hireDateStr.isBlank()) return;
+
+        LarkEmployee lark = larkEmployeeRepository.findById(larkEmployeeId).orElse(null);
+        EmployeeMapping mapping = mappingRepository.findByLarkEmployeeId(larkEmployeeId).orElse(null);
+
+        if (lark != null) {
+            lark.setHireDate(LocalDate.parse(hireDateStr));
+            larkEmployeeRepository.save(lark);
+        }
+
+        if (mapping == null) {
+            mapping = new EmployeeMapping();
+            mapping.setLarkEmployeeId(larkEmployeeId);
+            if (lark != null) {
+                mapping.setLarkEmployeeName(lark.getName());
+                mapping.setLarkEmployeeNo(lark.getEmployeeNo());
+                mapping.setLarkDepartment(lark.getDepartmentId());
+            }
+            mapping.setCreatedAt(LocalDateTime.now());
+        }
+        mapping.setHireDate(LocalDate.parse(hireDateStr));
+        mapping.setUpdatedAt(LocalDateTime.now());
+        mappingRepository.save(mapping);
+
+        log.info("Updated hire date for employee {}: {}", larkEmployeeId, hireDateStr);
+    }
+
+    @Transactional
     public void updateHireDates(List<Map<String, String>> updates) {
         for (Map<String, String> update : updates) {
             String larkId = update.get("larkEmployeeId");

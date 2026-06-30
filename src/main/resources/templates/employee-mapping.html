@@ -46,23 +46,6 @@
         .header-left p { font-size: 14px; color: var(--on-surface-variant); margin-top: 4px; }
 
         .header-actions { display: flex; gap: 12px; }
-        
-        .edit-mode-indicator {
-            display: none;
-            padding: 6px 12px;
-            background: rgba(255, 152, 0, 0.1);
-            border: 1px solid #ff9800;
-            border-radius: 6px;
-            font-size: 13px;
-            color: #e65100;
-            font-weight: 500;
-        }
-        
-        .edit-mode-indicator.active {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-        }
 
         .btn {
             display: inline-flex;
@@ -242,7 +225,7 @@
         }
 
         .mapping-table tr:hover td { background: var(--bg); }
-        .mapping-table tr.changed td { background: #fffde7; }
+        .mapping-table tr.editing td { background: #fff8e1; }
 
         .mapping-table .lark-cell { color: #1565c0; font-weight: 500; }
         .mapping-table .pos-cell { color: #2e7d32; }
@@ -267,7 +250,7 @@
             color: var(--on-surface-variant);
             font-size: 13px;
         }
-        
+
         .mapping-table .hire-date-cell input {
             width: 140px;
             padding: 6px 10px;
@@ -276,25 +259,40 @@
             font-size: 13px;
             background: var(--surface);
         }
-        
+
         .mapping-table .hire-date-cell input:focus {
             outline: none;
             border-color: var(--primary);
         }
-        
+
         .mapping-table .hire-date-cell input:disabled {
-            background: var(--bg);
-            color: var(--on-surface-variant);
-            cursor: not-allowed;
+            background: transparent;
+            border-color: transparent;
+            cursor: default;
         }
-        
-        .edit-mode .searchable-select input {
+
+        /* Edit button per row */
+        .edit-btn {
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 13px;
             cursor: pointer;
+            border: 1px solid var(--outline-variant);
+            background: var(--surface);
+            color: var(--on-surface);
+            transition: all 0.2s;
         }
-        
-        .searchable-select input:disabled {
-            cursor: not-allowed;
-            background: var(--bg);
+
+        .edit-btn:hover {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        .edit-btn.active {
+            background: var(--error);
+            color: white;
+            border-color: var(--error);
         }
 
         /* Searchable Select Styles */
@@ -312,7 +310,7 @@
             border-radius: 6px;
             font-size: 14px;
             background: var(--surface);
-            cursor: pointer;
+            cursor: default;
             position: relative;
             z-index: 1;
             white-space: nowrap;
@@ -320,13 +318,19 @@
             text-overflow: ellipsis;
         }
 
-        .searchable-select input:focus {
-            outline: none;
+        .searchable-select input:focus,
+        .searchable-select.editable input {
+            cursor: pointer;
             border-color: var(--primary);
-            cursor: text;
             background: white;
             overflow: auto;
             text-overflow: clip;
+        }
+
+        .searchable-select input:disabled {
+            cursor: default;
+            background: transparent;
+            border-color: transparent;
         }
 
         .searchable-select .dropdown-icon {
@@ -414,30 +418,6 @@
             margin-left: 8px;
         }
 
-        .save-bar {
-            position: fixed;
-            bottom: 24px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: var(--surface);
-            border: 1px solid var(--outline-variant);
-            border-radius: 12px;
-            padding: 16px 24px;
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-            z-index: 100;
-            opacity: 0;
-            visibility: hidden;
-            transition: all 0.3s;
-        }
-
-        .save-bar.show { opacity: 1; visibility: visible; }
-
-        .save-bar .message { font-size: 14px; font-weight: 500; }
-        .save-bar .changed-count { color: var(--primary); font-weight: 700; }
-
         .toast {
             position: fixed;
             bottom: 100px;
@@ -455,11 +435,23 @@
         .toast.show { transform: translateX(0); }
         .toast.success { background: var(--success); }
         .toast.error { background: var(--error); }
+        .toast.saving { background: var(--primary); }
 
         .empty-state {
             text-align: center;
             padding: 48px 24px;
             color: var(--on-surface-variant);
+        }
+
+        /* Saving indicator */
+        .saving-indicator {
+            display: none;
+            font-size: 12px;
+            color: var(--primary);
+            margin-left: 8px;
+        }
+        .saving-indicator.show {
+            display: inline;
         }
     </style>
 </head>
@@ -506,13 +498,7 @@
         <div class="panel-header">
             <div class="panel-title">Bảng Mapping Nhân Viên</div>
             <div style="display: flex; align-items: center; gap: 12px;">
-                <button class="btn btn-success" id="saveAllBtn" onclick="saveAll()" style="display: none;">
-                    💾 Lưu tất cả
-                </button>
-                <button class="btn btn-secondary" id="cancelEditBtn" onclick="cancelEdit()" style="display: none;">
-                    ❌ Hủy
-                </button>
-                <button class="btn btn-primary" id="editBtn" onclick="toggleEditMode()">✏️ Chỉnh sửa</button>
+                <span style="font-size: 12px; color: var(--on-surface-variant);">Click nút sửa để chỉnh sửa từng dòng</span>
             </div>
         </div>
         <div class="search-box">
@@ -528,9 +514,9 @@
                     <tr>
                         <th class="lark-col" style="width: 200px;">Nhân viên Lark</th>
                         <th class="lark-col" style="width: 120px;">Phòng ban</th>
-                        <th class="lark-col" style="width: 130px;">Ngày vào làm</th>
+                        <th class="lark-col" style="width: 160px;">Ngày vào làm</th>
                         <th class="pos-col" style="width: 250px;">Nhân viên POS</th>
-                        <th class="action-col" style="width: 120px;">Trạng thái</th>
+                        <th class="action-col" style="width: 100px;">Thao tác</th>
                     </tr>
                 </thead>
                 <tbody id="tableBody">
@@ -540,12 +526,6 @@
         </div>
     </div>
 
-<!--    <div class="save-bar" id="saveBar">-->
-<!--        <span class="message">Có <span class="changed-count" id="changedCount">0</span> thay đổi chưa lưu</span>-->
-<!--        <button class="btn btn-success" onclick="saveAll()">💾 Lưu tất cả</button>-->
-<!--        <button class="btn btn-secondary" onclick="discardChanges()">Hủy</button>-->
-<!--    </div>-->
-
     <div id="toast" class="toast"></div>
 
     <script>
@@ -553,99 +533,26 @@
         let posUsers = [];
         let allLarkData = [];
         let departments = [];
-        let originalMappings = {};
-        let changedRows = new Set();
-        let changedHireDates = new Set();
-        let isEditMode = false;
+        let editingRows = new Set();
 
-        function toggleEditMode() {
-            isEditMode = !isEditMode;
-            
-            const editBtn = document.getElementById('editBtn');
-            const saveBtn = document.getElementById('saveAllBtn');
-            const cancelBtn = document.getElementById('cancelEditBtn');
-            const tableContainer = document.getElementById('tableContainer');
-            
-            if (isEditMode) {
-                editBtn.style.display = 'none';
-                saveBtn.style.display = 'inline-flex';
-                cancelBtn.style.display = 'inline-flex';
-                tableContainer.classList.add('edit-mode');
-                
-                document.querySelectorAll('.hire-date-input').forEach(input => {
-                    input.disabled = false;
-                });
-                document.querySelectorAll('.searchable-select input').forEach(input => {
-                    input.disabled = false;
-                });
+        function toggleRowEdit(larkId) {
+            if (editingRows.has(larkId)) {
+                editingRows.delete(larkId);
             } else {
-                editBtn.style.display = 'inline-flex';
-                saveBtn.style.display = 'none';
-                cancelBtn.style.display = 'none';
-                tableContainer.classList.remove('edit-mode');
-                
-                document.querySelectorAll('.hire-date-input').forEach(input => {
-                    input.disabled = true;
-                });
-                document.querySelectorAll('.searchable-select input').forEach(input => {
-                    input.disabled = true;
-                });
+                editingRows.add(larkId);
             }
-        }
-
-        function cancelEdit() {
-            if (changedRows.size > 0 || changedHireDates.size > 0) {
-                if (!confirm('Bạn có chắc muốn hủy tất cả thay đổi?')) {
-                    return;
-                }
-            }
-            discardChanges();
-            exitEditMode();
-        }
-
-        function exitEditMode() {
-            isEditMode = false;
-            
-            const editBtn = document.getElementById('editBtn');
-            const saveBtn = document.getElementById('saveAllBtn');
-            const cancelBtn = document.getElementById('cancelEditBtn');
-            const tableContainer = document.getElementById('tableContainer');
-            
-            editBtn.style.display = 'inline-flex';
-            saveBtn.style.display = 'none';
-            cancelBtn.style.display = 'none';
-            tableContainer.classList.remove('edit-mode');
-            
-            document.querySelectorAll('.hire-date-input').forEach(input => {
-                input.disabled = true;
-            });
-            document.querySelectorAll('.searchable-select input').forEach(input => {
-                input.disabled = true;
-            });
-        }
-
-        function updateHireDate(employeeId, hireDate) {
-            if (!isEditMode) return;
-
-            changedHireDates.add(employeeId);
-            // REMOVED: changedRows.add(employeeId); - hire date change should NOT affect POS mapping
-
-            const row = document.querySelector(`tr[data-lark-id="${employeeId}"]`);
-            if (row) row.classList.add('changed');
-
-            updateChangedCount();
-            updateSaveBar();
+            renderTable();
         }
 
         async function loadData() {
-            
             try {
+                showLoading('Đang tải dữ liệu...');
                 const [statsRes, larkRes, posRes] = await Promise.all([
                     fetch('/api/employee-mapping/stats'),
                     fetch('/api/employee-mapping/lark-with-mapping'),
                     fetch('/api/employee-mapping/pos-users')
                 ]);
-                
+
                 const stats = await statsRes.json();
                 document.getElementById('totalLark').textContent = stats.totalLark || 0;
                 document.getElementById('totalPos').textContent = stats.totalPos || 0;
@@ -655,26 +562,24 @@
                 allLarkData = await larkRes.json();
                 larkData = [...allLarkData];
                 posUsers = await posRes.json();
-                
+
                 // Extract unique departments
                 const deptSet = new Set();
                 allLarkData.forEach(l => {
                     if (l.larkDepartment) deptSet.add(l.larkDepartment);
                 });
                 departments = Array.from(deptSet).sort();
-                
+
                 const deptFilter = document.getElementById('deptFilter');
                 deptFilter.innerHTML = '<option value="">Tất cả phòng ban</option>' +
                     departments.map(d => `<option value="${d}">${d}</option>`).join('');
 
-                originalMappings = {};
-                allLarkData.forEach(l => {
-                    originalMappings[l.larkEmployeeId] = l.mappedPosUserId;
-                });
-
+                editingRows.clear();
                 renderTable();
+                hideLoading();
             } catch (e) {
                 console.error('Load error:', e);
+                hideLoading();
                 showToast('Lỗi tải dữ liệu', 'error');
             }
         }
@@ -689,15 +594,16 @@
 
             tbody.innerHTML = larkData.map(lark => {
                 const isMapped = lark.mappedPosUserId != null;
+                const isEditing = editingRows.has(lark.larkEmployeeId);
                 const selectedPos = posUsers.find(p => p.id === lark.mappedPosUserId);
-                
+
                 // Format hire date
-                const hireDate = lark.larkHireDate 
+                const hireDate = lark.larkHireDate
                     ? new Date(lark.larkHireDate).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })
                     : '-';
 
                 return `
-                    <tr data-lark-id="${lark.larkEmployeeId}" class="${changedRows.has(lark.larkEmployeeId) ? 'changed' : ''}">
+                    <tr data-lark-id="${lark.larkEmployeeId}" class="${isEditing ? 'editing' : ''}">
                         <td class="lark-cell">
                             ${lark.larkEmployeeName || 'N/A'}
                             <div class="emp-id">${lark.larkEmployeeId}</div>
@@ -706,48 +612,134 @@
                             <span class="department-cell">${lark.larkDepartment || 'Chưa có'}</span>
                         </td>
                         <td class="hire-date-cell">
-                            <input type="date" 
+                            <input type="date"
+                                id="hire-${lark.larkEmployeeId}"
                                 class="hire-date-input"
                                 value="${lark.larkHireDate || ''}"
-                                onchange="updateHireDate('${lark.larkEmployeeId}', this.value)"
-                                disabled
-                                style="border: 1px solid var(--outline-variant); padding: 4px 8px; border-radius: 4px; font-size: 13px; width: 140px;">
+                                ${!isEditing ? 'disabled' : ''}
+                                onchange="saveHireDate('${lark.larkEmployeeId}', this.value)">
+                            <span class="saving-indicator" id="saving-hire-${lark.larkEmployeeId}">Đang lưu...</span>
                         </td>
                         <td class="pos-cell">
-                            <div class="searchable-select" data-lark-id="${lark.larkEmployeeId}" data-original-pos="${lark.mappedPosUserId || ''}">
-                                <input type="text" 
-                                    placeholder="-- Tìm và chọn POS --"
+                            <div class="searchable-select ${isEditing ? 'editable' : ''}"
+                                id="pos-select-${lark.larkEmployeeId}"
+                                data-lark-id="${lark.larkEmployeeId}"
+                                data-original-pos="${lark.mappedPosUserId || ''}">
+                                <input type="text"
+                                    placeholder="${isEditing ? '-- Tìm và chọn POS --' : (selectedPos ? '' : '-- Chưa map --')}"
                                     value="${selectedPos ? selectedPos.name + ' (' + (selectedPos.email || selectedPos.id) + ')' : ''}"
-                                    onfocus="openDropdown(this)"
-                                    oninput="filterDropdown(this)"
-                                    onclick="event.stopPropagation()"
-                                    disabled
-                                >
-                                <span class="dropdown-icon">▼</span>
+                                    ${!isEditing ? 'disabled' : ''}
+                                    onfocus="${isEditing ? "openDropdown(this)" : ''}"
+                                    oninput="${isEditing ? "filterDropdown(this)" : ''}"
+                                    onclick="event.stopPropagation()">
+                                <span class="dropdown-icon ${isEditing ? '' : 'hidden'}">▼</span>
                                 <div class="dropdown-menu">
-                                    <div class="dropdown-item clear-item" onclick="clearSelection(this)">
+                                    <div class="dropdown-item clear-item" onclick="clearSelection(this, '${lark.larkEmployeeId}')">
                                         <div class="item-name">✕ Bỏ chọn</div>
                                     </div>
                                     ${posUsers.map(pos => `
-                                        <div class="dropdown-item ${lark.mappedPosUserId === pos.id ? 'selected' : ''}" 
-                                            data-value="${pos.id}" 
-                                            onclick="selectOption(this)">
+                                        <div class="dropdown-item ${lark.mappedPosUserId === pos.id ? 'selected' : ''}"
+                                            data-value="${pos.id}"
+                                            onclick="selectOption(this, '${lark.larkEmployeeId}')">
                                             <div class="item-name">${pos.name || 'N/A'}</div>
                                             <div class="item-email">${pos.email || pos.id}</div>
                                         </div>
                                     `).join('')}
                                 </div>
                             </div>
+                            <span class="saving-indicator" id="saving-pos-${lark.larkEmployeeId}">Đang lưu...</span>
                         </td>
                         <td>
-                            ${isMapped 
-                                ? `<span class="mapped-badge">✓ Đã map</span>` 
-                                : `<span class="unmapped-badge">○ Chưa map</span>`
-                            }
+                            <button class="edit-btn ${isEditing ? 'active' : ''}" onclick="toggleRowEdit('${lark.larkEmployeeId}')">
+                                ${isEditing ? '✕ Đóng' : '✏️ Sửa'}
+                            </button>
                         </td>
                     </tr>
                 `;
             }).join('');
+        }
+
+        async function saveHireDate(larkId, hireDate) {
+            if (!hireDate) return;
+
+            const savingIndicator = document.getElementById(`saving-hire-${larkId}`);
+            savingIndicator.classList.add('show');
+
+            try {
+                const response = await fetch('/api/employee-mapping/update-hire-date', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        larkEmployeeId: larkId,
+                        hireDate: hireDate
+                    })
+                });
+
+                if (response.ok) {
+                    // Update local data
+                    const lark = allLarkData.find(l => l.larkEmployeeId === larkId);
+                    if (lark) {
+                        lark.larkHireDate = hireDate;
+                    }
+                    const filtered = larkData.find(l => l.larkEmployeeId === larkId);
+                    if (filtered) {
+                        filtered.larkHireDate = hireDate;
+                    }
+                    showToast('Đã lưu ngày vào làm', 'success');
+                } else {
+                    showToast('Lỗi khi lưu', 'error');
+                }
+            } catch (e) {
+                console.error('Save hire date error:', e);
+                showToast('Lỗi kết nối: ' + e.message, 'error');
+            } finally {
+                savingIndicator.classList.remove('show');
+            }
+        }
+
+        async function savePosMapping(larkId, posId) {
+            const savingIndicator = document.getElementById(`saving-pos-${larkId}`);
+            savingIndicator.classList.add('show');
+
+            try {
+                const response = await fetch('/api/employee-mapping/save', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        larkEmployeeId: larkId,
+                        posUserId: posId || null
+                    })
+                });
+
+                if (response.ok) {
+                    // Update local data
+                    const lark = allLarkData.find(l => l.larkEmployeeId === larkId);
+                    if (lark) {
+                        lark.mappedPosUserId = posId || null;
+                        const pos = posUsers.find(p => p.id === posId);
+                        lark.mappedPosUserName = pos ? pos.name : null;
+                        lark.isMapped = posId != null;
+                    }
+                    const filtered = larkData.find(l => l.larkEmployeeId === larkId);
+                    if (filtered) {
+                        filtered.mappedPosUserId = posId || null;
+                        filtered.mappedPosUserName = posId ? posUsers.find(p => p.id === posId)?.name : null;
+                        filtered.isMapped = posId != null;
+                    }
+                    // Update stats
+                    const mapped = allLarkData.filter(l => l.mappedPosUserId != null).length;
+                    document.getElementById('mappedCount').textContent = mapped;
+                    document.getElementById('unmappedCount').textContent = allLarkData.length - mapped;
+                    showToast(posId ? 'Đã lưu mapping POS' : 'Đã xóa mapping', 'success');
+                } else {
+                    showToast('Lỗi khi lưu', 'error');
+                }
+            } catch (e) {
+                console.error('Save POS mapping error:', e);
+                showToast('Lỗi kết nối: ' + e.message, 'error');
+            } finally {
+                savingIndicator.classList.remove('show');
+            }
         }
 
         function applyFilters() {
@@ -755,27 +747,18 @@
             const dept = document.getElementById('deptFilter').value;
 
             larkData = allLarkData.filter(lark => {
-                const matchText = !query || 
+                const matchText = !query ||
                     (lark.larkEmployeeName && lark.larkEmployeeName.toLowerCase().includes(query)) ||
                     (lark.larkEmployeeId && lark.larkEmployeeId.toLowerCase().includes(query)) ||
                     (lark.larkEmployeeEmail && lark.larkEmployeeEmail.toLowerCase().includes(query)) ||
                     (lark.larkEmployeeNo && lark.larkEmployeeNo.toLowerCase().includes(query));
-                
+
                 const matchDept = !dept || lark.larkDepartment === dept;
 
                 return matchText && matchDept;
             });
 
             renderTable();
-            
-            if (isEditMode) {
-                document.querySelectorAll('.hire-date-input').forEach(input => {
-                    input.disabled = false;
-                });
-                document.querySelectorAll('.searchable-select input').forEach(input => {
-                    input.disabled = false;
-                });
-            }
         }
 
         function openDropdown(input) {
@@ -786,27 +769,27 @@
             closeAllDropdowns();
 
             menu.classList.add('show');
-            icon.classList.add('open');
+            if (icon) icon.classList.add('open');
             input.focus();
         }
 
         function closeAllDropdowns() {
             document.querySelectorAll('.dropdown-menu').forEach(m => m.classList.remove('show'));
-            document.querySelectorAll('.dropdown-icon').forEach(i => i.classList.remove('open'));
+            document.querySelectorAll('.searchable-select .dropdown-icon').forEach(i => i.classList.remove('open'));
         }
 
         function filterDropdown(input) {
             const select = input.closest('.searchable-select');
             const menu = select.querySelector('.dropdown-menu');
             const query = input.value.toLowerCase();
-            
+
             const items = menu.querySelectorAll('.dropdown-item:not(.clear-item)');
             let hasResults = false;
-            
+
             items.forEach(item => {
                 const name = item.querySelector('.item-name').textContent.toLowerCase();
                 const email = item.querySelector('.item-email').textContent.toLowerCase();
-                
+
                 if (name.includes(query) || email.includes(query)) {
                     item.style.display = '';
                     hasResults = true;
@@ -828,145 +811,42 @@
             }
         }
 
-        function selectOption(item) {
-            if (!isEditMode) return;
-            
+        function selectOption(item, larkId) {
             const select = item.closest('.searchable-select');
             const input = select.querySelector('input');
             const menu = select.querySelector('.dropdown-menu');
             const icon = select.querySelector('.dropdown-icon');
-            
+
             const value = item.dataset.value;
             const name = item.querySelector('.item-name').textContent;
             const email = item.querySelector('.item-email').textContent;
-            
+
             input.value = name + ' (' + email + ')';
-            
-            const larkId = select.dataset.larkId;
-            const originalPos = select.dataset.originalPos;
-            
-            if (value !== originalPos) {
-                changedRows.add(larkId);
-                select.dataset.selectedPos = value;
-            } else {
-                changedRows.delete(larkId);
-                delete select.dataset.selectedPos;
-            }
-            
+
             menu.querySelectorAll('.dropdown-item').forEach(i => i.classList.remove('selected'));
             item.classList.add('selected');
-            
+
             closeAllDropdowns();
-            updateSaveBar();
+
+            // Save immediately
+            savePosMapping(larkId, value);
         }
 
-        function clearSelection(item) {
-            if (!isEditMode) return;
-            
+        function clearSelection(item, larkId) {
             const select = item.closest('.searchable-select');
             const input = select.querySelector('input');
             const menu = select.querySelector('.dropdown-menu');
-            const icon = select.querySelector('.dropdown-icon');
-            
+
             input.value = '';
-            
-            const larkId = select.dataset.larkId;
-            const originalPos = select.dataset.originalPos;
-            
-            if (originalPos !== '') {
-                changedRows.add(larkId);
-            }
-            select.dataset.selectedPos = '';
-            
+
             menu.querySelectorAll('.dropdown-item').forEach(i => i.classList.remove('selected'));
-            
+
             closeAllDropdowns();
-            updateSaveBar();
-        }
 
-        function updateSaveBar() {
-            const saveBar = document.getElementById('saveBar');
-            const changedCount = document.getElementById('changedCount');
-            
-            if (changedRows.size > 0) {
-                changedCount.textContent = changedRows.size;
-                saveBar.classList.add('show');
-            } else {
-                saveBar.classList.remove('show');
-            }
-        }
-
-        async function saveAll() {
-            if (changedRows.size === 0 && changedHireDates.size === 0) {
-                showToast('Không có thay đổi để lưu', 'info');
-                return;
-            }
-
-            showLoading('Đang lưu...');
-
-            const mappingsToSave = [];
-            const hireDatesToSave = [];
-
-            document.querySelectorAll('.searchable-select').forEach(select => {
-                const larkId = select.dataset.larkId;
-                const posId = select.dataset.selectedPos;
-                const originalPos = select.dataset.originalPos;
-                const hireInput = document.querySelector(`tr[data-lark-id="${larkId}"] .hire-date-input`);
-                const hireDate = hireInput ? hireInput.value : '';
-
-                // Only save mapping if POS changed
-                if (changedRows.has(larkId)) {
-                    if (posId !== originalPos) {
-                        mappingsToSave.push({
-                            larkEmployeeId: larkId,
-                            posUserId: posId || null
-                        });
-                    }
-                }
-
-                // Save hire date separately if changed
-                if (changedHireDates.has(larkId) && hireDate) {
-                    hireDatesToSave.push({
-                        larkEmployeeId: larkId,
-                        hireDate: hireDate
-                    });
-                }
-            });
-
-            try {
-                let saved = false;
-
-                if (mappingsToSave.length > 0) {
-                    await fetch('/api/employee-mapping/save-all', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(mappingsToSave)
-                    });
-                    saved = true;
-                }
-
-                if (hireDatesToSave.length > 0) {
-                    await fetch('/api/employee-mapping/update-hire-dates', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(hireDatesToSave)
-                    });
-                    saved = true;
-                }
-
-                hideLoading();
-                changedRows.clear();
-                changedHireDates.clear();
-                showToast(saved ? 'Đã lưu thành công!' : 'Không có thay đổi', 'success');
-                
-                if (isEditMode) {
-                    exitEditMode();
-                }
-                
-                await loadData();
-            } catch (e) {
-                hideLoading();
-                showToast('Lỗi kết nối: ' + e.message, 'error');
+            // Save immediately (clear mapping)
+            const originalPos = select.dataset.originalPos;
+            if (originalPos !== '') {
+                savePosMapping(larkId, null);
             }
         }
 
@@ -977,15 +857,6 @@
 
         function hideLoading() {
             document.getElementById('loadingOverlay').classList.remove('show');
-        }
-
-        function discardChanges() {
-            if (!confirm('Hủy bỏ tất cả thay đổi?')) return;
-            changedRows.clear();
-            changedHireDates.clear();
-            updateSaveBar();
-            renderTable();
-            exitEditMode();
         }
 
         function showToast(message, type = 'success') {

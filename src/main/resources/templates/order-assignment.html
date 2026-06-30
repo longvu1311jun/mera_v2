@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <link rel="icon" type="image/jpeg" href="/meraicon.ico">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phân Công CSKH | Mera V2</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #006194;
+            --primary-light: #007bb9;
+            --success: #006947;
+            --success-bg: rgba(0, 105, 71, 0.08);
+            --warning: #b45f00;
+            --warning-bg: rgba(180, 95, 0, 0.08);
+            --error: #ba1a1a;
+            --bg: #f7f9fb;
+            --surface: #ffffff;
+            --surface-container: #eceef0;
+            --on-surface: #191c1e;
+            --on-surface-variant: #3f4850;
+            --outline: #707881;
+            --outline-variant: #bfc7d2;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg);
+            color: var(--on-surface);
+            min-height: 100vh;
+            padding: 32px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 32px;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .header-left h1 { font-size: 24px; font-weight: 600; }
+        .header-left p { font-size: 14px; color: var(--on-surface-variant); margin-top: 4px; }
+
+        .header-actions { display: flex; gap: 12px; }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            border: 1px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { background: var(--primary-light); }
+        .btn-secondary { background: var(--surface); border-color: var(--outline-variant); color: var(--on-surface); }
+        .btn-secondary:hover { background: var(--surface-container); }
+
+        .stats-row {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+
+        .stat-card {
+            background: var(--surface);
+            border: 1px solid var(--outline-variant);
+            border-radius: 12px;
+            padding: 16px 24px;
+            min-width: 130px;
+        }
+
+        .stat-value { font-size: 28px; font-weight: 700; color: var(--primary); }
+        .stat-label { font-size: 11px; color: var(--on-surface-variant); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.05em; }
+
+        .panel {
+            background: var(--surface);
+            border: 1px solid var(--outline-variant);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .panel-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--outline-variant);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--bg);
+        }
+
+        .panel-title { font-size: 16px; font-weight: 600; }
+
+        .table-container {
+            overflow-x: auto;
+        }
+
+        .assignment-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .assignment-table th {
+            text-align: left;
+            padding: 14px 16px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--on-surface-variant);
+            background: var(--bg);
+            border-bottom: 1px solid var(--outline-variant);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .assignment-table th.employee-col { background: #e3f2fd; color: #1565c0; min-width: 160px; }
+        .assignment-table th.checkin-col { background: #fff3e0; color: #b45f00; min-width: 120px; }
+        .assignment-table th.hire-col { background: #f3e5f5; color: #7b1fa2; min-width: 120px; }
+        .assignment-table th.customer-col { background: #e8f5e9; color: #2e7d32; min-width: 180px; }
+        .assignment-table th.phone-col { background: #e8f5e9; color: #2e7d32; min-width: 130px; }
+        .assignment-table th.time-col { background: #eceff1; color: #455a64; min-width: 160px; }
+
+        .assignment-table td {
+            padding: 14px 16px;
+            font-size: 14px;
+            border-bottom: 1px solid var(--outline-variant);
+            vertical-align: middle;
+        }
+
+        .assignment-table tr:hover td { background: var(--bg); }
+
+        .employee-name {
+            font-weight: 600;
+            color: #1565c0;
+        }
+
+        .checkin-time {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .checkin-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+            background: var(--warning-bg);
+            color: var(--warning);
+        }
+
+        .hire-date {
+            color: #7b1fa2;
+            font-weight: 500;
+        }
+
+        .customer-name {
+            font-weight: 500;
+        }
+
+        .customer-phone {
+            font-family: ui-monospace, monospace;
+            color: var(--primary);
+            font-weight: 500;
+        }
+
+        .assigned-time {
+            color: var(--on-surface-variant);
+            font-size: 13px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 48px 24px;
+            color: var(--on-surface-variant);
+        }
+
+        .empty-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+
+        .loading-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 99999;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .loading-overlay.show { display: flex; }
+
+        .loading-spinner {
+            background: white;
+            padding: 32px 48px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .spinner {
+            width: 48px;
+            height: 48px;
+            border: 4px solid var(--outline-variant);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            font-size: 16px;
+            font-weight: 500;
+            color: var(--on-surface);
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 100px;
+            right: 24px;
+            padding: 14px 20px;
+            border-radius: 8px;
+            font-weight: 500;
+            font-size: 14px;
+            z-index: 100;
+            transform: translateX(120%);
+            transition: all 0.3s;
+            color: white;
+        }
+
+        .toast.show { transform: translateX(0); }
+        .toast.success { background: var(--success); }
+        .toast.error { background: var(--error); }
+
+        .refresh-info {
+            font-size: 12px;
+            color: var(--on-surface-variant);
+        }
+
+        .refresh-info button {
+            background: none;
+            border: none;
+            color: var(--primary);
+            cursor: pointer;
+            text-decoration: underline;
+            font-size: 12px;
+        }
+
+        .refresh-info button:hover {
+            color: var(--primary-light);
+        }
+    </style>
+</head>
+<body>
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner">
+            <div class="spinner"></div>
+            <div class="loading-text" id="loadingText">Đang tải dữ liệu...</div>
+        </div>
+    </div>
+
+    <div class="header">
+        <div class="header-left">
+            <h1>Phân Công CSKH</h1>
+            <p>Theo dõi việc phân công khách hàng cho nhân viên trong ngày</p>
+        </div>
+        <div class="header-actions">
+            <button class="btn btn-secondary" onclick="loadData()">
+                🔄 Làm mới
+            </button>
+        </div>
+    </div>
+
+    <div class="stats-row">
+        <div class="stat-card">
+            <div class="stat-value" id="totalAssignments">0</div>
+            <div class="stat-label">Tổng phân công</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="totalEmployees">0</div>
+            <div class="stat-label">Nhân viên điểm danh</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="currentDate">-</div>
+            <div class="stat-label">Ngày hiện tại</div>
+        </div>
+    </div>
+
+    <div class="panel">
+        <div class="panel-header">
+            <div class="panel-title">Lịch sử phân công trong ngày</div>
+            <div class="refresh-info">
+                <span id="lastUpdate">Cập nhật lần cuối: --:--</span>
+                <button onclick="loadData()">Làm mới</button>
+            </div>
+        </div>
+        <div class="table-container" id="tableContainer">
+            <table class="assignment-table">
+                <thead>
+                    <tr>
+                        <th class="employee-col">Tên nhân viên</th>
+                        <th class="checkin-col">Giờ điểm danh</th>
+                        <th class="hire-col">Ngày vào làm</th>
+                        <th class="customer-col">Tên khách hàng</th>
+                        <th class="phone-col">SĐT khách hàng</th>
+                        <th class="time-col">Thời gian phân công</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                    <tr><td colspan="6" class="empty-state">Đang tải dữ liệu...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <script>
+        let employeesData = [];
+        let assignmentsData = [];
+
+        async function loadData() {
+            try {
+                showLoading('Đang tải dữ liệu...');
+
+                const [assignmentsRes, employeesRes] = await Promise.all([
+                    fetch('/api/order-assignment/today'),
+                    fetch('/api/order-assignment/employees')
+                ]);
+
+                const assignmentsJson = await assignmentsRes.json();
+                const employeesJson = await employeesRes.json();
+
+                assignmentsData = assignmentsJson.data || [];
+                employeesData = employeesJson.data || [];
+
+                document.getElementById('totalAssignments').textContent = assignmentsData.length;
+                document.getElementById('totalEmployees').textContent = employeesData.length;
+                document.getElementById('currentDate').textContent = new Date().toLocaleDateString('vi-VN');
+                document.getElementById('lastUpdate').textContent = 'Cập nhật lần cuối: ' + new Date().toLocaleTimeString('vi-VN');
+
+                renderTable();
+                hideLoading();
+            } catch (e) {
+                console.error('Load error:', e);
+                hideLoading();
+                showToast('Lỗi tải dữ liệu: ' + e.message, 'error');
+            }
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('tableBody');
+
+            if (assignmentsData.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6">
+                            <div class="empty-state">
+                                <div class="empty-icon">📋</div>
+                                <div>Chưa có phân công nào trong ngày</div>
+                                <div style="font-size: 12px; margin-top: 8px;">Dữ liệu sẽ được cập nhật khi có đơn hàng status=1</div>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = assignmentsData.map(assignment => {
+                const employee = employeesData.find(e => e.larkEmployeeName === assignment.employeeName);
+                const checkinTime = employee?.checkinTime || '-';
+                const hireDate = employee?.hireDate
+                    ? new Date(employee.hireDate).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })
+                    : '-';
+                const assignedTime = assignment.assignedAt
+                    ? new Date(assignment.assignedAt).toLocaleString('vi-VN', {
+                        day: '2-digit', month: '2-digit', year: 'numeric',
+                        hour: '2-digit', minute: '2-digit'
+                      })
+                    : '-';
+
+                return `
+                    <tr>
+                        <td class="employee-name">${assignment.employeeName || '-'}</td>
+                        <td>
+                            <div class="checkin-time">
+                                ${checkinTime !== '-' ? `<span class="checkin-badge">${checkinTime}</span>` : '-'}
+                            </div>
+                        </td>
+                        <td class="hire-date">${hireDate}</td>
+                        <td class="customer-name">${assignment.customerName || '-'}</td>
+                        <td class="customer-phone">${assignment.customerPhone || '-'}</td>
+                        <td class="assigned-time">${assignedTime}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function showLoading(text = 'Đang xử lý...') {
+            document.getElementById('loadingText').textContent = text;
+            document.getElementById('loadingOverlay').classList.add('show');
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingOverlay').classList.remove('show');
+        }
+
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = 'toast ' + type + ' show';
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+
+        // Auto refresh every 30 seconds
+        setInterval(loadData, 30000);
+
+        loadData();
+    </script>
+</body>
+</html>
