@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Getter
@@ -48,6 +49,9 @@ public class LarkEmployee {
 
     @Column(name = "pos_user_id", length = 64)
     private String posUserId;
+
+    @Column(name = "hire_date")
+    private LocalDate hireDate;
 
     @Column(name = "fb_id", length = 64)
     private String fbId;
