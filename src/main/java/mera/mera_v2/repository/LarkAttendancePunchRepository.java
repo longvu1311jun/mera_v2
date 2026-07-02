@@ -87,4 +87,15 @@ public interface LarkAttendancePunchRepository extends JpaRepository<LarkAttenda
 
     @Query("SELECT DISTINCT p.employeeId FROM LarkAttendancePunch p WHERE p.attendanceDate = :date AND p.punchType = 1")
     List<String> findDistinctEmployeeIdsCheckedIn(@Param("date") LocalDate date);
+
+    @Query("SELECT DISTINCT p.employeeId FROM LarkAttendancePunch p WHERE p.attendanceDate = :date")
+    List<String> findDistinctEmployeeIdsWithAnyPunch(@Param("date") LocalDate date);
+
+    @Query("""
+        SELECT DISTINCT p.employeeId FROM LarkAttendancePunch p
+        WHERE p.attendanceDate = :date
+        AND p.punchType = 1
+        AND p.punchTime IS NULL
+        """)
+    List<String> findEmployeeIdsMissingCheckin(@Param("date") LocalDate date);
 }

@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <link rel="icon" type="image/jpeg" href="/meraicon.ico">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cấu Hình Phân Công CSKH</title>
+    <link href="/css/theme.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #1456f0;
+            --primary-dark: #0d47a1;
+            --surface: #ffffff;
+            --background: #f7f7f4;
+            --on-surface: #26251e;
+            --on-surface-variant: #5a5852;
+            --outline: #807d72;
+            --border: #e6e5e0;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--background);
+            color: var(--on-surface);
+            margin: 0;
+            padding: 24px 48px;
+        }
+
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 32px;
+            padding-bottom: 24px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .page-title {
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--on-surface);
+            margin: 0;
+        }
+
+        .page-subtitle {
+            font-size: 14px;
+            color: var(--outline);
+            margin-top: 4px;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 18px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: 1px solid transparent;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            border-color: var(--primary-dark);
+        }
+
+        .btn-secondary {
+            background: var(--surface);
+            color: var(--on-surface);
+            border-color: var(--border);
+        }
+
+        .btn-secondary:hover {
+            background: var(--border);
+        }
+
+        .config-section {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--on-surface);
+            margin: 0 0 20px 0;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .config-group {
+            display: grid;
+            gap: 20px;
+        }
+
+        .config-item {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            padding: 16px;
+            background: var(--background);
+            border-radius: 8px;
+        }
+
+        .config-info {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .config-label {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--on-surface);
+        }
+
+        .config-description {
+            font-size: 12px;
+            color: var(--outline);
+        }
+
+        .config-input {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .config-input input[type="text"],
+        .config-input input[type="number"] {
+            padding: 8px 12px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: 'JetBrains Mono', monospace;
+            width: 120px;
+            background: var(--surface);
+        }
+
+        .config-input input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 48px;
+            height: 24px;
+            cursor: pointer;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            inset: 0;
+            background: var(--border);
+            border-radius: 24px;
+            transition: 0.3s;
+        }
+
+        .toggle-slider:before {
+            content: "";
+            position: absolute;
+            width: 18px;
+            height: 18px;
+            left: 3px;
+            bottom: 3px;
+            background: white;
+            border-radius: 50%;
+            transition: 0.3s;
+        }
+
+        .toggle-switch input:checked + .toggle-slider {
+            background: var(--primary);
+        }
+
+        .toggle-switch input:checked + .toggle-slider:before {
+            transform: translateX(24px);
+        }
+
+        .toggle-label {
+            font-size: 14px;
+            color: var(--on-surface-variant);
+            min-width: 50px;
+        }
+
+        .toggle-label.active {
+            color: var(--primary);
+            font-weight: 500;
+        }
+
+        .action-bar {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            margin-top: 24px;
+            padding-top: 24px;
+            border-top: 1px solid var(--border);
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            padding: 12px 20px;
+            background: var(--on-surface);
+            color: white;
+            border-radius: 8px;
+            font-size: 14px;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .toast.success {
+            background: #1f8a65;
+        }
+
+        .toast.error {
+            background: #cf2d56;
+        }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--primary);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 16px;
+        }
+
+        .back-link:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 16px;
+            }
+
+            .config-item {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <a href="/assignment-monitoring" class="back-link">← Quay lại trang phân công</a>
+
+    <div class="page-header">
+        <div>
+            <h1 class="page-title">Cấu Hình Phân Công CSKH</h1>
+            <p class="page-subtitle">Thiết lập các tham số cho hệ thống phân công khách hàng</p>
+        </div>
+    </div>
+
+    <!-- Attendance Settings -->
+    <div class="config-section">
+        <h2 class="section-title">⏰ Cài Đặt Điểm Danh</h2>
+        <div class="config-group">
+            <div class="config-item">
+                <div class="config-info">
+                    <div class="config-label">on_time_threshold</div>
+                    <div class="config-description">Giờ điểm danh tối thiểu để được coi là đúng giờ</div>
+                </div>
+                <div class="config-input">
+                    <input type="text" id="on_time_threshold" placeholder="08:00" maxlength="5">
+                </div>
+            </div>
+
+            <div class="config-item">
+                <div class="config-info">
+                    <div class="config-label">avg_calculation_include_late</div>
+                    <div class="config-description">Tính trung bình có bao gồm nhóm đi muộn không</div>
+                </div>
+                <div class="config-input">
+                    <label  class="toggle-switch">
+                        <input type="checkbox" id="avg_calculation_include_late">
+                        <span class="toggle-slider"></span>
+                    </label >
+                    <span class="toggle-label" id="avg_calculation_include_late_label">Không</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Priority Settings -->
+    <div class="config-section">
+        <h2 class="section-title">⭐ Cài Đặt Ưu Tiên</h2>
+        <div class="config-group">
+            <div class="config-item">
+                <div class="config-info">
+                    <div class="config-label">include_late_in_priority</div>
+                    <div class="config-description">Cho phép nhóm muộn được nhận ưu tiên nếu ít khách hơn trung bình</div>
+                </div>
+                <div class="config-input">
+                    <div class="toggle-switch">
+                        <input type="checkbox" id="include_late_in_priority">
+                        <span class="toggle-slider"></span>
+                    </div>
+                    <span class="toggle-label" id="include_late_in_priority_label">Không</span>
+                </div>
+            </div>
+
+            <div class="config-item">
+                <div class="config-info">
+                    <div class="config-label">streak_enabled</div>
+                    <div class="config-description">Bật tính năng streak (ngày đi đúng giờ liên tiếp)</div>
+                </div>
+                <div class="config-input">
+                    <div class="toggle-switch">
+                        <input type="checkbox" id="streak_enabled">
+                        <span class="toggle-slider"></span>
+                    </div>
+                    <span class="toggle-label" id="streak_enabled_label">Không</span>
+                </div>
+            </div>
+
+            <div class="config-item" id="streak_threshold_row" style="opacity: 0.5; pointer-events: none;">
+                <div class="config-info">
+                    <div class="config-label">streak_threshold</div>
+                    <div class="config-description">Ngưỡng streak tối thiểu để được siêu ưu tiên (số ngày)</div>
+                </div>
+                <div class="config-input">
+                    <input type="number" id="streak_threshold" min="1" max="30" value="2">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Assignment Settings -->
+    <div class="config-section">
+        <h2 class="section-title">📋 Cài Đặt Phân Công</h2>
+        <div class="config-group">
+            <div class="config-item">
+                <div class="config-info">
+                    <div class="config-label">auto_assign_enabled</div>
+                    <div class="config-description">Bật tự động phân công khi có khách hàng mới</div>
+                </div>
+                <div class="config-input">
+                    <div class="toggle-switch">
+                        <input type="checkbox" id="auto_assign_enabled" checked>
+                        <span class="toggle-slider"></span>
+                    </div>
+                    <span class="toggle-label active" id="auto_assign_enabled_label">Có</span>
+                </div>
+            </div>
+
+            <div class="config-item">
+                <div class="config-info">
+                    <div class="config-label">max_assignments_per_employee</div>
+                    <div class="config-description">Số khách tối đa mỗi nhân viên có thể nhận trong ngày</div>
+                </div>
+                <div class="config-input">
+                    <input type="number" id="max_assignments_per_employee" min="1" max="100" value="10">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="action-bar">
+        <button id="btn-reset" class="btn btn-secondary">
+            ↺ Reset về mặc định
+        </button>
+        <button id="btn-save" class="btn btn-primary">
+            💾 Lưu thay đổi
+        </button>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        const CONFIG_KEYS = {
+            'on_time_threshold': { type: 'text', element: 'on_time_threshold' },
+            'avg_calculation_include_late': { type: 'boolean', element: 'avg_calculation_include_late' },
+            'include_late_in_priority': { type: 'boolean', element: 'include_late_in_priority' },
+            'streak_enabled': { type: 'boolean', element: 'streak_enabled' },
+            'streak_threshold': { type: 'number', element: 'streak_threshold' },
+            'auto_assign_enabled': { type: 'boolean', element: 'auto_assign_enabled' },
+            'max_assignments_per_employee': { type: 'number', element: 'max_assignments_per_employee' }
+        };
+
+        async function loadConfigs() {
+            try {
+                const response = await fetch('/assignment-config/api/configs');
+                const configs = await response.json();
+
+                configs.forEach(config => {
+                    const configDef = CONFIG_KEYS[config.configKey];
+                    if (configDef) {
+                        const element = document.getElementById(configDef.element);
+                        if (configDef.type === 'boolean') {
+                            element.checked = config.configValue === 'true';
+                            updateToggleLabel(configDef.element, element.checked);
+                        } else {
+                            element.value = config.configValue;
+                        }
+                    }
+                });
+
+                updateStreakThresholdVisibility();
+            } catch (error) {
+                showToast('Không thể tải cấu hình', 'error');
+            }
+        }
+
+        function updateToggleLabel(id, isActive) {
+            const label = document.getElementById(id + '_label');
+            label.textContent = isActive ? 'Có' : 'Không';
+            label.classList.toggle('active', isActive);
+        }
+
+        function updateStreakThresholdVisibility() {
+            const streakEnabled = document.getElementById('streak_enabled').checked;
+            const row = document.getElementById('streak_threshold_row');
+            row.style.opacity = streakEnabled ? '1' : '0.5';
+            row.style.pointerEvents = streakEnabled ? 'auto' : 'none';
+        }
+
+        async function saveConfigs() {
+            const updates = {};
+
+            for (const [key, configDef] of Object.entries(CONFIG_KEYS)) {
+                const element = document.getElementById(configDef.element);
+                if (configDef.type === 'boolean') {
+                    updates[key] = element.checked.toString();
+                } else {
+                    updates[key] = element.value;
+                }
+            }
+
+            try {
+                const response = await fetch('/assignment-config/api/configs', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(updates)
+                });
+
+                if (response.ok) {
+                    showToast('Đã lưu cấu hình thành công', 'success');
+                } else {
+                    showToast('Lỗi khi lưu cấu hình', 'error');
+                }
+            } catch (error) {
+                showToast('Lỗi khi lưu cấu hình', 'error');
+            }
+        }
+
+        async function resetToDefaults() {
+            if (!confirm('Bạn có chắc muốn reset về cấu hình mặc định?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/assignment-config/api/configs/reset', {
+                    method: 'POST'
+                });
+
+                if (response.ok) {
+                    location.reload();
+                }
+            } catch (error) {
+                showToast('Lỗi khi reset cấu hình', 'error');
+            }
+        }
+
+        function showToast(message, type) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = 'toast ' + type;
+            toast.classList.add('show');
+
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
+        // Initialize when DOM is ready
+        document.addEventListener('DOMContentLoaded', () => {
+        // Toggle handlers
+        ['avg_calculation_include_late', 'include_late_in_priority', 'streak_enabled', 'auto_assign_enabled'].forEach(id => {
+            const element = document.getElementById(id);
+            if (element) {
+                element.addEventListener('change', () => {
+                    updateToggleLabel(id, element.checked);
+                    if (id === 'streak_enabled') {
+                        updateStreakThresholdVisibility();
+                    }
+                });
+            }
+        });
+
+            // Button handlers
+            document.getElementById('btn-save').addEventListener('click', saveConfigs);
+            document.getElementById('btn-reset').addEventListener('click', resetToDefaults);
+
+            // Load configs
+            loadConfigs();
+        });
+    </script>
+</body>
+</html>

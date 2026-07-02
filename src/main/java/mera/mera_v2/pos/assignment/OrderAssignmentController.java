@@ -59,17 +59,22 @@ public class OrderAssignmentController {
     public ResponseEntity<Map<String, Object>> getCheckedInEmployees() {
         log.info("GET /api/order-assignment/employees");
 
-        List<EmployeeMapping> employees = orderAssignmentService.getTodayCheckedInEmployeesSorted();
+        List<OrderAssignmentService.EmployeeWithPunchStatus> employeesWithStatus =
+                orderAssignmentService.getTodayCheckedInEmployeesWithStatus();
 
-        List<Map<String, Object>> employeeList = employees.stream()
-                .map(em -> {
+                List<Map<String, Object>> employeeList = employeesWithStatus.stream()
+                .map(ems -> {
+                    EmployeeMapping em = ems.getEmployee();
                     Map<String, Object> item = new LinkedHashMap<>();
                     item.put("id", em.getId());
                     item.put("larkEmployeeId", em.getLarkEmployeeId());
                     item.put("larkEmployeeName", em.getLarkEmployeeName());
                     item.put("posUserId", em.getPosUserId());
                     item.put("hireDate", em.getHireDate() != null ? em.getHireDate().toString() : null);
-                    item.put("checkinTime", orderAssignmentService.getCheckinTime(em.getLarkEmployeeId()));
+                    item.put("checkinTime", ems.getCheckinTime());
+                    item.put("onTime", ems.isOnTime());
+                    item.put("group", ems.getGroup().name());
+                    item.put("todayAssignments", ems.getTodayAssignments());
                     return item;
                 })
                 .collect(Collectors.toList());

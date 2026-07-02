@@ -147,28 +147,55 @@
             color: #1565c0;
         }
 
-        .checkin-time {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
         .checkin-badge {
             display: inline-block;
             padding: 4px 8px;
             border-radius: 6px;
             font-size: 12px;
             font-weight: 500;
+        }
+
+        .checkin-badge.priority {
+            background: #e3f2fd;
+            color: #1565c0;
+            border: 1px solid #1565c0;
+        }
+
+        .checkin-badge.on-time {
+            background: var(--success-bg);
+            color: var(--success);
+        }
+
+        .checkin-badge.late {
             background: var(--warning-bg);
             color: var(--warning);
         }
 
-        .hire-date {
-            color: #7b1fa2;
-            font-weight: 500;
+        .checkin-badge.off {
+            background: var(--bg);
+            color: var(--outline);
         }
 
-        .customer-name {
+        .group-divider {
+            background: var(--surface-container);
+            font-size: 13px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .group-divider td {
+            padding: 10px 16px;
+            color: var(--on-surface-variant);
+        }
+
+        .group-divider.priority { background: #e3f2fd; color: #1565c0; }
+        .group-divider.on-time { background: rgba(0, 105, 71, 0.08); color: #006947; }
+        .group-divider.late { background: rgba(180, 95, 0, 0.08); color: #b45f00; }
+        .group-divider.off { background: var(--bg); color: var(--outline); }
+
+        .hire-date {
+            color: #7b1fa2;
             font-weight: 500;
         }
 
@@ -176,6 +203,35 @@
             font-family: ui-monospace, monospace;
             color: var(--primary);
             font-weight: 500;
+        }
+
+        .customer-list {
+            font-size: 14px;
+        }
+
+        .customer-item {
+            padding: 4px 0;
+            border-bottom: 1px dashed var(--outline-variant);
+        }
+
+        .customer-item:last-child {
+            border-bottom: none;
+        }
+
+        .customer-name {
+            font-weight: 500;
+        }
+
+        .customer-phone {
+            color: var(--primary);
+            font-size: 13px;
+            font-family: ui-monospace, monospace;
+        }
+
+        .no-customer {
+            color: var(--outline);
+            font-style: italic;
+            font-size: 13px;
         }
 
         .assigned-time {
@@ -272,6 +328,12 @@
         .refresh-info button:hover {
             color: var(--primary-light);
         }
+
+        .employee-summary {
+            font-size: 12px;
+            color: var(--on-surface-variant);
+            margin-top: 2px;
+        }
     </style>
 </head>
 <body>
@@ -296,22 +358,34 @@
 
     <div class="stats-row">
         <div class="stat-card">
+            <div class="stat-value" id="totalEmployees">0</div>
+            <div class="stat-label">Tổng nhân viên</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="priorityEmployees">0</div>
+            <div class="stat-label">Ưu tiên</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="onTimeEmployees">0</div>
+            <div class="stat-label">Đúng giờ</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="lateEmployees">0</div>
+            <div class="stat-label">Muộn</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="offEmployees">0</div>
+            <div class="stat-label">Nghỉ</div>
+        </div>
+        <div class="stat-card">
             <div class="stat-value" id="totalAssignments">0</div>
             <div class="stat-label">Tổng phân công</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-value" id="totalEmployees">0</div>
-            <div class="stat-label">Nhân viên điểm danh</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-value" id="currentDate">-</div>
-            <div class="stat-label">Ngày hiện tại</div>
         </div>
     </div>
 
     <div class="panel">
         <div class="panel-header">
-            <div class="panel-title">Lịch sử phân công trong ngày</div>
+            <div class="panel-title">Danh sách nhân viên điểm danh</div>
             <div class="refresh-info">
                 <span id="lastUpdate">Cập nhật lần cuối: --:--</span>
                 <button onclick="loadData()">Làm mới</button>
@@ -324,7 +398,7 @@
                         <th class="employee-col">Tên nhân viên</th>
                         <th class="checkin-col">Giờ điểm danh</th>
                         <th class="hire-col">Ngày vào làm</th>
-                        <th class="customer-col">Tên khách hàng</th>
+                        <th class="customer-col">Khách hàng đã phân công</th>
                         <th class="phone-col">SĐT khách hàng</th>
                         <th class="time-col">Thời gian phân công</th>
                     </tr>
@@ -357,9 +431,17 @@
                 assignmentsData = assignmentsJson.data || [];
                 employeesData = employeesJson.data || [];
 
-                document.getElementById('totalAssignments').textContent = assignmentsData.length;
+                const priorityCount = employeesData.filter(e => e.group === 'PRIORITY').length;
+                const onTimeCount = employeesData.filter(e => e.group === 'ON_TIME').length;
+                const lateCount = employeesData.filter(e => e.group === 'LATE').length;
+                const offCount = employeesData.filter(e => e.group === 'OFF').length;
+
                 document.getElementById('totalEmployees').textContent = employeesData.length;
-                document.getElementById('currentDate').textContent = new Date().toLocaleDateString('vi-VN');
+                document.getElementById('priorityEmployees').textContent = priorityCount;
+                document.getElementById('onTimeEmployees').textContent = onTimeCount;
+                document.getElementById('lateEmployees').textContent = lateCount;
+                document.getElementById('offEmployees').textContent = offCount;
+                document.getElementById('totalAssignments').textContent = assignmentsData.length;
                 document.getElementById('lastUpdate').textContent = 'Cập nhật lần cuối: ' + new Date().toLocaleTimeString('vi-VN');
 
                 renderTable();
@@ -374,14 +456,13 @@
         function renderTable() {
             const tbody = document.getElementById('tableBody');
 
-            if (assignmentsData.length === 0) {
+            if (employeesData.length === 0) {
                 tbody.innerHTML = `
                     <tr>
                         <td colspan="6">
                             <div class="empty-state">
-                                <div class="empty-icon">📋</div>
-                                <div>Chưa có phân công nào trong ngày</div>
-                                <div style="font-size: 12px; margin-top: 8px;">Dữ liệu sẽ được cập nhật khi có đơn hàng status=1</div>
+                                <div class="empty-icon">👤</div>
+                                <div>Chưa có nhân viên nào được cấu hình</div>
                             </div>
                         </td>
                     </tr>
@@ -389,34 +470,115 @@
                 return;
             }
 
-            tbody.innerHTML = assignmentsData.map(assignment => {
-                const employee = employeesData.find(e => e.larkEmployeeName === assignment.employeeName);
-                const checkinTime = employee?.checkinTime || '-';
-                const hireDate = employee?.hireDate
-                    ? new Date(employee.hireDate).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })
-                    : '-';
-                const assignedTime = assignment.assignedAt
-                    ? new Date(assignment.assignedAt).toLocaleString('vi-VN', {
-                        day: '2-digit', month: '2-digit', year: 'numeric',
-                        hour: '2-digit', minute: '2-digit'
-                      })
-                    : '-';
+            // Group assignments by employee
+            const assignmentsByEmployee = {};
+            assignmentsData.forEach(a => {
+                const key = a.employeeName;
+                if (!assignmentsByEmployee[key]) {
+                    assignmentsByEmployee[key] = [];
+                }
+                assignmentsByEmployee[key].push(a);
+            });
 
-                return `
-                    <tr>
-                        <td class="employee-name">${assignment.employeeName || '-'}</td>
-                        <td>
-                            <div class="checkin-time">
-                                ${checkinTime !== '-' ? `<span class="checkin-badge">${checkinTime}</span>` : '-'}
-                            </div>
-                        </td>
-                        <td class="hire-date">${hireDate}</td>
-                        <td class="customer-name">${assignment.customerName || '-'}</td>
-                        <td class="customer-phone">${assignment.customerPhone || '-'}</td>
-                        <td class="assigned-time">${assignedTime}</td>
-                    </tr>
-                `;
-            }).join('');
+            // Phan nhom
+            const groups = {
+                'PRIORITY': employeesData.filter(e => e.group === 'PRIORITY'),
+                'ON_TIME': employeesData.filter(e => e.group === 'ON_TIME'),
+                'LATE': employeesData.filter(e => e.group === 'LATE'),
+                'OFF': employeesData.filter(e => e.group === 'OFF')
+            };
+
+            const groupLabels = {
+                'PRIORITY': '⭐ Ưu tiên',
+                'ON_TIME': '✓ Đúng giờ',
+                'LATE': '⚠ Muộn',
+                'OFF': '○ Nghỉ'
+            };
+
+            let html = '';
+
+            // Render theo thu tu
+            for (const [groupName, groupEmployees] of Object.entries(groups)) {
+                if (groupEmployees.length > 0) {
+                    html += `<tr class="group-divider ${groupName.toLowerCase()}"><td colspan="6">${groupLabels[groupName]} (${groupEmployees.length} nhân viên)</td></tr>`;
+                    html += groupEmployees.map(employee => renderEmployeeRow(employee, assignmentsByEmployee)).join('');
+                }
+            }
+
+            tbody.innerHTML = html;
+        }
+
+        function renderEmployeeRow(employee, assignmentsByEmployee) {
+            const hireDate = employee.hireDate
+                ? new Date(employee.hireDate).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })
+                : '-';
+
+            const employeeAssignments = assignmentsByEmployee[employee.larkEmployeeName] || [];
+
+            // Lay tat ca khach hang cua nhan vien nay
+            const customerNames = employeeAssignments.map(a => a.customerName).filter(n => n);
+            const customerPhones = employeeAssignments.map(a => a.customerPhone).filter(p => p);
+            const latestTime = employeeAssignments.length > 0
+                ? employeeAssignments[0].assignedAt
+                : null;
+
+            const formattedTime = latestTime
+                ? new Date(latestTime).toLocaleString('vi-VN', {
+                    day: '2-digit', month: '2-digit', year: 'numeric',
+                    hour: '2-digit', minute: '2-digit'
+                  })
+                : '-';
+
+            // Hien thi danh sach khach hang
+            let customerListHtml = '';
+            if (customerNames.length === 0) {
+                customerListHtml = '<span class="no-customer">Chưa có khách hàng</span>';
+            } else {
+                customerListHtml = customerNames.map(name =>
+                    `<div class="customer-item">${name || '-'}</div>`
+                ).join('');
+            }
+
+            // Hien thi danh sach SĐT
+            let phoneListHtml = '';
+            if (customerPhones.length === 0) {
+                phoneListHtml = '<span class="no-customer">-</span>';
+            } else {
+                phoneListHtml = customerPhones.map(phone =>
+                    `<div class="customer-item">${phone || '-'}</div>`
+                ).join('');
+            }
+
+            // Badge theo nhom
+            let badgeHtml = '';
+            const group = employee.group;
+            if (group === 'PRIORITY') {
+                badgeHtml = `<span class="checkin-badge priority">Ưu tiên</span>`;
+            } else if (group === 'ON_TIME') {
+                badgeHtml = `<span class="checkin-badge on-time">Đúng giờ</span>`;
+            } else if (group === 'LATE') {
+                badgeHtml = `<span class="checkin-badge late">Muộn</span>`;
+            } else if (group === 'OFF') {
+                badgeHtml = `<span class="checkin-badge off">Nghỉ</span>`;
+            }
+
+            return `
+                <tr>
+                    <td>
+                        <div class="employee-name">${employee.larkEmployeeName || '-'}</div>
+                        <div class="employee-summary">${employeeAssignments.length} khách đã phân công</div>
+                    </td>
+                    <td>
+                        ${employee.checkinTime && employee.checkinTime !== '-'
+                            ? `${badgeHtml} <span style="margin-left: 6px; color: var(--on-surface-variant);">${employee.checkinTime}</span>`
+                            : badgeHtml}
+                    </td>
+                    <td class="hire-date">${hireDate}</td>
+                    <td class="customer-list">${customerListHtml}</td>
+                    <td class="customer-list">${phoneListHtml}</td>
+                    <td class="assigned-time">${formattedTime}</td>
+                </tr>
+            `;
         }
 
         function showLoading(text = 'Đang xử lý...') {

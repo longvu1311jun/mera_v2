@@ -3,12 +3,14 @@ package mera.mera_v2.pos.attendance.controller;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import mera.mera_v2.entity.LarkAttendancePunch;
+import mera.mera_v2.lark.sync.scheduler.AttendanceSyncScheduler;
+import mera.mera_v2.lark.sync.service.AttendanceSyncResult;
 import mera.mera_v2.repository.LarkAttendancePunchRepository;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.util.*;
@@ -20,6 +22,7 @@ import java.util.stream.Collectors;
 public class AttendancePunchController {
 
     private final LarkAttendancePunchRepository attendancePunchRepository;
+    private final AttendanceSyncScheduler attendanceSyncScheduler;
 
     @GetMapping("/attendance-punch")
     public String attendancePunchPage(
@@ -49,7 +52,6 @@ public class AttendancePunchController {
                     .collect(Collectors.toList());
         }
 
-        // Group by employee + date using composite key
         Map<String, List<LarkAttendancePunch>> groupedByEmployeeDate = punches.stream()
                 .collect(Collectors.groupingBy(p -> {
                     String empId = p.getEmployeeId() != null ? p.getEmployeeId() : "";
@@ -61,20 +63,19 @@ public class AttendancePunchController {
         for (Map.Entry<String, List<LarkAttendancePunch>> entry : groupedByEmployeeDate.entrySet()) {
             List<LarkAttendancePunch> dayPunches = entry.getValue();
             if (dayPunches.isEmpty()) continue;
-            
+
             LarkAttendancePunch first = dayPunches.get(0);
-            
-            // Sort by punch time
+
             dayPunches.sort(Comparator.comparing(
                     p -> p.getPunchTime() != null ? p.getPunchTime() : ""));
-            
+
             String checkIn = dayPunches.stream()
                     .filter(p -> p.getPunchType() != null && p.getPunchType() == 1)
                     .filter(p -> p.getPunchTime() != null && !p.getPunchTime().isEmpty())
                     .min(Comparator.comparing(LarkAttendancePunch::getPunchTime))
                     .map(LarkAttendancePunch::getPunchTime)
                     .orElse("-");
-            
+
             String checkOut = dayPunches.stream()
                     .filter(p -> p.getPunchType() != null && p.getPunchType() == 2)
                     .filter(p -> p.getPunchTime() != null && !p.getPunchTime().isEmpty())
@@ -92,11 +93,10 @@ public class AttendancePunchController {
             row.put("weekday", first.getWeekday() != null ? first.getWeekday() : "");
             row.put("punchCount", dayPunches.size());
             row.put("punches", dayPunches);
-            
+
             attendanceRows.add(row);
         }
 
-        // Sort by date desc
         attendanceRows.sort(Comparator.comparing(
                 (Map<String, Object> r) -> (LocalDate) r.get("date"),
                 Comparator.nullsLast(Comparator.reverseOrder())));
@@ -118,6 +118,7 @@ public class AttendancePunchController {
     }
 
     @GetMapping("/api/attendance-punch/data")
+    @ResponseBody
     public Map<String, Object> getAttendanceData(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
@@ -150,5 +151,55 @@ public class AttendancePunchController {
                 .count());
 
         return result;
+    }
+
+    @PostMapping("/api/attendance-sync/full")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> triggerFullSync() {
+        log.info("[API] Manual full attendance sync triggered");
+
+        try {
+            attendanceSyncScheduler.triggerManualFullSync();
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("message", "Full sync started");
+            response.put("time", LocalDate.now().toString());
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("[API] Full sync failed: {}", e.getMessage(), e);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", false);
+            response.put("message", "Sync failed: " + e.getMessage());
+
+            return ResponseEntity.internalServerError().body(response);
+        }
+    }
+
+    @PostMapping("/api/attendance-sync/incremental")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> triggerIncrementalSync() {
+        log.info("[API] Manual incremental attendance sync triggered");
+
+        try {
+            attendanceSyncScheduler.triggerIncrementalSync();
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("message", "Incremental sync started");
+            response.put("time", LocalDate.now().toString());
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("[API] Incremental sync failed: {}", e.getMessage(), e);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", false);
+            response.put("message", "Sync failed: " + e.getMessage());
+
+            return ResponseEntity.internalServerError().body(response);
+        }
     }
 }
