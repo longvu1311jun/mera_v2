@@ -65,6 +65,8 @@
         .btn-primary:hover { background: var(--primary-light); }
         .btn-secondary { background: var(--surface); border-color: var(--outline-variant); color: var(--on-surface); }
         .btn-secondary:hover { background: var(--surface-container); }
+        .btn-warning { background: var(--warning); color: white; }
+        .btn-warning:hover { background: #d97706; }
 
         .stats-row {
             display: flex;
@@ -129,9 +131,8 @@
         .assignment-table th.employee-col { background: #e3f2fd; color: #1565c0; min-width: 160px; }
         .assignment-table th.checkin-col { background: #fff3e0; color: #b45f00; min-width: 120px; }
         .assignment-table th.hire-col { background: #f3e5f5; color: #7b1fa2; min-width: 120px; }
-        .assignment-table th.customer-col { background: #e8f5e9; color: #2e7d32; min-width: 180px; }
-        .assignment-table th.phone-col { background: #e8f5e9; color: #2e7d32; min-width: 130px; }
-        .assignment-table th.time-col { background: #eceff1; color: #455a64; min-width: 160px; }
+        .assignment-table th.count-col { background: #e8f5e9; color: #2e7d32; min-width: 140px; text-align: center; }
+        .assignment-table th.action-col { background: #eceff1; color: #455a64; min-width: 130px; text-align: center; }
 
         .assignment-table td {
             padding: 14px 16px;
@@ -205,37 +206,35 @@
             font-weight: 500;
         }
 
-        .customer-list {
+        .order-phone-list {
             font-size: 14px;
+            line-height: 1.7;
+            word-break: break-word;
         }
 
-        .customer-item {
-            padding: 4px 0;
-            border-bottom: 1px dashed var(--outline-variant);
+        .order-phone-list .order-phone-item {
+            display: inline;
         }
 
-        .customer-item:last-child {
-            border-bottom: none;
-        }
-
-        .customer-name {
-            font-weight: 500;
-        }
-
-        .customer-phone {
+        .order-phone-list .order-code {
+            font-weight: 600;
             color: var(--primary);
-            font-size: 13px;
+        }
+
+        .order-phone-list .order-phone-sep {
+            color: var(--outline);
+            margin: 0 4px;
+        }
+
+        .order-phone-list .customer-phone {
+            color: var(--on-surface);
             font-family: ui-monospace, monospace;
+            font-weight: 500;
         }
 
         .no-customer {
             color: var(--outline);
             font-style: italic;
-            font-size: 13px;
-        }
-
-        .assigned-time {
-            color: var(--on-surface-variant);
             font-size: 13px;
         }
 
@@ -334,6 +333,120 @@
             color: var(--on-surface-variant);
             margin-top: 2px;
         }
+
+        .date-filter-row {
+            background: var(--surface);
+            border: 1px solid var(--outline-variant);
+            border-radius: 12px;
+            padding: 14px 20px;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .date-filter {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .date-filter label {
+            font-weight: 500;
+            color: var(--on-surface);
+        }
+
+        .date-filter .input {
+            width: 160px;
+        }
+
+        .filter-info {
+            font-size: 13px;
+            color: var(--on-surface-variant);
+            font-style: italic;
+        }
+
+        .filter-info.warning {
+            color: var(--warning);
+            font-weight: 500;
+        }
+
+        .assignment-count {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--primary);
+            text-align: center;
+        }
+
+        .btn-detail {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 7px 14px;
+            border-radius: 6px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .btn-detail:hover {
+            background: var(--primary-light);
+        }
+
+        .btn-detail.disabled {
+            background: var(--outline-variant);
+            color: var(--outline);
+            cursor: not-allowed;
+        }
+
+        .detail-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .detail-table th {
+            background: var(--bg);
+            padding: 10px 12px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--on-surface-variant);
+            text-align: left;
+            border-bottom: 1px solid var(--outline-variant);
+        }
+
+        .detail-table td {
+            padding: 10px 12px;
+            font-size: 14px;
+            border-bottom: 1px solid var(--outline-variant);
+        }
+
+        .detail-table tr:hover td {
+            background: var(--bg);
+        }
+
+        .detail-table .order-code-cell {
+            font-weight: 600;
+            color: var(--primary);
+            font-family: ui-monospace, monospace;
+        }
+
+        .detail-table .order-id-cell {
+            color: var(--on-surface-variant);
+            font-family: ui-monospace, monospace;
+            font-size: 13px;
+        }
+
+        .detail-table .phone-cell {
+            font-family: ui-monospace, monospace;
+            font-weight: 500;
+        }
     </style>
 </head>
 <body>
@@ -352,6 +465,9 @@
         <div class="header-actions">
             <button class="btn btn-secondary" onclick="loadData()">
                 🔄 Làm mới
+            </button>
+            <button class="btn btn-warning" onclick="showResyncModal()">
+                🔁 Resync đơn hàng
             </button>
         </div>
     </div>
@@ -383,6 +499,15 @@
         </div>
     </div>
 
+    <div class="date-filter-row">
+        <div class="date-filter">
+            <label for="filterDate">📅 Xem ngày:</label>
+            <input type="date" id="filterDate" class="input" onchange="onDateChange()">
+            <button class="btn btn-secondary" onclick="resetToToday()">Hôm nay</button>
+            <span class="filter-info" id="filterInfo"></span>
+        </div>
+    </div>
+
     <div class="panel">
         <div class="panel-header">
             <div class="panel-title">Danh sách nhân viên điểm danh</div>
@@ -398,31 +523,191 @@
                         <th class="employee-col">Tên nhân viên</th>
                         <th class="checkin-col">Giờ điểm danh</th>
                         <th class="hire-col">Ngày vào làm</th>
-                        <th class="customer-col">Khách hàng đã phân công</th>
-                        <th class="phone-col">SĐT khách hàng</th>
-                        <th class="time-col">Thời gian phân công</th>
+                        <th class="count-col">Số khách đã phân công</th>
+                        <th class="action-col">Thao tác</th>
                     </tr>
                 </thead>
-                <tbody id="tableBody">
-                    <tr><td colspan="6" class="empty-state">Đang tải dữ liệu...</td></tr>
-                </tbody>
+                <tbody id="tableBody"></tbody>
             </table>
         </div>
     </div>
 
     <div id="toast" class="toast"></div>
 
+    <!-- Detail Modal -->
+    <div id="detailModal" class="modal-overlay" style="display: none;">
+        <div class="modal" style="max-width: 720px;">
+            <div class="modal-header">
+                <div>
+                    <h3 id="detailTitle">Chi tiết phân công</h3>
+                    <div id="detailSubtitle" style="font-size: 13px; color: var(--on-surface-variant); margin-top: 4px;"></div>
+                </div>
+                <button class="modal-close" onclick="closeDetailModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="detailBody">
+                <div style="text-align: center; padding: 32px; color: var(--on-surface-variant);">Đang tải...</div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeDetailModal()">Đóng</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Resync Modal -->
+    <div id="resyncModal" class="modal-overlay" style="display: none;">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Resync đơn hàng</h3>
+                <button class="modal-close" onclick="closeResyncModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>Tìm và phân công các đơn hàng bị miss trong thời gian webhook ngắt kết nối.</p>
+                <div class="form-group" style="margin-top: 16px;">
+                    <label>Chọn ngày:</label>
+                    <input type="date" id="resyncDate" class="input">
+                </div>
+                <div id="unassignedInfo" style="margin-top: 16px;"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeResyncModal()">Đóng</button>
+                <button class="btn btn-secondary" onclick="checkUnassigned()">Kiểm tra đơn chưa chia</button>
+                <button class="btn btn-warning" onclick="doResync()">Phân công tất cả</button>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal {
+            background: white;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .modal-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--outline-variant);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h3 { font-size: 18px; font-weight: 600; }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: var(--outline);
+        }
+
+        .modal-body { padding: 20px; }
+
+        .modal-footer {
+            padding: 16px 20px;
+            border-top: 1px solid var(--outline-variant);
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+
+        .form-group { margin-bottom: 12px; }
+        .form-group label { display: block; margin-bottom: 4px; font-weight: 500; }
+
+        .input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--outline-variant);
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .unassigned-list {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid var(--outline-variant);
+            border-radius: 8px;
+            margin-top: 12px;
+        }
+
+        .unassigned-item {
+            padding: 12px;
+            border-bottom: 1px solid var(--outline-variant);
+            font-size: 13px;
+        }
+
+        .unassigned-item:last-child { border-bottom: none; }
+        .unassigned-item .order-code { font-weight: 600; color: var(--primary); }
+        .unassigned-item .customer-info { margin-top: 4px; color: var(--on-surface-variant); }
+    </style>
+
     <script>
         let employeesData = [];
         let assignmentsData = [];
+        let currentDate = new Date().toISOString().split('T')[0]; // yyyy-MM-dd, mac dinh hom nay
 
-        async function loadData() {
+        // Khoi tao gia tri date filter
+        function initDateFilter() {
+            const filterInput = document.getElementById('filterDate');
+            filterInput.value = currentDate;
+            updateFilterInfo();
+        }
+
+        function updateFilterInfo() {
+            const infoEl = document.getElementById('filterInfo');
+            const today = new Date().toISOString().split('T')[0];
+            if (currentDate === today) {
+                infoEl.textContent = '(Đang xem hôm nay)';
+                infoEl.classList.remove('warning');
+            } else {
+                infoEl.textContent = '(Đang xem ngày khác - chỉ chế độ xem, không tự động phân công)';
+                infoEl.classList.add('warning');
+            }
+        }
+
+        function onDateChange() {
+            const filterInput = document.getElementById('filterDate');
+            const newDate = filterInput.value;
+            if (!newDate) return;
+            currentDate = newDate;
+            updateFilterInfo();
+            loadData(true);
+        }
+
+        function resetToToday() {
+            currentDate = new Date().toISOString().split('T')[0];
+            document.getElementById('filterDate').value = currentDate;
+            updateFilterInfo();
+            loadData(true);
+        }
+
+        async function loadData(silent = false) {
             try {
-                showLoading('Đang tải dữ liệu...');
+                if (!silent) {
+                    showLoading('Đang tải dữ liệu...');
+                }
 
+                const dateParam = `?date=${currentDate}`;
                 const [assignmentsRes, employeesRes] = await Promise.all([
-                    fetch('/api/order-assignment/today'),
-                    fetch('/api/order-assignment/employees')
+                    fetch('/api/order-assignment/by-date' + dateParam),
+                    fetch('/api/order-assignment/employees-by-date' + dateParam)
                 ]);
 
                 const assignmentsJson = await assignmentsRes.json();
@@ -459,10 +744,10 @@
             if (employeesData.length === 0) {
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="6">
+                        <td colspan="5">
                             <div class="empty-state">
                                 <div class="empty-icon">👤</div>
-                                <div>Chưa có nhân viên nào được cấu hình</div>
+                                <div>Không có dữ liệu nhân viên cho ngày này</div>
                             </div>
                         </td>
                     </tr>
@@ -470,14 +755,11 @@
                 return;
             }
 
-            // Group assignments by employee
-            const assignmentsByEmployee = {};
+            // Group assignments by employeeId de dem chinh xac
+            const assignmentCountByEmployee = {};
             assignmentsData.forEach(a => {
-                const key = a.employeeName;
-                if (!assignmentsByEmployee[key]) {
-                    assignmentsByEmployee[key] = [];
-                }
-                assignmentsByEmployee[key].push(a);
+                const key = a.employeeId || a.employeeName;
+                assignmentCountByEmployee[key] = (assignmentCountByEmployee[key] || 0) + 1;
             });
 
             // Phan nhom
@@ -500,54 +782,22 @@
             // Render theo thu tu
             for (const [groupName, groupEmployees] of Object.entries(groups)) {
                 if (groupEmployees.length > 0) {
-                    html += `<tr class="group-divider ${groupName.toLowerCase()}"><td colspan="6">${groupLabels[groupName]} (${groupEmployees.length} nhân viên)</td></tr>`;
-                    html += groupEmployees.map(employee => renderEmployeeRow(employee, assignmentsByEmployee)).join('');
+                    html += `<tr class="group-divider ${groupName.toLowerCase()}"><td colspan="5">${groupLabels[groupName]} (${groupEmployees.length} nhân viên)</td></tr>`;
+                    html += groupEmployees.map(employee => renderEmployeeRow(employee, assignmentCountByEmployee)).join('');
                 }
             }
 
             tbody.innerHTML = html;
         }
 
-        function renderEmployeeRow(employee, assignmentsByEmployee) {
+        function renderEmployeeRow(employee, assignmentCountByEmployee) {
             const hireDate = employee.hireDate
                 ? new Date(employee.hireDate).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })
                 : '-';
 
-            const employeeAssignments = assignmentsByEmployee[employee.larkEmployeeName] || [];
-
-            // Lay tat ca khach hang cua nhan vien nay
-            const customerNames = employeeAssignments.map(a => a.customerName).filter(n => n);
-            const customerPhones = employeeAssignments.map(a => a.customerPhone).filter(p => p);
-            const latestTime = employeeAssignments.length > 0
-                ? employeeAssignments[0].assignedAt
-                : null;
-
-            const formattedTime = latestTime
-                ? new Date(latestTime).toLocaleString('vi-VN', {
-                    day: '2-digit', month: '2-digit', year: 'numeric',
-                    hour: '2-digit', minute: '2-digit'
-                  })
-                : '-';
-
-            // Hien thi danh sach khach hang
-            let customerListHtml = '';
-            if (customerNames.length === 0) {
-                customerListHtml = '<span class="no-customer">Chưa có khách hàng</span>';
-            } else {
-                customerListHtml = customerNames.map(name =>
-                    `<div class="customer-item">${name || '-'}</div>`
-                ).join('');
-            }
-
-            // Hien thi danh sach SĐT
-            let phoneListHtml = '';
-            if (customerPhones.length === 0) {
-                phoneListHtml = '<span class="no-customer">-</span>';
-            } else {
-                phoneListHtml = customerPhones.map(phone =>
-                    `<div class="customer-item">${phone || '-'}</div>`
-                ).join('');
-            }
+            // Dem so khach da phan cong cho nhan vien nay
+            const empKey = employee.larkEmployeeId || employee.larkEmployeeName;
+            const assignmentCount = assignmentCountByEmployee[empKey] || employee.todayAssignments || 0;
 
             // Badge theo nhom
             let badgeHtml = '';
@@ -562,11 +812,15 @@
                 badgeHtml = `<span class="checkin-badge off">Nghỉ</span>`;
             }
 
+            const detailBtnClass = assignmentCount > 0 ? 'btn-detail' : 'btn-detail disabled';
+            const detailBtnAction = assignmentCount > 0
+                ? `onclick="openDetailModal('${employee.larkEmployeeId}', '${escapeHtml(employee.larkEmployeeName || '')}')"`
+                : '';
+
             return `
                 <tr>
                     <td>
                         <div class="employee-name">${employee.larkEmployeeName || '-'}</div>
-                        <div class="employee-summary">${employeeAssignments.length} khách đã phân công</div>
                     </td>
                     <td>
                         ${employee.checkinTime && employee.checkinTime !== '-'
@@ -574,11 +828,90 @@
                             : badgeHtml}
                     </td>
                     <td class="hire-date">${hireDate}</td>
-                    <td class="customer-list">${customerListHtml}</td>
-                    <td class="customer-list">${phoneListHtml}</td>
-                    <td class="assigned-time">${formattedTime}</td>
+                    <td><div class="assignment-count">${assignmentCount}</div></td>
+                    <td style="text-align: center;">
+                        <button class="${detailBtnClass}" ${detailBtnAction}>
+                            👁 Xem chi tiết
+                        </button>
+                    </td>
                 </tr>
             `;
+        }
+
+        function escapeHtml(str) {
+            return String(str).replace(/'/g, "\\'").replace(/"/g, '&quot;');
+        }
+
+        async function openDetailModal(larkEmployeeId, employeeName) {
+            const modal = document.getElementById('detailModal');
+            const titleEl = document.getElementById('detailTitle');
+            const subtitleEl = document.getElementById('detailSubtitle');
+            const bodyEl = document.getElementById('detailBody');
+
+            titleEl.textContent = `Chi tiết phân công - ${employeeName}`;
+            subtitleEl.textContent = `Ngày: ${currentDate}`;
+            bodyEl.innerHTML = '<div style="text-align: center; padding: 32px; color: var(--on-surface-variant);">Đang tải...</div>';
+            modal.style.display = 'flex';
+
+            try {
+                const response = await fetch(
+                    `/api/order-assignment/employee-detail?larkEmployeeId=${encodeURIComponent(larkEmployeeId)}&date=${currentDate}`
+                );
+                const data = await response.json();
+
+                const list = data.data || [];
+                if (list.length === 0) {
+                    bodyEl.innerHTML = '<div style="text-align: center; padding: 32px; color: var(--on-surface-variant);">Nhân viên này chưa được phân công khách nào trong ngày.</div>';
+                    return;
+                }
+
+                let html = `
+                    <div style="margin-bottom: 12px; color: var(--on-surface-variant); font-size: 13px;">
+                        Tổng: <strong>${list.length}</strong> khách đã phân công
+                    </div>
+                    <div style="max-height: 480px; overflow-y: auto;">
+                        <table class="detail-table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 50px;">#</th>
+                                    <th>Mã đơn</th>
+                                    <th>Order ID</th>
+                                    <th>Tên khách</th>
+                                    <th>SĐT</th>
+                                    <th>Thời gian phân công</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+
+                list.forEach((a, idx) => {
+                    const time = a.assignedAt
+                        ? new Date(a.assignedAt).toLocaleString('vi-VN', {
+                            day: '2-digit', month: '2-digit', year: 'numeric',
+                            hour: '2-digit', minute: '2-digit'
+                          })
+                        : '-';
+                    html += `
+                        <tr>
+                            <td style="color: var(--on-surface-variant);">${idx + 1}</td>
+                            <td class="order-code-cell">${a.orderCode || '-'}</td>
+                            <td class="order-id-cell">${a.orderId || '-'}</td>
+                            <td>${a.customerName || '-'}</td>
+                            <td class="phone-cell">${a.customerPhone || '-'}</td>
+                            <td style="color: var(--on-surface-variant); font-size: 13px;">${time}</td>
+                        </tr>
+                    `;
+                });
+
+                html += '</tbody></table></div>';
+                bodyEl.innerHTML = html;
+            } catch (e) {
+                bodyEl.innerHTML = '<div style="text-align: center; padding: 32px; color: var(--error);">Lỗi: ' + e.message + '</div>';
+            }
+        }
+
+        function closeDetailModal() {
+            document.getElementById('detailModal').style.display = 'none';
         }
 
         function showLoading(text = 'Đang xử lý...') {
@@ -597,9 +930,125 @@
             setTimeout(() => toast.classList.remove('show'), 3000);
         }
 
-        // Auto refresh every 30 seconds
-        setInterval(loadData, 30000);
+        // Auto refresh every 30 seconds (silent - khong hien thi popup loading)
+        setInterval(() => loadData(true), 30000);
 
+        // Resync functions
+        function showResyncModal() {
+            document.getElementById('resyncDate').value = new Date().toISOString().split('T')[0];
+            document.getElementById('unassignedInfo').innerHTML = '';
+            document.getElementById('resyncModal').style.display = 'flex';
+        }
+
+        function closeResyncModal() {
+            document.getElementById('resyncModal').style.display = 'none';
+        }
+
+        async function checkUnassigned() {
+            const date = document.getElementById('resyncDate').value;
+            if (!date) {
+                showToast('Vui lòng chọn ngày', 'error');
+                return;
+            }
+
+            showLoading('Đang kiểm tra đơn chưa chia...');
+
+            try {
+                const response = await fetch(`/api/order-assignment/unassigned?date=${date}`);
+                const data = await response.json();
+
+                if (data.error) {
+                    showToast(data.message || 'Lỗi khi kiểm tra', 'error');
+                } else {
+                    let html = `<div style="padding: 12px; background: var(--bg); border-radius: 8px;">
+                        <div><strong>Tổng đơn trong ngày:</strong> ${data.totalOrders}</div>
+                        <div><strong>Đã phân công:</strong> ${data.assignedCount}</div>
+                        <div><strong>Chưa phân công:</strong> <span style="color: var(--warning); font-weight: 600;">${data.unassignedCount}</span></div>
+                    </div>`;
+
+                    if (data.data && data.data.length > 0) {
+                        html += '<div class="unassigned-list">';
+                        data.data.forEach(order => {
+                            html += `<div class="unassigned-item">
+                                <div class="order-code">${order.orderCode || order.systemId}</div>
+                                <div class="customer-info">${order.customerName || '-'} | ${order.customerPhone || '-'}</div>
+                                <div style="color: var(--on-surface-variant); font-size: 12px; margin-top: 4px;">
+                                    Giá: ${order.totalPrice ? order.totalPrice.toLocaleString('vi-VN') + 'đ' : '-'}
+                                    | Trạng thái: ${order.statusName || order.status}
+                                </div>
+                            </div>`;
+                        });
+                        html += '</div>';
+                    }
+
+                    document.getElementById('unassignedInfo').innerHTML = html;
+                }
+            } catch (e) {
+                showToast('Lỗi: ' + e.message, 'error');
+            }
+
+            hideLoading();
+        }
+
+        async function doResync() {
+            const date = document.getElementById('resyncDate').value;
+            if (!date) {
+                showToast('Vui lòng chọn ngày', 'error');
+                return;
+            }
+
+            if (!confirm(`Bạn có chắc muốn phân công tất cả đơn chưa được xử lý ngày ${date}?`)) {
+                return;
+            }
+
+            showLoading('Đang phân công các đơn bị miss...');
+
+            try {
+                const response = await fetch(`/api/order-assignment/resync?date=${date}`, {
+                    method: 'POST'
+                });
+                const data = await response.json();
+
+                if (data.error) {
+                    showToast(data.message || 'Lỗi khi resync', 'error');
+                } else {
+                    showToast(`Resync hoàn thành: ${data.successCount} thành công, ${data.failCount} thất bại`, 'success');
+
+                    // Show details
+                    let html = `<div style="padding: 12px; background: var(--success-bg); border-radius: 8px; margin-top: 16px;">
+                        <div><strong>Kết quả:</strong></div>
+                        <div>Thành công: ${data.successCount}</div>
+                        <div>Thất bại: ${data.failCount}</div>
+                    </div>`;
+
+                    if (data.results && data.results.length > 0) {
+                        html += '<div class="unassigned-list" style="margin-top: 12px;">';
+                        data.results.forEach(r => {
+                            const statusIcon = r.status === 'success' ? '✓' : '✗';
+                            const statusColor = r.status === 'success' ? 'var(--success)' : 'var(--error)';
+                            html += `<div class="unassigned-item">
+                                <span style="color: ${statusColor}; font-weight: 600;">${statusIcon}</span>
+                                <span style="margin-left: 8px;">${r.orderCode || r.orderId}</span>
+                                ${r.assignedTo ? `<span style="color: var(--on-surface-variant);"> → ${r.assignedTo}</span>` : ''}
+                                ${r.error ? `<div style="color: var(--error); font-size: 12px; margin-top: 4px;">Lỗi: ${r.error}</div>` : ''}
+                            </div>`;
+                        });
+                        html += '</div>';
+                    }
+
+                    document.getElementById('unassignedInfo').innerHTML = html;
+
+                    // Reload data after resync
+                    loadData();
+                }
+            } catch (e) {
+                showToast('Lỗi: ' + e.message, 'error');
+            }
+
+            hideLoading();
+        }
+
+        initDateFilter();
         loadData();
     </script>
 </body>

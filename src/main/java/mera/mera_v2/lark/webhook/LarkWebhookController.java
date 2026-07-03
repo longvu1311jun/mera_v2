@@ -191,7 +191,24 @@ public class LarkWebhookController {
                 } else if (!webhookConfigService.shouldProcess(status)) {
                     log.info("Status {} khong duoc bat trong config, bo qua", status);
                 } else {
-                    processStatusLogic(status, root, orderWebhook);
+                    // Kiem tra nguon don hang phai la Facebook
+                    if (!isFacebookSource(orderWebhook)) {
+                        log.info("Bo qua: don hang khong phai nguon Facebook");
+                        return ResponseEntity.ok("ok");
+                    }
+
+                    // Kiem tra trang thai huy don
+                    if (isCancelledStatus(status)) {
+                        log.info("Bo qua: don hang co trang thai huy (status={})", status);
+                        return ResponseEntity.ok("ok");
+                    }
+
+                    // Chi xu ly khi status = 1 HOAC co trong lich su status = 1
+                    if (status == 1 || hasStatusInHistory(orderWebhook, 1)) {
+                        processStatusLogic(status, root, orderWebhook);
+                    } else {
+                        log.info("Bo qua: status hien tai = {} va khong co lich su status = 1", status);
+                    }
                 }
             } catch (Exception e) {
                 log.error("Loi khi xu ly status: {}", e.getMessage(), e);
@@ -224,6 +241,67 @@ public class LarkWebhookController {
             return root.get("data").get("status").asInt();
         }
         return null;
+    }
+
+    /**
+     * Kiem tra don hang co nguon Facebook hay khong.
+     * Don co page_id bat dau bang "pzl_" la Facebook (Pancake).
+     */
+    private boolean isFacebookSource(PosOrderWebhook orderWebhook) {
+        if (orderWebhook == null) return false;
+
+        // Kiem tra order_sources_name truoc (chinh xac nhat)
+        String orderSourcesName = orderWebhook.getOrderSourcesName();
+        if (orderSourcesName != null && !orderSourcesName.isBlank()) {
+            String lower = orderSourcesName.toLowerCase().trim();
+            // Neu ten nguon chua "zalo", "shopee", "lazada"... thi KHONG phai Facebook
+            if (lower.contains("zalo") || lower.contains("shopee") 
+                    || lower.contains("lazada") || lower.contains("tiktok")
+                    || lower.contains("tiki") || lower.contains("sendo")
+                    || lower.contains("website") || lower.contains("tong_dai")) {
+                return false;
+            }
+            // Neu ten chua "facebook" hoac "fb" thi la Facebook
+            if (lower.contains("facebook") || lower.contains("fb") || lower.contains("mess")) {
+                return true;
+            }
+        }
+
+        // Fallback: kiem tra page_id format
+        String pageId = orderWebhook.getPageId();
+        if (pageId == null || pageId.isBlank()) return false;
+        // Pancake page_id format: pzl_xxxxx (Facebook page)
+        return pageId.startsWith("pzl_") || pageId.startsWith("fb_");
+    }
+
+    /**
+     * Kiem tra trang thai huy don.
+     * Status huy: 5 (huy boi khach), 7 (huy he thong), 8 (huy khac), 9 (that bai).
+     */
+    private boolean isCancelledStatus(Integer status) {
+        if (status == null) return false;
+        // Status huy thuong gap: 5, 7, 8, 9, -1
+        return status == 5 || status == 7 || status == 8 || status == 9 || status == -1;
+    }
+
+    /**
+     * Kiem tra trong lich su co status = targetStatus khong.
+     */
+    private boolean hasStatusInHistory(PosOrderWebhook orderWebhook, int targetStatus) {
+        if (orderWebhook == null || orderWebhook.getHistories() == null) return false;
+        return orderWebhook.getHistories().stream()
+                .filter(h -> h.getStatus() != null && h.getStatus().getNewValue() != null)
+                .anyMatch(h -> {
+                    Object newVal = h.getStatus().getNewValue();
+                    if (newVal instanceof Number) {
+                        return ((Number) newVal).intValue() == targetStatus;
+                    }
+                    try {
+                        return Integer.parseInt(newVal.toString()) == targetStatus;
+                    } catch (Exception e) {
+                        return false;
+                    }
+                });
     }
 
     private void processStatusLogic(Integer status, JsonNode webhookData, PosOrderWebhook orderWebhook) throws Exception {

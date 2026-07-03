@@ -24,6 +24,9 @@ public class OrderAssignment {
     @Column(name = "order_id", nullable = false)
     private Long orderId;
 
+    @Column(name = "order_code", length = 64)
+    private String orderCode;
+
     @Column(name = "employee_mapping_id", nullable = false)
     private Long employeeMappingId;
 

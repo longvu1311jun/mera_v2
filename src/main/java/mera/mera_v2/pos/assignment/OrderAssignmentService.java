@@ -118,23 +118,32 @@ public class OrderAssignmentService {
      * Sap xep trong moi nhom theo hireDate tang dan
      */
     public List<EmployeeWithPunchStatus> getTodayCheckedInEmployeesWithStatus() {
-        LocalDate today = LocalDate.now();
-        List<String> checkedInEmployeeIds = attendancePunchRepository.findDistinctEmployeeIdsCheckedIn(today);
+        return getCheckedInEmployeesWithStatusByDate(LocalDate.now());
+    }
+
+    /**
+     * Lay danh sach nhan vien diem danh theo ngay cu the, phan nhom va sap xep.
+     */
+    public List<EmployeeWithPunchStatus> getCheckedInEmployeesWithStatusByDate(LocalDate date) {
+        List<String> checkedInEmployeeIds = attendancePunchRepository.findDistinctEmployeeIdsCheckedIn(date);
 
         log.info("Tim thay {} nhan vien diem danh trong ngay {}",
-                checkedInEmployeeIds.size(), today);
+                checkedInEmployeeIds.size(), date);
 
         // Lay tat ca employee mappings
         List<EmployeeMapping> allEmployees = employeeMappingRepository.findAll().stream()
                 .filter(em -> em.getHireDate() != null)
                 .collect(Collectors.toList());
 
-        // Lay so assignment hom nay cho nhung nhan vien diem danh
+        LocalDateTime startOfDay = date.atStartOfDay();
+        LocalDateTime endOfDay = date.plusDays(1).atStartOfDay();
+
+        // Lay so assignment trong ngay cho nhung nhan vien diem danh
         Map<String, Long> assignmentCounts = new HashMap<>();
         for (EmployeeMapping em : allEmployees) {
             if (checkedInEmployeeIds.contains(em.getLarkEmployeeId())) {
                 long count = orderAssignmentRepository.countTodayByEmployee(
-                        em.getLarkEmployeeId(), TODAY_START, TODAY_END);
+                        em.getLarkEmployeeId(), startOfDay, endOfDay);
                 assignmentCounts.put(em.getLarkEmployeeId(), count);
             }
         }
@@ -144,7 +153,7 @@ public class OrderAssignmentService {
         int totalCount = 0;
         for (EmployeeMapping em : allEmployees) {
             if (checkedInEmployeeIds.contains(em.getLarkEmployeeId())) {
-                String checkinTime = getCheckinTime(em.getLarkEmployeeId());
+                String checkinTime = getCheckinTimeByDate(em.getLarkEmployeeId(), date);
                 boolean isOnTime = isOnTime(checkinTime);
 
                 if (isOnTime || isAvgIncludeLate()) {
@@ -154,13 +163,14 @@ public class OrderAssignmentService {
             }
         }
         double avgAssignments = totalCount > 0 ? (double) totalAssignments / totalCount : 0;
-        log.info("Trung binh assignment (includeLate={}): {:.2f} ({}/{})", isAvgIncludeLate(), avgAssignments, totalAssignments, totalCount);
+        log.info("Trung binh assignment ngay {} (includeLate={}): {:.2f} ({}/{})",
+                date, isAvgIncludeLate(), avgAssignments, totalAssignments, totalCount);
 
         List<EmployeeWithPunchStatus> result = new ArrayList<>();
 
         for (EmployeeMapping em : allEmployees) {
             String empId = em.getLarkEmployeeId();
-            String checkinTime = getCheckinTime(empId);
+            String checkinTime = getCheckinTimeByDate(empId, date);
             boolean checkedIn = checkedInEmployeeIds.contains(empId) && checkinTime != null;
             boolean onTime = checkedIn && isOnTime(checkinTime);
             long assignments = assignmentCounts.getOrDefault(empId, 0L);
@@ -198,13 +208,6 @@ public class OrderAssignmentService {
             return hireA.compareTo(hireB);
         });
 
-        // Log thong ke
-        log.info("Phan nhom nhan vien:");
-        for (EmployeeGroup g : EmployeeGroup.values()) {
-            long count = result.stream().filter(e -> e.getGroup() == g).count();
-            log.info("  - {}: {} nhan vien", g, count);
-        }
-
         return result;
     }
 
@@ -223,9 +226,15 @@ public class OrderAssignmentService {
      * Lay thong tin diem danh (gio checkin) cua nhan vien trong ngay.
      */
     public String getCheckinTime(String larkEmployeeId) {
-        LocalDate today = LocalDate.now();
+        return getCheckinTimeByDate(larkEmployeeId, LocalDate.now());
+    }
+
+    /**
+     * Lay thong tin diem danh (gio checkin) cua nhan vien theo ngay.
+     */
+    public String getCheckinTimeByDate(String larkEmployeeId, LocalDate date) {
         List<LarkAttendancePunch> punches = attendancePunchRepository
-                .findByEmployeeIdAndAttendanceDate(larkEmployeeId, today);
+                .findByEmployeeIdAndAttendanceDate(larkEmployeeId, date);
 
         return punches.stream()
                 .filter(p -> p.getPunchType() != null && p.getPunchType() == 1)
@@ -236,12 +245,25 @@ public class OrderAssignmentService {
 
     /**
      * Phan cong don hang cho CSKH tiep theo (vong tron).
-     * - Uu tien nhan vien co group PRIORITY truoc, sau do ON_TIME, roi LATE
-     * - Trong moi nhom, chon nhan vien co hireDate som nhat va chua dat gioi han
-     * - Neu het nhan vien, quay vong tu dau
+     * Su dung khi co day du thong tin tu webhook.
      */
     @Transactional
     public AssignmentResult assignOrderToNextCskh(Long orderId, PosOrderWebhook orderWebhook) {
+        return assignOrderToNextCskh(orderId, null, null, orderWebhook);
+    }
+
+    /**
+     * Phan cong don hang cho CSKH tiep theo (vong tron).
+     * Su dung khi resync tu POS API.
+     *
+     * @param orderId       ID đơn hàng
+     * @param orderCode     Mã đơn hàng
+     * @param customerInfo  Thông tin khách hàng (name, phone)
+     * @param orderWebhook  PosOrderWebhook (null khi resync)
+     */
+    @Transactional
+    public AssignmentResult assignOrderToNextCskh(Long orderId, String orderCode,
+            Map<String, String> customerInfo, PosOrderWebhook orderWebhook) {
         List<EmployeeWithPunchStatus> employeesWithStatus = getTodayCheckedInEmployeesWithStatus();
         
         // Loc bo nhung nhan vien nghi
@@ -306,24 +328,34 @@ public class OrderAssignmentService {
                 .map(LarkEmployee::getOpenId)
                 .orElse(null);
 
+        // Lay thong tin khach hang va order code
+        String customerName;
+        String customerPhone;
+        if (orderWebhook != null) {
+            customerName = posToBitableMapper.getTenKhach(orderWebhook);
+            customerPhone = posToBitableMapper.getDienThoai(orderWebhook);
+        } else if (customerInfo != null) {
+            customerName = customerInfo.get("name");
+            customerPhone = customerInfo.get("phone");
+        } else {
+            customerName = null;
+            customerPhone = null;
+        }
+
         // Luu assignment history
         OrderAssignment assignment = new OrderAssignment();
         assignment.setOrderId(orderId);
+        assignment.setOrderCode(orderCode); // orderCode tu resync hoac null
         assignment.setEmployeeMappingId(selected.getId());
         assignment.setLarkEmployeeId(selected.getLarkEmployeeId());
         assignment.setLarkEmployeeName(selected.getLarkEmployeeName());
-        assignment.setCustomerName(posToBitableMapper.getTenKhach(orderWebhook));
-        assignment.setCustomerPhone(posToBitableMapper.getDienThoai(orderWebhook));
+        assignment.setCustomerName(customerName);
+        assignment.setCustomerPhone(customerPhone);
         assignment.setAssignedAt(LocalDateTime.now());
         orderAssignmentRepository.save(assignment);
 
-        log.info("Da luu assignment: orderId={}, employee={}, customer={}",
-                orderId, selected.getLarkEmployeeName(),
-                posToBitableMapper.getTenKhach(orderWebhook));
-
-        // Lay thong tin khach hang
-        String customerName = posToBitableMapper.getTenKhach(orderWebhook);
-        String customerPhone = posToBitableMapper.getDienThoai(orderWebhook);
+        log.info("Da luu assignment: orderId={}, orderCode={}, employee={}, customer={}",
+                orderId, orderCode, selected.getLarkEmployeeName(), customerName);
 
         return AssignmentResult.builder()
                 .employee(selected)
@@ -371,11 +403,42 @@ public class OrderAssignmentService {
     }
 
     /**
-     * Thong ke assignment trong ngay.
+     * Lay danh sach assignment theo ngay cu the.
+     */
+    public List<OrderAssignment> getAssignmentsByDate(LocalDate date) {
+        LocalDateTime startOfDay = date.atStartOfDay();
+        LocalDateTime endOfDay = date.plusDays(1).atStartOfDay();
+        return orderAssignmentRepository.findTodayAssignments(startOfDay, endOfDay);
+    }
+
+    /**
+     * Lay danh sach assignment theo ngay va larkEmployeeId, sap xep moi nhat truoc.
+     */
+    public List<OrderAssignment> getAssignmentsByDateAndEmployeeId(LocalDate date, String larkEmployeeId) {
+        return getAssignmentsByDate(date).stream()
+                .filter(a -> larkEmployeeId.equals(a.getLarkEmployeeId()))
+                .sorted((a, b) -> {
+                    if (a.getAssignedAt() == null && b.getAssignedAt() == null) return 0;
+                    if (a.getAssignedAt() == null) return 1;
+                    if (b.getAssignedAt() == null) return -1;
+                    return b.getAssignedAt().compareTo(a.getAssignedAt());
+                })
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Thong ke assignment trong ngay hien tai.
      */
     public Map<String, Object> getTodayStats() {
-        List<OrderAssignment> todayAssignments = getTodayAssignments();
-        List<EmployeeWithPunchStatus> employeesWithStatus = getTodayCheckedInEmployeesWithStatus();
+        return getStatsByDate(LocalDate.now());
+    }
+
+    /**
+     * Thong ke assignment theo ngay.
+     */
+    public Map<String, Object> getStatsByDate(LocalDate date) {
+        List<OrderAssignment> dateAssignments = getAssignmentsByDate(date);
+        List<EmployeeWithPunchStatus> employeesWithStatus = getCheckedInEmployeesWithStatusByDate(date);
 
         Map<String, Long> countByEmployee = new LinkedHashMap<>();
         for (EmployeeWithPunchStatus ems : employeesWithStatus) {
@@ -384,11 +447,11 @@ public class OrderAssignmentService {
         }
 
         Map<String, Object> stats = new LinkedHashMap<>();
-        stats.put("totalAssignments", todayAssignments.size());
+        stats.put("totalAssignments", dateAssignments.size());
         stats.put("totalEmployees", employeesWithStatus.stream()
                 .filter(e -> e.getGroup() != EmployeeGroup.OFF).count());
         stats.put("assignmentsByEmployee", countByEmployee);
-        stats.put("date", LocalDate.now().toString());
+        stats.put("date", date.toString());
 
         return stats;
     }
