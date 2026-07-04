@@ -18,14 +18,12 @@ import mera.mera_v2.lark.webhook.service.WebhookPersistenceService;
 import mera.mera_v2.lark.webhook.service.TenantTokenService;
 import mera.mera_v2.entity.LarkBitableConfig;
 import mera.mera_v2.lark.config.LarkBitableConfigService;
-import mera.mera_v2.cskh.mapping.CskhBaseMappingService;
+import mera.mera_v2.customer.Service.SearchConfigService;
 import mera.mera_v2.lark.webhook.config.LarkBaseProperties;
 import mera.mera_v2.lark.webhook.config.SalesTablesConfig;
 import mera.mera_v2.lark.token.TokenStorageService;
 import mera.mera_v2.lark.webhook.scheduler2.TokenRefreshScheduler;
 import mera.mera_v2.repository.PendingFollowupNotificationRepository;
-import mera.mera_v2.pos.assignment.OrderAssignmentService;
-import mera.mera_v2.pos.assignment.AssignmentResult;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
@@ -99,10 +97,7 @@ public class LarkWebhookController {
     private PendingFollowupNotificationRepository pendingFollowupNotificationRepository;
 
     @Autowired(required = false)
-    private CskhBaseMappingService cskhBaseMappingService;
-
-    @Autowired(required = false)
-    private OrderAssignmentService orderAssignmentService;
+    private SearchConfigService searchConfigService;
 
     private final ExecutorService executorService = Executors.newFixedThreadPool(5);
 
@@ -118,11 +113,6 @@ public class LarkWebhookController {
     @Value("${lark.bitable.auto-create:true}")
     private boolean autoCreateRecord;
 
-    @Value("${lark.bitable.auto-assign-cskh:true}")
-    private boolean autoAssignCskh;
-
-    @Value("${lark.bitable.assignment-notify:true}")
-    private boolean assignmentNotify;
 
     @PostMapping("/orders")
     public ResponseEntity<String> onOrderWebhook(
@@ -306,33 +296,10 @@ public class LarkWebhookController {
 
     private void processStatusLogic(Integer status, JsonNode webhookData, PosOrderWebhook orderWebhook) throws Exception {
         if (status == 1) {
-            boolean hasTag = hasDongBoDataTag(webhookData);
-
-            if (hasTag) {
-                // Luồng Tag: Tạo bản ghi trực tiếp (giữ nguyên logic cũ)
-                log.info("Status = 1 with tag 'Đồng bộ DATA': Tao ban ghi truc tiep");
-                if (autoCreateRecord) {
-                    createBitableRecord(webhookData);
-                }
-            } else if (autoAssignCskh) {
-                // Luồng Auto Assign: Phân công CSKH cho nhân viên điểm danh
-                log.info("Status = 1: Phan cong CSKH tu dong cho nhan vien diem danh");
-                try {
-                    AssignmentResult result = orderAssignmentService.assignOrderToNextCskh(
-                            orderWebhook.getId(), orderWebhook);
-
-                    // Tạo bản ghi Lark Bitable sau khi update assigning_care_id
-                    if (autoCreateRecord) {
-                        createBitableRecord(webhookData);
-                    }
-
-                    // Gửi thông báo Lark cho CSKH
-                    if (assignmentNotify && result.getCskhOpenId() != null) {
-                        sendAssignmentNotification(result, orderWebhook);
-                    }
-                } catch (Exception e) {
-                    log.error("Loi khi phan cong CSKH tu dong: {}", e.getMessage(), e);
-                }
+            // Giu nguyen assigning_care tu webhook, tao ban ghi truc tiep (da bo chuc nang phan chia CSKH)
+            log.info("Status = 1: Tao ban ghi truc tiep, giu nguyen assigning_care tu webhook");
+            if (autoCreateRecord) {
+                createBitableRecord(webhookData);
             }
         }
         // Status = 6 giữ nguyên xử lý delete/update
@@ -557,16 +524,16 @@ public class LarkWebhookController {
         String targetTableId = null;
         String viewId = null;
 
-        if (cskhName != null && !cskhName.isBlank() && cskhBaseMappingService != null) {
+        if (cskhName != null && !cskhName.isBlank() && searchConfigService != null) {
             // Trich xuat phone tu ten CSKH (vi du: "Hà Quang Vượng Sale 2 NT 0968420624" -> "0968420624")
             String cskhPhone = extractPhoneFromName(cskhName);
             log.info("Extracted phone from CSKH name '{}': {}", cskhName, cskhPhone);
-            
-            CskhBaseMappingService.CskhMappingResult result = null;
+
+            SearchConfigService.CskhMappingResult result = null;
             if (cskhPhone != null) {
-                result = cskhBaseMappingService.findMappingResultByPhone(cskhPhone);
+                result = searchConfigService.findMappingResultByPhone(cskhPhone);
             }
-            
+
             if (result != null && result.getBaseId() != null) {
                 appToken = result.getBaseId();
                 targetTableId = result.getKhachHangTableId();
@@ -574,11 +541,11 @@ public class LarkWebhookController {
                 log.info("✅ Found mapping for CSKH '{}' (phone={}): Base ID={}, Table ID={}, View ID={}, Base Name={}",
                         cskhName, cskhPhone, appToken, targetTableId, viewId, result.getBaseName());
             } else {
-                log.error("❌ No mapping found for CSKH '{}' (phone={}). Cannot create record without table ID.", cskhName, cskhPhone);
+                log.error("❌ No mapping found for CSKH '{}' (phone={}) in search_config. Cannot create record without table ID.", cskhName, cskhPhone);
                 return;
             }
         } else {
-            log.error("❌ CSKH name is null or CskhBaseMappingService is not available. Cannot create record.");
+            log.error("❌ CSKH name is null or SearchConfigService is not available. Cannot create record.");
             return;
         }
 
@@ -673,9 +640,11 @@ public class LarkWebhookController {
         String cskhName = (cskh != null && cskh.getName() != null) ? cskh.getName().trim() : null;
 
         if (cskhName != null && !cskhName.isBlank()) {
-            // Try CskhBaseMappingService first (DB-based mapping)
-            if (cskhBaseMappingService != null) {
-                CskhBaseMappingService.CskhMappingResult result = cskhBaseMappingService.findMappingResultByPhone(cskhName);
+            // Try search_config first (DB-based mapping)
+            if (searchConfigService != null) {
+                String cskhPhone = extractPhoneFromName(cskhName);
+                SearchConfigService.CskhMappingResult result =
+                        cskhPhone != null ? searchConfigService.findMappingResultByPhone(cskhPhone) : null;
                 if (result != null && result.getBaseId() != null) {
                     appToken = result.getBaseId();
                     if (result.getKhachHangTableId() != null && !result.getKhachHangTableId().isBlank()) {
@@ -1047,54 +1016,4 @@ public class LarkWebhookController {
         }
     }
 
-    // ============== GỬI THÔNG BÁO PHÂN CÔNG CSKH ==============
-
-    /**
-     * Gửi thông báo Lark cho CSKH khi được phân công chăm sóc khách hàng.
-     */
-    private void sendAssignmentNotification(AssignmentResult result, PosOrderWebhook orderWebhook) {
-        if (result == null || result.getCskhOpenId() == null) {
-            log.warn("[AssignmentNotify] Skip notification - no openId");
-            return;
-        }
-
-        String cskhOpenId = result.getCskhOpenId();
-        String customerName = result.getCustomerName() != null ? result.getCustomerName() : "Khách hàng";
-        String customerPhone = result.getCustomerPhone() != null ? result.getCustomerPhone() : "N/A";
-        String employeeName = result.getEmployeeName() != null ? result.getEmployeeName() : "Nhân viên";
-
-        String messageContent = String.format(
-                "Ban duoc phan cong cham soc khach hang:\n" +
-                "- Ten khach: %s\n" +
-                "- So dien thoai: %s",
-                customerName, customerPhone
-        );
-
-        log.info("[AssignmentNotify] Sending notification to openId={}: {}", cskhOpenId, messageContent);
-
-        String tenantToken = null;
-        if (tenantTokenService != null) {
-            tenantToken = tenantTokenService.getTenantAccessToken();
-        }
-        if ((tenantToken == null || tenantToken.isBlank()) && tokenStorageServiceForTenant != null) {
-            tenantToken = tokenStorageServiceForTenant.getTenantAccessToken();
-        }
-
-        if (tenantToken == null || tenantToken.isBlank()) {
-            log.error("[AssignmentNotify] Tenant token is not available, cannot send message");
-            return;
-        }
-
-        if (restTemplate == null) {
-            log.error("[AssignmentNotify] RestTemplate is not available, cannot send message");
-            return;
-        }
-
-        try {
-            sendLarkMessage(tenantToken, cskhOpenId, messageContent);
-            log.info("[AssignmentNotify] Notification sent successfully to {} ({})", employeeName, cskhOpenId);
-        } catch (Exception e) {
-            log.error("[AssignmentNotify] Failed to send notification: {}", e.getMessage(), e);
-        }
-    }
 }

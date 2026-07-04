@@ -34,6 +34,18 @@ public class CustomerNote {
     @Column(name = "created_by_name", length = 255)
     private String createdByName;
 
+    @Column(name = "created_by_pancake_id", length = 64)
+    private String createdByPancakeId;
+
+    @Column(name = "created_by_token", length = 255)
+    private String createdByToken;
+
+    @Column(name = "images", columnDefinition = "JSON")
+    private String images;
+
+    @Column(name = "links", columnDefinition = "JSON")
+    private String links;
+
     @Column(name = "removed_at")
     private LocalDateTime removedAt;
 
