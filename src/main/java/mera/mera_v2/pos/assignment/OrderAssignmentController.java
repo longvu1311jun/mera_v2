@@ -2,6 +2,7 @@ package mera.mera_v2.pos.assignment;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import mera.mera_v2.config.SyncFeatureToggleService;
 import mera.mera_v2.entity.EmployeeMapping;
 import mera.mera_v2.entity.OrderAssignment;
 import mera.mera_v2.pos.sync.client.OrderApiClient;
@@ -26,6 +27,7 @@ public class OrderAssignmentController {
 
     private final OrderAssignmentService orderAssignmentService;
     private final OrderApiClient orderApiClient;
+    private final SyncFeatureToggleService featureToggle;
 
     /**
      * Helper method to extract phone number from CustomerDTO.
@@ -324,6 +326,14 @@ public class OrderAssignmentController {
     @PostMapping("/resync")
     public ResponseEntity<Map<String, Object>> resyncUnassignedOrders(
             @RequestParam(required = false) String date) {
+
+        if (!featureToggle.isAssignmentSyncEnabled()) {
+            log.warn("POST /api/order-assignment/resync blocked - feature DISABLED via toggle");
+            Map<String, Object> errorResponse = new LinkedHashMap<>();
+            errorResponse.put("error", "Tính năng phân chia khách hàng đang bị tắt");
+            errorResponse.put("enabled", false);
+            return ResponseEntity.status(403).body(errorResponse);
+        }
 
         LocalDate targetDate = (date != null && !date.isBlank())
                 ? LocalDate.parse(date)

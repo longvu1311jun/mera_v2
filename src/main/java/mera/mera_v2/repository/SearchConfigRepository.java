@@ -13,6 +13,10 @@ public interface SearchConfigRepository extends JpaRepository<SearchConfig, Stri
 
     List<SearchConfig> findBySyncStatusOrderByUpdatedAtDesc(Integer syncStatus);
 
+    List<SearchConfig> findByPosPhoneAndSyncStatusOrderByUpdatedAtDesc(String posPhone, Integer syncStatus);
+
+    List<SearchConfig> findByPosPhoneOrderByUpdatedAtDesc(String posPhone);
+
     @Modifying(clearAutomatically = true)
     @Query("UPDATE SearchConfig s SET s.syncStatus = 0, s.errorMessage = NULL")
     int resetAllToPending();

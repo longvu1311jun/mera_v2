@@ -62,6 +62,8 @@ public class OrderAssignmentConfigService {
             case "streak_threshold" -> "Ngưỡng streak tối thiểu để được siêu ưu tiên (số ngày)";
             case "auto_assign_enabled" -> "Bật tự động phân công khi có khách hàng mới (true/false)";
             case "max_assignments_per_employee" -> "Số khách tối đa mỗi nhân viên có thể nhận trong ngày";
+            case "attendance_sync_enabled" -> "Bật/tắt scheduler đồng bộ điểm danh Lark (true/false)";
+            case "order_assignment_enabled" -> "Bật/tắt chức năng phân chia khách hàng (true/false)";
             default -> "";
         };
     }

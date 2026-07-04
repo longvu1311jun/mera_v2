@@ -449,7 +449,7 @@ lark:
 ### 10.2 Database Tables
 
 - `lark_bitable_config` - Cấu hình Base ID, Table ID cho từng CSKH
-- `cskh_base_mapping` - Mapping CSKH phone -> Base/Table config
+- `search_config` - Mapping CSKH phone -> Base/Table config (quản lý tại `/admin/cskh-mapping`)
 - `pending_followup_notifications` - Bảng chờ xử lý follow-up
 
 ---
@@ -480,7 +480,7 @@ Created Bitable record successfully: recordId=xxx
 | Lỗi | Nguyên nhân | Giải pháp |
 |------|-------------|------------|
 | `Invalid X-Pancake-Secret` | Secret không khớp | Kiểm tra config `pancake.webhook.secret` |
-| `No mapping found for CSKH` | Không tìm thấy mapping | Thêm mapping trong bảng `cskh_base_mapping` |
+| `No mapping found for CSKH` | Không tìm thấy mapping | Bấm Reload tại `/admin/cskh-mapping` (bảng `search_config`) |
 | `Phone number already exists` | Khách hàng đã tồn tại | Bình thường - skip tạo trùng |
 | `User access token is not available` | Chưa login Lark | Login tại `/token` trước |
 

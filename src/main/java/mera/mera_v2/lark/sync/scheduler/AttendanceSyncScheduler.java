@@ -2,6 +2,7 @@ package mera.mera_v2.lark.sync.scheduler;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import mera.mera_v2.config.SyncFeatureToggleService;
 import mera.mera_v2.entity.LarkEmployee;
 import mera.mera_v2.lark.sync.dto.AttendanceSyncRequest;
 import mera.mera_v2.lark.sync.service.AttendanceSyncResult;
@@ -25,6 +26,7 @@ public class AttendanceSyncScheduler {
     private final LarkAttendanceSyncService attendanceSyncService;
     private final LarkEmployeeRepository employeeRepository;
     private final LarkAttendancePunchRepository attendancePunchRepository;
+    private final SyncFeatureToggleService featureToggle;
 
     private static final LocalTime FULL_SYNC_TIME = LocalTime.of(7, 59);
     private static final LocalTime SCHEDULE_START = LocalTime.of(7, 59);
@@ -36,6 +38,10 @@ public class AttendanceSyncScheduler {
 
     @Scheduled(cron = "0 59 7 * * *", zone = "Asia/Ho_Chi_Minh")
     public void dailyFullSync() {
+        if (!featureToggle.isAttendanceSyncEnabled()) {
+            log.info("[scheduler] Skipping daily full sync - feature DISABLED via toggle");
+            return;
+        }
         if (!shouldRun()) {
             log.info("[scheduler] Skipping daily full sync - outside work hours");
             return;
@@ -49,6 +55,10 @@ public class AttendanceSyncScheduler {
 
     @Scheduled(fixedRate = 60000)
     public void incrementalSyncMissingEmployees() {
+        if (!featureToggle.isAttendanceSyncEnabled()) {
+            log.debug("[scheduler] Skipping incremental sync - feature DISABLED via toggle");
+            return;
+        }
         LocalTime now = LocalTime.now();
         log.info("[scheduler] Incremental sync triggered at {}", now);
 

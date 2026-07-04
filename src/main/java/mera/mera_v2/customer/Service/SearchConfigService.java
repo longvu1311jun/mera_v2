@@ -43,6 +43,56 @@ public class SearchConfigService {
         return searchConfigRepository.findBySyncStatusAndLarkBaseNameIsNotNull(STATUS_COMPLETED);
     }
 
+    /**
+     * Tim config theo so dien thoai CSKH (dung cho webhook).
+     * Uu tien config da sync xong (COMPLETED), fallback sang moi status.
+     */
+    public Optional<SearchConfig> findByPosPhone(String phone) {
+        if (phone == null || phone.isBlank()) return Optional.empty();
+        String normalized = phone.replaceAll("[^0-9]", "");
+        if (normalized.startsWith("84") && normalized.length() > 10) {
+            normalized = "0" + normalized.substring(2);
+        }
+
+        List<SearchConfig> completed = searchConfigRepository
+                .findByPosPhoneAndSyncStatusOrderByUpdatedAtDesc(normalized, STATUS_COMPLETED);
+        if (!completed.isEmpty()) {
+            return Optional.of(completed.get(0));
+        }
+
+        List<SearchConfig> any = searchConfigRepository.findByPosPhoneOrderByUpdatedAtDesc(normalized);
+        return any.isEmpty() ? Optional.empty() : Optional.of(any.get(0));
+    }
+
+    /**
+     * Tim Base ID va Table ID theo so dien thoai (dung cho webhook)
+     */
+    public CskhMappingResult findMappingResultByPhone(String phone) {
+        return findByPosPhone(phone)
+                .map(c -> new CskhMappingResult(c.getLarkBaseId(), c.getKhachHangTableId(),
+                        c.getLarkBaseName(), c.getKhachHangViewId()))
+                .orElse(null);
+    }
+
+    public static class CskhMappingResult {
+        private final String baseId;
+        private final String khachHangTableId;
+        private final String baseName;
+        private final String viewId;
+
+        public CskhMappingResult(String baseId, String khachHangTableId, String baseName, String viewId) {
+            this.baseId = baseId;
+            this.khachHangTableId = khachHangTableId;
+            this.baseName = baseName;
+            this.viewId = viewId;
+        }
+
+        public String getBaseId() { return baseId; }
+        public String getKhachHangTableId() { return khachHangTableId; }
+        public String getBaseName() { return baseName; }
+        public String getViewId() { return viewId; }
+    }
+
     @Transactional
     public int reloadAll() {
         log.info("=== BAT DAU RELOAD SEARCH CONFIG ===");

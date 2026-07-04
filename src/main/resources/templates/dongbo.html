@@ -457,6 +457,18 @@
                     </div>
                 </div>
 
+                <!-- Toggle Scheduler -->
+                <div class="flex items-center justify-between mb-4 p-3 bg-gray-800/40 rounded-lg border border-gray-700">
+                    <div>
+                        <div class="text-sm font-semibold">Tự động đồng bộ</div>
+                        <div class="text-xs text-gray-400" id="attendance-toggle-status">Đang tải...</div>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="toggle-attendance" class="sr-only peer" onchange="toggleFeature('attendance', this.checked)">
+                        <div class="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-500"></div>
+                    </label>
+                </div>
+
                 <div class="space-y-3 mb-4">
                     <p class="text-sm text-gray-400 mb-2">Đồng bộ dữ liệu chấm công từ Lark Suite.</p>
                     <div class="grid grid-cols-2 gap-2">
@@ -484,6 +496,30 @@
                         </div>
                         <div class="space-y-1 text-sm" id="attendance-stats"></div>
                     </div>
+                </div>
+            </div>
+
+            <!-- Order Assignment Toggle -->
+            <div class="sync-card" style="border: 1px dashed rgba(236,72,153,0.4);">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="w-12 h-12 rounded-xl bg-pink-500/20 flex items-center justify-center text-2xl">👥</div>
+                    <div>
+                        <h3 class="font-bold text-lg">Phân Chia Khách Hàng</h3>
+                        <p class="text-xs text-gray-400">Order Assignment</p>
+                    </div>
+                </div>
+
+                <p class="text-sm text-gray-400 mb-4">Tự động phân chia đơn hàng cho nhân viên CSKH theo ca điểm danh.</p>
+
+                <div class="flex items-center justify-between p-3 bg-gray-800/40 rounded-lg border border-gray-700">
+                    <div>
+                        <div class="text-sm font-semibold">Cho phép phân chia</div>
+                        <div class="text-xs text-gray-400" id="assignment-toggle-status">Đang tải...</div>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="toggle-assignment" class="sr-only peer" onchange="toggleFeature('assignment', this.checked)">
+                        <div class="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-pink-500"></div>
+                    </label>
                 </div>
             </div>
 
@@ -565,6 +601,41 @@
 
     <script>
         let activityLog = [];
+
+        async function loadToggleState() {
+            try {
+                const res = await fetch('/api/sync-toggle');
+                const data = await res.json();
+                document.getElementById('toggle-attendance').checked = data.attendanceSyncEnabled;
+                document.getElementById('toggle-assignment').checked = data.assignmentSyncEnabled;
+                document.getElementById('attendance-toggle-status').textContent =
+                    data.attendanceSyncEnabled ? 'Scheduler đang BẬT' : 'Scheduler đã TẮT';
+                document.getElementById('assignment-toggle-status').textContent =
+                    data.assignmentSyncEnabled ? 'Đang cho phép phân chia' : 'Đã chặn phân chia';
+            } catch (e) {
+                console.error('Failed to load toggle state', e);
+            }
+        }
+
+        async function toggleFeature(feature, enabled) {
+            const url = `/api/sync-toggle/${feature}?enabled=${enabled}`;
+            try {
+                const res = await fetch(url, { method: 'POST' });
+                if (!res.ok) throw new Error('Toggle failed');
+                const data = await res.json();
+                document.getElementById('attendance-toggle-status').textContent =
+                    data.attendanceSyncEnabled ? 'Scheduler đang BẬT' : 'Scheduler đã TẮT';
+                document.getElementById('assignment-toggle-status').textContent =
+                    data.assignmentSyncEnabled ? 'Đang cho phép phân chia' : 'Đã chặn phân chia';
+                addActivity('info', `${feature} sync đã ${enabled ? 'BẬT' : 'TẮT'}`);
+            } catch (e) {
+                alert('Lỗi khi thay đổi trạng thái: ' + e.message);
+                loadToggleState();
+            }
+        }
+
+        loadToggleState();
+        setInterval(loadToggleState, 30000);
 
         function addActivity(type, message, stats) {
             const now = new Date().toLocaleTimeString('vi-VN');

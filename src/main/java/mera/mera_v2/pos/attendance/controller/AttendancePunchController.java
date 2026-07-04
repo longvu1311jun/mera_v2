@@ -2,6 +2,7 @@ package mera.mera_v2.pos.attendance.controller;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import mera.mera_v2.config.SyncFeatureToggleService;
 import mera.mera_v2.entity.LarkAttendancePunch;
 import mera.mera_v2.lark.sync.scheduler.AttendanceSyncScheduler;
 import mera.mera_v2.lark.sync.service.AttendanceSyncResult;
@@ -23,6 +24,7 @@ public class AttendancePunchController {
 
     private final LarkAttendancePunchRepository attendancePunchRepository;
     private final AttendanceSyncScheduler attendanceSyncScheduler;
+    private final SyncFeatureToggleService featureToggle;
 
     @GetMapping("/attendance-punch")
     public String attendancePunchPage(
@@ -158,6 +160,13 @@ public class AttendancePunchController {
     public ResponseEntity<Map<String, Object>> triggerFullSync() {
         log.info("[API] Manual full attendance sync triggered");
 
+        if (!featureToggle.isAttendanceSyncEnabled()) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", false);
+            response.put("message", "Tính năng đồng bộ điểm danh đang bị tắt");
+            return ResponseEntity.status(403).body(response);
+        }
+
         try {
             attendanceSyncScheduler.triggerManualFullSync();
 
@@ -182,6 +191,13 @@ public class AttendancePunchController {
     @ResponseBody
     public ResponseEntity<Map<String, Object>> triggerIncrementalSync() {
         log.info("[API] Manual incremental attendance sync triggered");
+
+        if (!featureToggle.isAttendanceSyncEnabled()) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", false);
+            response.put("message", "Tính năng đồng bộ điểm danh đang bị tắt");
+            return ResponseEntity.status(403).body(response);
+        }
 
         try {
             attendanceSyncScheduler.triggerIncrementalSync();
