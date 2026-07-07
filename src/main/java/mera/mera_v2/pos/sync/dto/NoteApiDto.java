@@ -1,5 +1,6 @@
 package mera.mera_v2.pos.sync.dto;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
@@ -63,6 +64,15 @@ public class NoteApiDto {
         private String name;
         private Long size;
         private String type;
+
+        public ImageApiDto() {
+        }
+
+        // API có thể trả phần tử images là chuỗi URL trần thay vì object
+        @JsonCreator(mode = JsonCreator.Mode.DELEGATING)
+        public ImageApiDto(String url) {
+            this.url = url;
+        }
     }
 
     @Getter
@@ -73,6 +83,15 @@ public class NoteApiDto {
         private String title;
         private String description;
         private String image;
+
+        public LinkApiDto() {
+        }
+
+        // API có thể trả phần tử links là chuỗi URL trần thay vì object
+        @JsonCreator(mode = JsonCreator.Mode.DELEGATING)
+        public LinkApiDto(String url) {
+            this.url = url;
+        }
     }
 
     @Getter

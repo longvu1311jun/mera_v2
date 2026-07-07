@@ -15,12 +15,18 @@ import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.Collections;
 import java.util.List;
 
 @Slf4j
 @Component
 public class CustomerApiClient {
+
+    private static final ZoneId VN_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
+    private static final DateTimeFormatter DMY_FORMAT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -39,10 +45,12 @@ public class CustomerApiClient {
     }
 
     /**
-     * Fetch a page of customers from POS API filtered by updated_at date range.
+     * Fetch a page of customers from POS API filtered by inserted_at range.
+     * Ngày được quy về múi giờ VN (UTC+7) rồi đổi sang epoch giây:
+     * startDate → 00:00:00 VN (= 17:00:00 UTC hôm trước), endDate → 23:59:59 VN (= 16:59:59 UTC).
      *
-     * @param startDate yyyy-MM-dd (inclusive)
-     * @param endDate   yyyy-MM-dd (inclusive)
+     * @param startDate yyyy-MM-dd hoặc dd/MM/yyyy (inclusive)
+     * @param endDate   yyyy-MM-dd hoặc dd/MM/yyyy (inclusive)
      * @param pageNumber 1-based page number
      * @param pageSize   page size
      */
@@ -60,10 +68,10 @@ public class CustomerApiClient {
                 .queryParam("page_number", pageNumber);
 
         if (startDate != null && !startDate.isBlank()) {
-            builder.queryParam("start_date", startDate);
+            builder.queryParam("start_time_inserted_at", toStartOfDayEpochSecond(startDate));
         }
         if (endDate != null && !endDate.isBlank()) {
-            builder.queryParam("end_date", endDate);
+            builder.queryParam("end_time_inserted_at", toEndOfDayEpochSecond(endDate));
         }
 
         String url = builder.build().toUriString();
@@ -96,31 +104,18 @@ public class CustomerApiClient {
                 dto.setData(Collections.emptyList());
             }
 
-            // Fallback: derive totalPages from total + page_size if API didn't return total_pages.
-            Integer total = dto.getTotal() != null ? dto.getTotal() : dto.getTotalEntries();
-            int computedTotalPages = 1;
-            if (total != null && pageSize > 0) {
-                computedTotalPages = (int) Math.ceil(total / (double) pageSize);
-            } else if (dto.getData() != null && dto.getData().size() >= pageSize) {
-                // API không trả total → mở rộng sang trang kế tiếp để bắt phần còn lại.
-                computedTotalPages = Math.max((dto.getTotalPages() != null ? dto.getTotalPages() : 1), pageNumber + 1);
-            }
-
+            // API trả sẵn total_pages/total_entries — chỉ fallback khi thiếu.
+            Integer total = dto.getTotalEntries() != null ? dto.getTotalEntries() : dto.getTotal();
             if (dto.getTotalPages() == null) {
-                dto.setTotalPages(computedTotalPages);
-            } else {
-                // POS API có thể trả total_pages=1 dù còn data → nâng lên nếu page hiện tại đầy.
-                if (dto.getData() != null && dto.getData().size() >= pageSize) {
-                    dto.setTotalPages(Math.max(dto.getTotalPages(), pageNumber + 1));
+                if (total != null && pageSize > 0) {
+                    dto.setTotalPages((int) Math.ceil(total / (double) pageSize));
+                } else {
+                    dto.setTotalPages(1);
                 }
             }
 
-            log.info("Fetched {} customers from POS (page {}/{}, total={}, computedTotalPages={})",
-                    dto.getData().size(),
-                    pageNumber,
-                    dto.getTotalPages(),
-                    total != null ? total : dto.getData().size(),
-                    computedTotalPages);
+            log.info("Fetched {} customers from POS (page {}/{}, total_entries={})",
+                    dto.getData().size(), pageNumber, dto.getTotalPages(), total);
             return dto;
         } catch (HttpClientErrorException e) {
             log.error("Customer API client error {}: {}", e.getStatusCode(), e.getResponseBodyAsString());
@@ -136,6 +131,29 @@ public class CustomerApiClient {
         } catch (Exception e) {
             log.error("Unexpected error calling customer API: {}", e.getMessage(), e);
             throw new ApiClientException("Unexpected error: " + e.getMessage(), e);
+        }
+    }
+
+    /** 00:00:00 theo giờ VN của ngày truyền vào, đổi ra epoch giây (VD 01/01/2026 → 1767200400). */
+    private long toStartOfDayEpochSecond(String date) {
+        return parseDate(date).atStartOfDay(VN_ZONE).toEpochSecond();
+    }
+
+    /** 23:59:59 theo giờ VN của ngày truyền vào, đổi ra epoch giây (VD 31/01/2026 → 1769878799). */
+    private long toEndOfDayEpochSecond(String date) {
+        return parseDate(date).atTime(23, 59, 59).atZone(VN_ZONE).toEpochSecond();
+    }
+
+    private LocalDate parseDate(String date) {
+        String trimmed = date.trim();
+        try {
+            return LocalDate.parse(trimmed); // yyyy-MM-dd
+        } catch (Exception ignored) {
+        }
+        try {
+            return LocalDate.parse(trimmed, DMY_FORMAT); // dd/MM/yyyy
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Ngày không hợp lệ: '" + date + "' (chấp nhận yyyy-MM-dd hoặc dd/MM/yyyy)");
         }
     }
 

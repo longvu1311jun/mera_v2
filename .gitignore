@@ -31,3 +31,5 @@ build/
 
 ### VS Code ###
 .vscode/
+dump-pos_db-202607060916.sql
+.claude/settings.local.json

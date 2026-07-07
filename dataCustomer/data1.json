@@ -1,0 +1,1728 @@
+{
+    "data": [
+        {
+            "reward_point": 0,
+            "current_debts": 0,
+            "phone_numbers": [
+                "0982760666"
+            ],
+            "list_voucher": [],
+            "used_reward_point": null,
+            "tags": [],
+            "customer_id": "3a17043a-2783-4589-93ff-4d8c36037d93",
+            "emails": [],
+            "level": null,
+            "is_block": false,
+            "active_levera_pay": false,
+            "conversation_tags": null,
+            "order_sources": [
+                "-1"
+            ],
+            "creator": null,
+            "pages_customers": [
+                {
+                    "id": "101837114714197",
+                    "name": "Dr. Đức Mạnh",
+                    "platform": "facebook"
+                }
+            ],
+            "order_count": 0,
+            "updated_at": "2024-07-05T15:11:02",
+            "conversation_link": "https://pancake.vn/101837114714197?customer_id=3a17043a-2783-4589-93ff-4d8c36037d93",
+            "referral_code": "fQWrPDNo",
+            "gender": "female",
+            "currency": null,
+            "username": null,
+            "shop_id": 1546758,
+            "is_adjust_debts": null,
+            "succeed_order_count": 1,
+            "count_referrals": 0,
+            "id": "019fc70d-9472-49b4-851d-cdc9312c5165",
+            "shop_customer_addresses": [
+                {
+                    "id": "923a7902-3eca-46a7-a027-5bc4775e119a",
+                    "address": "Trung đoàn 254 Km18",
+                    "country_code": 84,
+                    "commune_id": "2051103",
+                    "district_id": "20511",
+                    "full_address": "Trung đoàn 254 Km18, Thị trấn Nông trường Phong Hải, Huyện Bảo Thắng, Lào Cai",
+                    "post_code": null,
+                    "province_id": "205",
+                    "phone_number": "0982760666",
+                    "full_name": "anh Tâm"
+                }
+            ],
+            "name": "anh Tâm",
+            "date_of_birth": null,
+            "last_order_at": "2024-07-09T11:44:22",
+            "inserted_at": "2024-07-05T14:20:22",
+            "purchased_amount": 2390000,
+            "returned_order_count": 0,
+            "identity_code": null,
+            "total_amount_referred": null,
+            "creator_id": null,
+            "assigned_user_id": "8a994efd-b393-4974-ad2b-a4b6978146bf",
+            "is_discount_by_level": true,
+            "fb_id": "101837114714197_8263489417047970",
+            "user_block_id": null,
+            "notes": [],
+            "company_info": null
+        },
+        {
+            "reward_point": 0,
+            "current_debts": 0,
+            "phone_numbers": [
+                "0909147368"
+            ],
+            "list_voucher": [],
+            "used_reward_point": null,
+            "tags": [],
+            "customer_id": "7663d317-e7c6-4de0-9578-5a3e396669ca",
+            "emails": [],
+            "level": null,
+            "is_block": false,
+            "active_levera_pay": false,
+            "conversation_tags": null,
+            "order_sources": [
+                "-1"
+            ],
+            "creator": null,
+            "pages_customers": [
+                {
+                    "id": "337573802780387",
+                    "name": "Bác Sĩ Đức Mạnh - Chuyên Sinh Lý Nam ",
+                    "platform": "facebook"
+                }
+            ],
+            "order_count": 0,
+            "updated_at": "2024-07-06T08:04:29",
+            "conversation_link": "https://pancake.vn/337573802780387?customer_id=7663d317-e7c6-4de0-9578-5a3e396669ca",
+            "referral_code": "iBAgSWIE",
+            "gender": "male",
+            "currency": "VND",
+            "username": null,
+            "shop_id": 1546758,
+            "is_adjust_debts": null,
+            "succeed_order_count": 1,
+            "count_referrals": 0,
+            "id": "e021d9df-3ff8-46c3-b1e0-8e87e2f1eade",
+            "shop_customer_addresses": [
+                {
+                    "id": "ceb10459-7e77-4f00-b273-e137a7a1d876",
+                    "address": "Địa chỉ: 21 Nguyễn Thị Nghĩa",
+                    "country_code": 84,
+                    "commune_id": "6070103",
+                    "district_id": "60701",
+                    "full_address": "Địa chỉ: 21 Nguyễn Thị Nghĩa, Phường 2, Thành phố Đà Lạt, Lâm Đồng",
+                    "post_code": null,
+                    "province_id": "607",
+                    "phone_number": "0909147368",
+                    "full_name": "Anh Dũng"
+                }
+            ],
+            "name": "Anh Dũng",
+            "date_of_birth": null,
+            "last_order_at": "2024-07-09T11:45:13",
+            "inserted_at": "2024-07-03T14:17:23",
+            "purchased_amount": 2750000,
+            "returned_order_count": 0,
+            "identity_code": null,
+            "total_amount_referred": null,
+            "creator_id": null,
+            "assigned_user_id": "a14f41f9-debb-4256-9911-3cc049070f5d",
+            "is_discount_by_level": true,
+            "fb_id": "337573802780387_7798940090219075",
+            "user_block_id": null,
+            "notes": [
+                {
+                    "created_at": 1720252328394,
+                    "created_by": {
+                        "application": 1,
+                        "fb_id": "115818096280133",
+                        "fb_name": "Nguyễn Văn Thông",
+                        "session_id": "Wsr9m5zHiKzYcY5Bg0HCnBi2WgNg0s44kluELzyhUjE",
+                        "uid": "a14f41f9-debb-4256-9911-3cc049070f5d"
+                    },
+                    "edit_history": [
+                        {
+                            "created_at": 1720252328394,
+                            "created_by": {
+                                "application": 1,
+                                "fb_id": "115818096280133",
+                                "fb_name": "Nguyễn Văn Thông",
+                                "session_id": "Wsr9m5zHiKzYcY5Bg0HCnBi2WgNg0s44kluELzyhUjE",
+                                "uid": "a14f41f9-debb-4256-9911-3cc049070f5d"
+                            },
+                            "images": [],
+                            "message": "Anh Dũng 54 tuổi xts rlc 1 - 2 phút không hút thuốc,không thức khuya,làm giày ngồi nhiều nên có đau lưng va mệt mỏi\r\n- Muốn kết nối với bác sĩ Mạnh để yên tâm điều trị"
+                        }
+                    ],
+                    "id": "d0e6f0de-9e1a-4211-b1df-887e2cf7d665",
+                    "images": [],
+                    "links": [],
+                    "message": "Anh Dũng 54 tuổi xts rlc 1 - 2 phút không hút thuốc,không thức khuya,làm giày ngồi nhiều nên có đau lưng va mệt mỏi\r\n- Muốn kết nối với bác sĩ Mạnh để yên tâm điều trị\r\n- Đã chọn liệu trình 2tr750 (Đã kết nối zalo)",
+                    "order_id": "1924185079",
+                    "removed_at": null,
+                    "updated_at": 1720252508209
+                }
+            ],
+            "company_info": null
+        },
+        {
+            "reward_point": 0,
+            "current_debts": 0,
+            "phone_numbers": [
+                "0932296989"
+            ],
+            "list_voucher": [],
+            "used_reward_point": null,
+            "tags": [],
+            "customer_id": "7bff2e2d-c355-4b95-8f67-ad9f19e50da2",
+            "emails": [],
+            "level": null,
+            "is_block": false,
+            "active_levera_pay": false,
+            "conversation_tags": null,
+            "order_sources": [
+                "-1"
+            ],
+            "creator": null,
+            "pages_customers": [
+                {
+                    "id": "101837114714197",
+                    "name": "Dr. Đức Mạnh",
+                    "platform": "facebook"
+                }
+            ],
+            "order_count": 0,
+            "updated_at": "2024-08-08T04:37:22",
+            "conversation_link": "https://pancake.vn/101837114714197?customer_id=7bff2e2d-c355-4b95-8f67-ad9f19e50da2",
+            "referral_code": "l99ztVQ8",
+            "gender": "male",
+            "currency": null,
+            "username": null,
+            "shop_id": 1546758,
+            "is_adjust_debts": null,
+            "succeed_order_count": 0,
+            "count_referrals": 0,
+            "id": "6df089a8-c0c3-45fa-916a-698aa9dc79c7",
+            "shop_customer_addresses": [
+                {
+                    "id": "7146deab-2c30-4fdc-897f-5895d7d999e4",
+                    "address": null,
+                    "country_code": null,
+                    "commune_id": null,
+                    "district_id": null,
+                    "full_address": null,
+                    "post_code": null,
+                    "province_id": null,
+                    "phone_number": "0932296989",
+                    "full_name": "Khoi Nguyen"
+                }
+            ],
+            "name": "Khoi Nguyen",
+            "date_of_birth": null,
+            "last_order_at": "2024-07-09T11:59:12",
+            "inserted_at": "2024-07-09T11:59:12",
+            "purchased_amount": 0,
+            "returned_order_count": 0,
+            "identity_code": null,
+            "total_amount_referred": null,
+            "creator_id": null,
+            "assigned_user_id": null,
+            "is_discount_by_level": true,
+            "fb_id": "101837114714197_7798742903505987",
+            "user_block_id": null,
+            "notes": [],
+            "company_info": null
+        },
+        {
+            "reward_point": 0,
+            "current_debts": 0,
+            "phone_numbers": [
+                "0869604237"
+            ],
+            "list_voucher": [],
+            "used_reward_point": null,
+            "tags": [],
+            "customer_id": "49dfdcc3-60f8-4e9e-a1eb-f8abfffdba42",
+            "emails": [],
+            "level": null,
+            "is_block": false,
+            "active_levera_pay": false,
+            "conversation_tags": null,
+            "order_sources": [
+                "-1"
+            ],
+            "creator": null,
+            "pages_customers": [
+                {
+                    "id": "269263076276643",
+                    "name": "Bác Sĩ Đức Mạnh - Chuyên Nam Khoa",
+                    "platform": "facebook"
+                }
+            ],
+            "order_count": 0,
+            "updated_at": "2024-08-08T03:47:26",
+            "conversation_link": "https://pancake.vn/269263076276643?customer_id=49dfdcc3-60f8-4e9e-a1eb-f8abfffdba42",
+            "referral_code": "gjCwPEje",
+            "gender": "male",
+            "currency": null,
+            "username": null,
+            "shop_id": 1546758,
+            "is_adjust_debts": null,
+            "succeed_order_count": 0,
+            "count_referrals": 0,
+            "id": "3ca84993-4ab1-4204-b89a-99ca25c46f52",
+            "shop_customer_addresses": [
+                {
+                    "id": "c3dbd52f-46a5-4708-ab3f-1de9f3dab7a4",
+                    "address": null,
+                    "country_code": null,
+                    "commune_id": null,
+                    "district_id": null,
+                    "full_address": null,
+                    "post_code": null,
+                    "province_id": null,
+                    "phone_number": "0869604237",
+                    "full_name": "Duy Hải"
+                }
+            ],
+            "name": "Duy Hải",
+            "date_of_birth": null,
+            "last_order_at": "2024-07-09T12:55:17",
+            "inserted_at": "2024-07-09T12:55:17",
+            "purchased_amount": 0,
+            "returned_order_count": 0,
+            "identity_code": null,
+            "total_amount_referred": null,
+            "creator_id": null,
+            "assigned_user_id": null,
+            "is_discount_by_level": true,
+            "fb_id": "269263076276643_7540025519440384",
+            "user_block_id": null,
+            "notes": [],
+            "company_info": null
+        },
+        {
+            "reward_point": 0,
+            "current_debts": 0,
+            "phone_numbers": [
+                "0329225107"
+            ],
+            "list_voucher": [],
+            "used_reward_point": null,
+            "tags": [],
+            "customer_id": "bef0bc5f-dcfd-4b42-af29-e0e3a7229d06",
+            "emails": [],
+            "level": null,
+            "is_block": false,
+            "active_levera_pay": false,
+            "conversation_tags": null,
+            "order_sources": [
+                "-1"
+            ],
+            "creator": null,
+            "pages_customers": [
+                {
+                    "id": "112359103739276",
+                    "name": "Bác Sĩ Đức Mạnh",
+                    "platform": "facebook"
+                }
+            ],
+            "order_count": 0,
+            "updated_at": "2024-07-09T12:59:38",
+            "conversation_link": "https://pancake.vn/112359103739276?customer_id=bef0bc5f-dcfd-4b42-af29-e0e3a7229d06",
+            "referral_code": "LE56EBbp",
+            "gender": "male",
+            "currency": null,
+            "username": null,
+            "shop_id": 1546758,
+            "is_adjust_debts": null,
+            "succeed_order_count": 0,
+            "count_referrals": 0,
+            "id": "5b9729d0-78eb-4718-abed-2f319c5939f0",
+            "shop_customer_addresses": [
+                {
+                    "id": "13129781-f913-45d6-95c5-6f7fea3982b4",
+                    "address": null,
+                    "country_code": null,
+                    "commune_id": null,
+                    "district_id": null,
+                    "full_address": null,
+                    "post_code": null,
+                    "province_id": null,
+                    "phone_number": "0329225107",
+                    "full_name": "Hữu Ý."
+                }
+            ],
+            "name": "Hữu Ý.",
+            "date_of_birth": null,
+            "last_order_at": "2024-07-09T12:59:38",
+            "inserted_at": "2024-07-09T12:59:38",
+            "purchased_amount": 0,
+            "returned_order_count": 0,
+            "identity_code": null,
+            "total_amount_referred": null,
+            "creator_id": null,
+            "assigned_user_id": null,
+            "is_discount_by_level": true,
+            "fb_id": "112359103739276_8104903472864843",
+            "user_block_id": null,
+            "notes": [
+                {
+                    "created_at": 1720528216172,
+                    "created_by": {
+                        "application": 1,
+                        "fb_id": "921243536120355",
+                        "fb_name": "Thu Hà Sale",
+                        "session_id": "C5NGxr8hLTP7oYrMbCCnMHA1LCB4HnZ8i/t0kmVryg4",
+                        "uid": "784fd7ca-05ef-4be8-9240-f367371966dc"
+                    },
+                    "edit_history": [
+                        {
+                            "created_at": 1720528216172,
+                            "created_by": {
+                                "application": 1,
+                                "fb_id": "921243536120355",
+                                "fb_name": "Thu Hà Sale",
+                                "session_id": "C5NGxr8hLTP7oYrMbCCnMHA1LCB4HnZ8i/t0kmVryg4",
+                                "uid": "784fd7ca-05ef-4be8-9240-f367371966dc"
+                            },
+                            "images": [],
+                            "message": "17t"
+                        },
+                        {
+                            "created_at": 1720528338943,
+                            "created_by": {
+                                "application": 1,
+                                "fb_id": "921243536120355",
+                                "fb_name": "Thu Hà Sale",
+                                "session_id": "C5NGxr8hLTP7oYrMbCCnMHA1LCB4HnZ8i/t0kmVryg4",
+                                "uid": "784fd7ca-05ef-4be8-9240-f367371966dc"
+                            },
+                            "images": [],
+                            "message": "17t bị lâu rồi"
+                        },
+                        {
+                            "created_at": 1720529318354,
+                            "created_by": {
+                                "application": 1,
+                                "fb_id": "921243536120355",
+                                "fb_name": "Thu Hà Sale",
+                                "session_id": "C5NGxr8hLTP7oYrMbCCnMHA1LCB4HnZ8i/t0kmVryg4",
+                                "uid": "784fd7ca-05ef-4be8-9240-f367371966dc"
+                            },
+                            "images": [],
+                            "message": "17t bị lâu rồi, 1p xuất tinh"
+                        }
+                    ],
+                    "id": "6ebd2b7c-eaa3-4a5c-a92b-a23b04df60fd",
+                    "images": [],
+                    "links": [],
+                    "message": "17t bị lâu rồi, 1p xuất tinh, k bệnh",
+                    "order_id": "",
+                    "removed_at": null,
+                    "updated_at": 1720529745689
+                }
+            ],
+            "company_info": null
+        },
+        {
+            "reward_point": 0,
+            "current_debts": 0,
+            "phone_numbers": [
+                "0972369336"
+            ],
+            "list_voucher": [],
+            "used_reward_point": null,
+            "tags": [],
+            "customer_id": "f95b7957-d5fb-43c9-b623-fdfd6d97bea8",
+            "emails": [],
+            "level": null,
+            "is_block": false,
+            "active_levera_pay": false,
+            "conversation_tags": null,
+            "order_sources": [
+                "-1"
+            ],
+            "creator": null,
+            "pages_customers": [
+                {
+                    "id": "337573802780387",
+                    "name": "Bác Sĩ Đức Mạnh - Chuyên Sinh Lý Nam ",
+                    "platform": "facebook"
+                }
+            ],
+            "order_count": 0,
+            "updated_at": "2024-08-08T03:32:00",
+            "conversation_link": "https://pancake.vn/337573802780387?customer_id=f95b7957-d5fb-43c9-b623-fdfd6d97bea8",
+            "referral_code": "vwxUWNk0",
+            "gender": "male",
+            "currency": null,
+            "username": null,
+            "shop_id": 1546758,
+            "is_adjust_debts": null,
+            "succeed_order_count": 0,
+            "count_referrals": 0,
+            "id": "1d68cf96-5426-4507-9c98-4b58afec2b3c",
+            "shop_customer_addresses": [
+                {
+                    "id": "d1606357-4522-4b4e-b8cd-2a6ec813e31b",
+                    "address": null,
+                    "country_code": null,
+                    "commune_id": null,
+                    "district_id": null,
+                    "full_address": null,
+                    "post_code": null,
+                    "province_id": null,
+                    "phone_number": "0972369336",
+                    "full_name": "Phuong Chu"
+                }
+            ],
+            "name": "Phuong Chu",
+            "date_of_birth": null,
+            "last_order_at": "2024-07-09T13:07:17",
+            "inserted_at": "2024-07-09T13:07:17",
+            "purchased_amount": 0,
+            "returned_order_count": 0,
+            "identity_code": null,
+            "total_amount_referred": null,
+            "creator_id": null,
+            "assigned_user_id": null,
+            "is_discount_by_level": true,
+            "fb_id": "337573802780387_7806346346147629",
+            "user_block_id": null,
+            "notes": [],
+            "company_info": null
+        },
+        {
+            "reward_point": 0,
+            "current_debts": 0,
+            "phone_numbers": [
+                "0374710829"
+            ],
+            "list_voucher": [],
+            "used_reward_point": null,
+            "tags": [],
+            "customer_id": "b41934a1-5cf3-4f46-b85d-771e7a72e3bc",
+            "emails": [],
+            "level": null,
+            "is_block": false,
+            "active_levera_pay": false,
+            "conversation_tags": null,
+            "order_sources": [
+                "-1"
+            ],
+            "creator": null,
+            "pages_customers": [
+                {
+                    "id": "196059750263125",
+                    "name": "Bác Sĩ Nam Khoa - Đức Mạnh",
+                    "platform": "facebook"
+                }
+            ],
+            "order_count": 0,
+            "updated_at": "2024-08-08T03:37:36",
+            "conversation_link": "https://pancake.vn/196059750263125?customer_id=b41934a1-5cf3-4f46-b85d-771e7a72e3bc",
+            "referral_code": "u8ayucK7",
+            "gender": "female",
+            "currency": null,
+            "username": null,
+            "shop_id": 1546758,
+            "is_adjust_debts": null,
+            "succeed_order_count": 0,
+            "count_referrals": 0,
+            "id": "767321b1-90fc-4710-ba47-37a62ceb44eb",
+            "shop_customer_addresses": [
+                {
+                    "id": "8402cc1d-2955-4ae9-9988-72ac80263e97",
+                    "address": null,
+                    "country_code": null,
+                    "commune_id": null,
+                    "district_id": null,
+                    "full_address": null,
+                    "post_code": null,
+                    "province_id": null,
+                    "phone_number": "0374710829",
+                    "full_name": "Nguyen Huu"
+                }
+            ],
+            "name": "Nguyen Huu",
+            "date_of_birth": null,
+            "last_order_at": "2024-07-09T13:05:38",
+            "inserted_at": "2024-07-09T13:05:38",
+            "purchased_amount": 0,
+            "returned_order_count": 0,
+            "identity_code": null,
+            "total_amount_referred": null,
+            "creator_id": null,
+            "assigned_user_id": null,
+            "is_discount_by_level": true,
+            "fb_id": "196059750263125_7161698913931111",
+            "user_block_id": null,
+            "notes": [],
+            "company_info": null
+        },
+        {
+            "reward_point": 0,
+            "current_debts": 0,
+            "phone_numbers": [
+                "0393551966"
+            ],
+            "list_voucher": [],
+            "used_reward_point": null,
+            "tags": [],
+            "customer_id": "eb86d3df-7553-4c76-b28d-1f4252a7d6f5",
+            "emails": [],
+            "level": null,
+            "is_block": false,
+            "active_levera_pay": false,
+            "conversation_tags": null,
+            "order_sources": [
+                "-1"
+            ],
+            "creator": null,
+            "pages_customers": [
+                {
+                    "id": "337573802780387",
+                    "name": "Bác Sĩ Đức Mạnh - Chuyên Sinh Lý Nam ",
+                    "platform": "facebook"
+                }
+            ],
+            "order_count": 0,
+            "updated_at": "2024-08-08T03:25:45",
+            "conversation_link": "https://pancake.vn/337573802780387?customer_id=eb86d3df-7553-4c76-b28d-1f4252a7d6f5",
+            "referral_code": "C6PbyOHk",
+            "gender": "male",
+            "currency": null,
+            "username": null,
+            "shop_id": 1546758,
+            "is_adjust_debts": null,
+            "succeed_order_count": 0,
+            "count_referrals": 0,
+            "id": "f5983457-9073-4780-97e1-e5a96b64ffb1",
+            "shop_customer_addresses": [
+                {
+                    "id": "e8ebda21-3c3f-4707-907c-27126002e294",
+                    "address": null,
+                    "country_code": null,
+                    "commune_id": null,
+                    "district_id": null,
+                    "full_address": null,
+                    "post_code": null,
+                    "province_id": null,
+                    "phone_number": "0393551966",
+                    "full_name": "Nguyễn Hữu Phan"
+                }
+            ],
+            "name": "Nguyễn Hữu Phan",
+            "date_of_birth": null,
+            "last_order_at": "2024-07-09T13:11:31",
+            "inserted_at": "2024-07-09T13:11:31",
+            "purchased_amount": 0,
+            "returned_order_count": 0,
+            "identity_code": null,
+            "total_amount_referred": null,
+            "creator_id": null,
+            "assigned_user_id": null,
+            "is_discount_by_level": true,
+            "fb_id": "337573802780387_7567291193398167",
+            "user_block_id": null,
+            "notes": [],
+            "company_info": null
+        },
+        {
+            "reward_point": 0,
+            "current_debts": 0,
+            "phone_numbers": [
+                "0777565939"
+            ],
+            "list_voucher": [],
+            "used_reward_point": null,
+            "tags": [],
+            "customer_id": "881724af-8b9a-413d-bb1e-427df898da44",
+            "emails": [],
+            "level": null,
+            "is_block": false,
+            "active_levera_pay": false,
+            "conversation_tags": null,
+            "order_sources": [
+                "-1"
+            ],
+            "creator": null,
+            "pages_customers": [
+                {
+                    "id": "337573802780387",
+                    "name": "Bác Sĩ Đức Mạnh - Chuyên Sinh Lý Nam ",
+                    "platform": "facebook"
+                }
+            ],
+            "order_count": 0,
+            "updated_at": "2024-08-08T03:18:05",
+            "conversation_link": "https://pancake.vn/337573802780387?customer_id=881724af-8b9a-413d-bb1e-427df898da44",
+            "referral_code": "hylb1iDT",
+            "gender": "male",
+            "currency": null,
+            "username": null,
+            "shop_id": 1546758,
+            "is_adjust_debts": null,
+            "succeed_order_count": 0,
+            "count_referrals": 0,
+            "id": "0edafbd2-c15e-4a93-b75e-824c7aac99f1",
+            "shop_customer_addresses": [
+                {
+                    "id": "16e45f91-88bf-49a7-905e-e217ca5ef01d",
+                    "address": null,
+                    "country_code": null,
+                    "commune_id": null,
+                    "district_id": null,
+                    "full_address": null,
+                    "post_code": null,
+                    "province_id": null,
+                    "phone_number": "0777565939",
+                    "full_name": "Võ Hưng"
+                }
+            ],
+            "name": "Võ Hưng",
+            "date_of_birth": null,
+            "last_order_at": "2024-07-09T13:13:38",
+            "inserted_at": "2024-07-09T13:13:38",
+            "purchased_amount": 0,
+            "returned_order_count": 0,
+            "identity_code": null,
+            "total_amount_referred": null,
+            "creator_id": null,
+            "assigned_user_id": null,
+            "is_discount_by_level": true,
+            "fb_id": "337573802780387_7804422846340359",
+            "user_block_id": null,
+            "notes": [
+                {
+                    "created_at": 1731566001848,
+                    "created_by": {
+                        "application": 1,
+                        "fb_id": "209339090377732",
+                        "fb_name": "Nguyễn Đức Hoà Sale",
+                        "session_id": "Qf6i4P1wZG0CBIV+QUYxbcj7Az9yBMW+LUj0RMk2YbY",
+                        "token_for_business": "AbySkwFhth57QyDp",
+                        "uid": "90e09a86-5065-4769-9bdb-01a12a3bb4b5"
+                    },
+                    "edit_history": [],
+                    "id": "9d1add09-1eea-4496-85d1-118ecf92bb3a",
+                    "images": [],
+                    "links": [],
+                    "message": "tv",
+                    "order_id": "1445294647",
+                    "removed_at": null,
+                    "updated_at": null
+                }
+            ],
+            "company_info": null
+        },
+        {
+            "reward_point": 0,
+            "current_debts": 0,
+            "phone_numbers": [
+                "0367486069"
+            ],
+            "list_voucher": [],
+            "used_reward_point": null,
+            "tags": [],
+            "customer_id": "a8d3559f-695b-4ad5-8ee0-655b6eea753b",
+            "emails": [],
+            "level": null,
+            "is_block": false,
+            "active_levera_pay": false,
+            "conversation_tags": null,
+            "order_sources": [
+                "-1"
+            ],
+            "creator": null,
+            "pages_customers": [
+                {
+                    "id": "101837114714197",
+                    "name": "Dr. Đức Mạnh",
+                    "platform": "facebook"
+                }
+            ],
+            "order_count": 0,
+            "updated_at": "2024-08-08T03:14:02",
+            "conversation_link": "https://pancake.vn/101837114714197?customer_id=a8d3559f-695b-4ad5-8ee0-655b6eea753b",
+            "referral_code": "eVLBLUxs",
+            "gender": "male",
+            "currency": null,
+            "username": null,
+            "shop_id": 1546758,
+            "is_adjust_debts": null,
+            "succeed_order_count": 0,
+            "count_referrals": 0,
+            "id": "070eea5f-d712-4cd7-9271-96affb966dbc",
+            "shop_customer_addresses": [
+                {
+                    "id": "f58dce19-5600-457f-9e8d-87cc8e6a5b21",
+                    "address": null,
+                    "country_code": null,
+                    "commune_id": null,
+                    "district_id": null,
+                    "full_address": null,
+                    "post_code": null,
+                    "province_id": null,
+                    "phone_number": "0367486069",
+                    "full_name": "Bao Thiệt"
+                }
+            ],
+            "name": "Bao Thiệt",
+            "date_of_birth": null,
+            "last_order_at": "2024-07-09T13:15:04",
+            "inserted_at": "2024-07-09T13:15:04",
+            "purchased_amount": 0,
+            "returned_order_count": 0,
+            "identity_code": null,
+            "total_amount_referred": null,
+            "creator_id": null,
+            "assigned_user_id": null,
+            "is_discount_by_level": true,
+            "fb_id": "101837114714197_7986768844679906",
+            "user_block_id": null,
+            "notes": [],
+            "company_info": null
+        },
+        {
+            "reward_point": 0,
+            "current_debts": 0,
+            "phone_numbers": [
+                "0935596899"
+            ],
+            "list_voucher": [],
+            "used_reward_point": null,
+            "tags": [],
+            "customer_id": "cff9df9d-ce97-4ea7-a5fd-31b8b35711ba",
+            "emails": [],
+            "level": null,
+            "is_block": false,
+            "active_levera_pay": false,
+            "conversation_tags": null,
+            "order_sources": [
+                "-1"
+            ],
+            "creator": null,
+            "pages_customers": [
+                {
+                    "id": "245459155325142",
+                    "name": "Bác Sĩ Đức Mạnh - Hỗ Trợ Nam Khoa",
+                    "platform": "facebook"
+                }
+            ],
+            "order_count": 0,
+            "updated_at": "2024-08-08T03:05:52",
+            "conversation_link": "https://pancake.vn/245459155325142?customer_id=cff9df9d-ce97-4ea7-a5fd-31b8b35711ba",
+            "referral_code": "sZjQg3NT",
+            "gender": "male",
+            "currency": null,
+            "username": null,
+            "shop_id": 1546758,
+            "is_adjust_debts": null,
+            "succeed_order_count": 0,
+            "count_referrals": 0,
+            "id": "b2be1f06-21a1-4384-b9fb-05b6a4d5fb73",
+            "shop_customer_addresses": [
+                {
+                    "id": "d489a38f-a0c1-4ec5-83ab-21d66c9fa525",
+                    "address": null,
+                    "country_code": null,
+                    "commune_id": null,
+                    "district_id": null,
+                    "full_address": null,
+                    "post_code": null,
+                    "province_id": null,
+                    "phone_number": "0935596899",
+                    "full_name": "Huy Bibo"
+                }
+            ],
+            "name": "Huy Bibo",
+            "date_of_birth": null,
+            "last_order_at": "2024-07-09T13:18:33",
+            "inserted_at": "2024-07-09T13:18:33",
+            "purchased_amount": 0,
+            "returned_order_count": 0,
+            "identity_code": null,
+            "total_amount_referred": null,
+            "creator_id": null,
+            "assigned_user_id": null,
+            "is_discount_by_level": true,
+            "fb_id": "245459155325142_7859016064178203",
+            "user_block_id": null,
+            "notes": [
+                {
+                    "created_at": 1720519249687,
+                    "created_by": {
+                        "application": 1,
+                        "fb_id": "109322270135266",
+                        "fb_name": "Phương Thanh Sale",
+                        "session_id": "+3QNhSfH2AAzS5ROg/8OmowWzpg0tPb8AXQjfiWt6YA",
+                        "uid": "8a994efd-b393-4974-ad2b-a4b6978146bf"
+                    },
+                    "edit_history": [],
+                    "id": "acfd698e-c94e-4f75-8499-3585d76f073e",
+                    "images": [],
+                    "links": [],
+                    "message": "39 1p",
+                    "order_id": "",
+                    "removed_at": null,
+                    "updated_at": null
+                }
+            ],
+            "company_info": null
+        },
+        {
+            "reward_point": 0,
+            "current_debts": 0,
+            "phone_numbers": [
+                "0901955286"
+            ],
+            "list_voucher": [],
+            "used_reward_point": null,
+            "tags": [],
+            "customer_id": "68084b6a-5963-48a6-a66f-7d1e919cc024",
+            "emails": [],
+            "level": null,
+            "is_block": false,
+            "active_levera_pay": false,
+            "conversation_tags": null,
+            "order_sources": [
+                "-1"
+            ],
+            "creator": null,
+            "pages_customers": [
+                {
+                    "id": "196059750263125",
+                    "name": "Bác Sĩ Nam Khoa - Đức Mạnh",
+                    "platform": "facebook"
+                },
+                {
+                    "id": "101837114714197",
+                    "name": "Dr. Đức Mạnh",
+                    "platform": "facebook"
+                }
+            ],
+            "order_count": 0,
+            "updated_at": "2024-04-20T09:14:33",
+            "conversation_link": null,
+            "referral_code": "Je15OOyD",
+            "gender": "male",
+            "currency": null,
+            "username": null,
+            "shop_id": 1546758,
+            "is_adjust_debts": null,
+            "succeed_order_count": 0,
+            "count_referrals": 0,
+            "id": "396a3969-a97f-46a4-b238-3b47c3639b4a",
+            "shop_customer_addresses": [
+                {
+                    "id": "bebcd89f-a43c-4634-b3d0-6a450fc498f3",
+                    "address": null,
+                    "country_code": null,
+                    "commune_id": null,
+                    "district_id": null,
+                    "full_address": null,
+                    "post_code": null,
+                    "province_id": null,
+                    "phone_number": "0901955286",
+                    "full_name": "Cong Tranminh"
+                }
+            ],
+            "name": "Cong Tranminh",
+            "date_of_birth": null,
+            "last_order_at": "2024-07-09T13:18:59",
+            "inserted_at": "2024-04-20T09:14:33",
+            "purchased_amount": 0,
+            "returned_order_count": 0,
+            "identity_code": null,
+            "total_amount_referred": null,
+            "creator_id": null,
+            "assigned_user_id": null,
+            "is_discount_by_level": true,
+            "fb_id": "196059750263125_7587334984715553",
+            "user_block_id": null,
+            "notes": [
+                {
+                    "created_at": 1723109000798,
+                    "created_by": {
+                        "fb_id": "154345018746466",
+                        "fb_name": "Huyền Trang",
+                        "uid": "b33f228b-b214-4efb-b19c-7d6f46d095ce"
+                    },
+                    "edit_history": [],
+                    "id": "464fd4a4-daf7-49d3-8ef6-c71de82e3b5a",
+                    "images": [],
+                    "links": [],
+                    "message": "hẹn liên hệ lại sau ",
+                    "order_id": "54977054",
+                    "removed_at": null,
+                    "updated_at": null
+                }
+            ],
+            "company_info": null
+        },
+        {
+            "reward_point": 0,
+            "current_debts": 0,
+            "phone_numbers": [
+                "0916286758"
+            ],
+            "list_voucher": [],
+            "used_reward_point": null,
+            "tags": [],
+            "customer_id": "5e6b9bc3-f0a6-48e9-9def-f342f6bc330e",
+            "emails": [],
+            "level": null,
+            "is_block": false,
+            "active_levera_pay": false,
+            "conversation_tags": null,
+            "order_sources": [
+                "-1"
+            ],
+            "creator": null,
+            "pages_customers": [
+                {
+                    "id": "112359103739276",
+                    "name": "Bác Sĩ Đức Mạnh",
+                    "platform": "facebook"
+                }
+            ],
+            "order_count": 0,
+            "updated_at": "2024-07-09T14:41:05",
+            "conversation_link": "https://pancake.vn/112359103739276?customer_id=5e6b9bc3-f0a6-48e9-9def-f342f6bc330e",
+            "referral_code": "qggnQymS",
+            "gender": null,
+            "currency": null,
+            "username": null,
+            "shop_id": 1546758,
+            "is_adjust_debts": null,
+            "succeed_order_count": 0,
+            "count_referrals": 0,
+            "id": "783378a0-5539-4e96-9068-e07ffa445dd1",
+            "shop_customer_addresses": [
+                {
+                    "id": "bb578151-af98-4b34-a396-317f676d2627",
+                    "address": null,
+                    "country_code": null,
+                    "commune_id": null,
+                    "district_id": null,
+                    "full_address": null,
+                    "post_code": null,
+                    "province_id": null,
+                    "phone_number": "0916286758",
+                    "full_name": "Anh Tuan"
+                }
+            ],
+            "name": "Anh Tuan",
+            "date_of_birth": null,
+            "last_order_at": "2024-07-09T14:41:05",
+            "inserted_at": "2024-07-09T14:41:05",
+            "purchased_amount": 0,
+            "returned_order_count": 0,
+            "identity_code": null,
+            "total_amount_referred": null,
+            "creator_id": null,
+            "assigned_user_id": null,
+            "is_discount_by_level": true,
+            "fb_id": "112359103739276_7663704627060607",
+            "user_block_id": null,
+            "notes": [
+                {
+                    "created_at": 1723105621641,
+                    "created_by": {
+                        "fb_id": "154345018746466",
+                        "fb_name": "Huyền Trang",
+                        "uid": "b33f228b-b214-4efb-b19c-7d6f46d095ce"
+                    },
+                    "edit_history": [],
+                    "id": "013b6b6b-52ba-4956-b907-4ab92a3ffab7",
+                    "images": [],
+                    "links": [],
+                    "message": "cúp máy ",
+                    "order_id": "1926358926",
+                    "removed_at": null,
+                    "updated_at": null
+                },
+                {
+                    "created_at": 1720535297317,
+                    "created_by": {
+                        "application": 1,
+                        "fb_id": "921243536120355",
+                        "fb_name": "Thu Hà Sale",
+                        "session_id": "C5NGxr8hLTP7oYrMbCCnMHA1LCB4HnZ8i/t0kmVryg4",
+                        "uid": "784fd7ca-05ef-4be8-9240-f367371966dc"
+                    },
+                    "edit_history": [
+                        {
+                            "created_at": 1720535297317,
+                            "created_by": {
+                                "application": 1,
+                                "fb_id": "921243536120355",
+                                "fb_name": "Thu Hà Sale",
+                                "session_id": "C5NGxr8hLTP7oYrMbCCnMHA1LCB4HnZ8i/t0kmVryg4",
+                                "uid": "784fd7ca-05ef-4be8-9240-f367371966dc"
+                            },
+                            "images": [],
+                            "message": "46t,bị tiểu đường tuýp 2 đã 15 năm"
+                        },
+                        {
+                            "created_at": 1720535419896,
+                            "created_by": {
+                                "application": 1,
+                                "fb_id": "921243536120355",
+                                "fb_name": "Thu Hà Sale",
+                                "session_id": "C5NGxr8hLTP7oYrMbCCnMHA1LCB4HnZ8i/t0kmVryg4",
+                                "uid": "784fd7ca-05ef-4be8-9240-f367371966dc"
+                            },
+                            "images": [],
+                            "message": "46t,bị tiểu đường tuýp 2 đã 15 năm, sáng cương yếu"
+                        },
+                        {
+                            "created_at": 1720535570178,
+                            "created_by": {
+                                "application": 1,
+                                "fb_id": "921243536120355",
+                                "fb_name": "Thu Hà Sale",
+                                "session_id": "C5NGxr8hLTP7oYrMbCCnMHA1LCB4HnZ8i/t0kmVryg4",
+                                "uid": "784fd7ca-05ef-4be8-9240-f367371966dc"
+                            },
+                            "images": [],
+                            "message": "46t,bị tiểu đường tuýp 2 đã 15 năm, sáng cương yếu, cương kém ,xìu ngang"
+                        }
+                    ],
+                    "id": "3702b375-543e-48f5-a149-7826c8522b19",
+                    "images": [],
+                    "links": [],
+                    "message": "46t,bị tiểu đường tuýp 2 đã 15 năm, sáng cương yếu, cương kém ,xìu ngang, 3p xuất tinh",
+                    "order_id": "",
+                    "removed_at": null,
+                    "updated_at": 1720535631906
+                }
+            ],
+            "company_info": null
+        },
+        {
+            "reward_point": 0,
+            "current_debts": 0,
+            "phone_numbers": [
+                "0984841336"
+            ],
+            "list_voucher": [],
+            "used_reward_point": null,
+            "tags": [],
+            "customer_id": "a809899f-e87b-45bf-838b-76e2ccbd3d22",
+            "emails": [],
+            "level": null,
+            "is_block": false,
+            "active_levera_pay": false,
+            "conversation_tags": null,
+            "order_sources": [
+                "-1"
+            ],
+            "creator": null,
+            "pages_customers": [
+                {
+                    "id": "337573802780387",
+                    "name": "Bác Sĩ Đức Mạnh - Chuyên Sinh Lý Nam ",
+                    "platform": "facebook"
+                }
+            ],
+            "order_count": 0,
+            "updated_at": "2024-07-09T14:38:10",
+            "conversation_link": "https://pancake.vn/337573802780387?customer_id=a809899f-e87b-45bf-838b-76e2ccbd3d22",
+            "referral_code": "buyrP1z6",
+            "gender": "male",
+            "currency": null,
+            "username": null,
+            "shop_id": 1546758,
+            "is_adjust_debts": null,
+            "succeed_order_count": 0,
+            "count_referrals": 0,
+            "id": "09ff1748-c847-4bf5-970e-adbdc2484648",
+            "shop_customer_addresses": [
+                {
+                    "id": "921c76f9-d257-4bf7-bf95-4ae05c96d3c7",
+                    "address": null,
+                    "country_code": null,
+                    "commune_id": null,
+                    "district_id": null,
+                    "full_address": null,
+                    "post_code": null,
+                    "province_id": null,
+                    "phone_number": "0984841336",
+                    "full_name": "Doan Viet"
+                }
+            ],
+            "name": "Doan Viet",
+            "date_of_birth": null,
+            "last_order_at": "2024-07-09T14:38:09",
+            "inserted_at": "2024-07-09T14:38:10",
+            "purchased_amount": 0,
+            "returned_order_count": 0,
+            "identity_code": null,
+            "total_amount_referred": null,
+            "creator_id": null,
+            "assigned_user_id": null,
+            "is_discount_by_level": true,
+            "fb_id": "337573802780387_8532209346808274",
+            "user_block_id": null,
+            "notes": [
+                {
+                    "created_at": 1720684419289,
+                    "created_by": {
+                        "fb_id": null,
+                        "fb_name": "Linh Telesale",
+                        "uid": "19d375b2-4e2c-4d20-8efa-7ecb32519fde"
+                    },
+                    "edit_history": [],
+                    "id": "6a4f4a65-ee5f-44c5-ab7a-b4e6faa57d1f",
+                    "images": [],
+                    "links": [],
+                    "message": "anh Đoàn 61T RLC không cương 0/10, sáng cũng không cương; bị 10 năm; Huyết áp cao; Hẹn 17/7 điện lại để thu xếp kinh phí",
+                    "order_id": "55000625",
+                    "removed_at": null,
+                    "updated_at": null
+                }
+            ],
+            "company_info": null
+        },
+        {
+            "reward_point": 0,
+            "current_debts": 0,
+            "phone_numbers": [
+                "0989332630"
+            ],
+            "list_voucher": [],
+            "used_reward_point": null,
+            "tags": [],
+            "customer_id": "c65325d2-b78a-4eca-8d19-60d5bd49bf5a",
+            "emails": [],
+            "level": null,
+            "is_block": false,
+            "active_levera_pay": false,
+            "conversation_tags": null,
+            "order_sources": [
+                "-1"
+            ],
+            "creator": null,
+            "pages_customers": [
+                {
+                    "id": "310726348795037",
+                    "name": "Bác sĩ Đức Mạnh",
+                    "platform": "facebook"
+                }
+            ],
+            "order_count": 0,
+            "updated_at": "2024-07-08T04:30:52",
+            "conversation_link": "https://pancake.vn/310726348795037?customer_id=c65325d2-b78a-4eca-8d19-60d5bd49bf5a",
+            "referral_code": "qg029Pr6",
+            "gender": "male",
+            "currency": "VND",
+            "username": null,
+            "shop_id": 1546758,
+            "is_adjust_debts": null,
+            "succeed_order_count": 1,
+            "count_referrals": 0,
+            "id": "75a394fe-c348-4666-94ec-df4321f58940",
+            "shop_customer_addresses": [
+                {
+                    "id": "fcbd359f-2c45-446a-abbb-6f48d1daca36",
+                    "address": "TDP Yên Mễ",
+                    "country_code": 84,
+                    "commune_id": "2151713",
+                    "district_id": "21517",
+                    "full_address": "TDP Yên Mễ, Phường Hồng Tiến, Thành phố Phổ Yên, Thái Nguyên",
+                    "post_code": null,
+                    "province_id": "215",
+                    "phone_number": "0989332630",
+                    "full_name": "anh Quảng"
+                }
+            ],
+            "name": "anh Quảng",
+            "date_of_birth": null,
+            "last_order_at": "2024-07-09T14:41:44",
+            "inserted_at": "2024-07-07T08:23:47",
+            "purchased_amount": 2340000,
+            "returned_order_count": 0,
+            "identity_code": null,
+            "total_amount_referred": null,
+            "creator_id": null,
+            "assigned_user_id": "736f9f21-9c9d-4171-997f-4e4a991354e1",
+            "is_discount_by_level": true,
+            "fb_id": "310726348795037_7777428748978922",
+            "user_block_id": null,
+            "notes": [],
+            "company_info": null
+        },
+        {
+            "reward_point": 0,
+            "current_debts": 0,
+            "phone_numbers": [
+                "0968690198"
+            ],
+            "list_voucher": [],
+            "used_reward_point": null,
+            "tags": [],
+            "customer_id": "111e7ee8-7f8f-4531-8f81-72b7a9267647",
+            "emails": [],
+            "level": null,
+            "is_block": false,
+            "active_levera_pay": false,
+            "conversation_tags": null,
+            "order_sources": [
+                "-1"
+            ],
+            "creator": null,
+            "pages_customers": [
+                {
+                    "id": "110338705127513",
+                    "name": "Bác Sĩ Đức Mạnh - Chuyên Nam Khoa",
+                    "platform": "facebook"
+                }
+            ],
+            "order_count": 0,
+            "updated_at": "2024-07-09T14:57:25",
+            "conversation_link": "https://pancake.vn/110338705127513?customer_id=111e7ee8-7f8f-4531-8f81-72b7a9267647",
+            "referral_code": "kJTq6c9M",
+            "gender": "male",
+            "currency": null,
+            "username": null,
+            "shop_id": 1546758,
+            "is_adjust_debts": null,
+            "succeed_order_count": 0,
+            "count_referrals": 0,
+            "id": "eeda50b7-5508-40f1-b512-99ab4ee90e75",
+            "shop_customer_addresses": [
+                {
+                    "id": "5a09b410-04bb-4976-a9ed-dafbb6aa2fd5",
+                    "address": null,
+                    "country_code": null,
+                    "commune_id": null,
+                    "district_id": null,
+                    "full_address": null,
+                    "post_code": null,
+                    "province_id": null,
+                    "phone_number": "0968690198",
+                    "full_name": "Phạm Văn Hùng"
+                }
+            ],
+            "name": "Phạm Văn Hùng",
+            "date_of_birth": null,
+            "last_order_at": "2024-07-09T14:57:25",
+            "inserted_at": "2024-07-09T14:57:25",
+            "purchased_amount": 0,
+            "returned_order_count": 0,
+            "identity_code": null,
+            "total_amount_referred": null,
+            "creator_id": null,
+            "assigned_user_id": null,
+            "is_discount_by_level": true,
+            "fb_id": "110338705127513_26036111452700943",
+            "user_block_id": null,
+            "notes": [
+                {
+                    "created_at": 1723105342493,
+                    "created_by": {
+                        "fb_id": "154345018746466",
+                        "fb_name": "Huyền Trang",
+                        "uid": "b33f228b-b214-4efb-b19c-7d6f46d095ce"
+                    },
+                    "edit_history": [],
+                    "id": "be00d4a2-f227-4e7c-8b57-3d9b232e5c05",
+                    "images": [],
+                    "links": [],
+                    "message": "trao đổi lại sau ",
+                    "order_id": "1926364562",
+                    "removed_at": null,
+                    "updated_at": null
+                }
+            ],
+            "company_info": null
+        },
+        {
+            "reward_point": 0,
+            "current_debts": 0,
+            "phone_numbers": [
+                "0816227582"
+            ],
+            "list_voucher": [],
+            "used_reward_point": null,
+            "tags": [],
+            "customer_id": "281eaba1-7f02-488e-baca-5d031ae2495c",
+            "emails": [],
+            "level": null,
+            "is_block": false,
+            "active_levera_pay": false,
+            "conversation_tags": null,
+            "order_sources": [
+                "-1"
+            ],
+            "creator": null,
+            "pages_customers": [
+                {
+                    "id": "118507984495325",
+                    "name": "Hỗ Trợ Nam Khoa - Bác Sĩ Đức Mạnh",
+                    "platform": "facebook"
+                }
+            ],
+            "order_count": 0,
+            "updated_at": "2024-07-07T11:39:01",
+            "conversation_link": null,
+            "referral_code": "ueXsZpgE",
+            "gender": "male",
+            "currency": null,
+            "username": null,
+            "shop_id": 1546758,
+            "is_adjust_debts": null,
+            "succeed_order_count": 2,
+            "count_referrals": 0,
+            "id": "fa455b23-0a54-4d29-8044-757e41e337b3",
+            "shop_customer_addresses": [
+                {
+                    "id": "dd843699-c1e7-4814-9e53-952c6a06d251",
+                    "address": "khu dân cư Ái quốc thôn Cựu Điện",
+                    "country_code": 84,
+                    "commune_id": "1032127",
+                    "district_id": "10321",
+                    "full_address": "khu dân cư Ái quốc thôn Cựu Điện, Xã Nhân Hòa, Huyện Vĩnh Bảo, Hải Phòng",
+                    "post_code": null,
+                    "province_id": "103",
+                    "phone_number": "0816227582",
+                    "full_name": "Nguyễn Hữu Kiên"
+                },
+                {
+                    "id": "3f04e3f7-d1fd-4d89-a709-be3327f986ed",
+                    "address": "khu dân cư Ái quốc thôn Cựu Điện",
+                    "country_code": 84,
+                    "commune_id": "1032127",
+                    "district_id": "10321",
+                    "full_address": "khu dân cư Ái quốc thôn Cựu Điện, Xã Nhân Hòa, Huyện Vĩnh Bảo, Hải Phòng",
+                    "post_code": null,
+                    "province_id": "103",
+                    "phone_number": "0816227582",
+                    "full_name": "Hữu Kiên Nguyễn"
+                }
+            ],
+            "name": "Nguyễn Hữu Kiên",
+            "date_of_birth": null,
+            "last_order_at": "2024-07-09T11:53:00",
+            "inserted_at": "2024-04-11T07:11:10",
+            "purchased_amount": 6690000,
+            "returned_order_count": 0,
+            "identity_code": null,
+            "total_amount_referred": null,
+            "creator_id": null,
+            "assigned_user_id": "8d3be19c-f1c4-4ad7-899f-64c55056f208",
+            "is_discount_by_level": true,
+            "fb_id": "118507984495325_7763223823736125",
+            "user_block_id": null,
+            "notes": [],
+            "company_info": null
+        },
+        {
+            "reward_point": 0,
+            "current_debts": 0,
+            "phone_numbers": [
+                "0987226517"
+            ],
+            "list_voucher": [],
+            "used_reward_point": null,
+            "tags": [],
+            "customer_id": "e5d4ec99-fe0a-403a-8d9f-8f157e4eb1e5",
+            "emails": [],
+            "level": null,
+            "is_block": false,
+            "active_levera_pay": false,
+            "conversation_tags": null,
+            "order_sources": [
+                "-1"
+            ],
+            "creator": null,
+            "pages_customers": [
+                {
+                    "id": "310726348795037",
+                    "name": "Bác sĩ Đức Mạnh",
+                    "platform": "facebook"
+                }
+            ],
+            "order_count": 0,
+            "updated_at": "2024-07-07T07:51:14",
+            "conversation_link": "https://pancake.vn/310726348795037?customer_id=e5d4ec99-fe0a-403a-8d9f-8f157e4eb1e5",
+            "referral_code": "sNk29AWc",
+            "gender": "male",
+            "currency": "VND",
+            "username": null,
+            "shop_id": 1546758,
+            "is_adjust_debts": null,
+            "succeed_order_count": 1,
+            "count_referrals": 0,
+            "id": "f2369e4a-178b-491d-9cfb-885995e8ccd7",
+            "shop_customer_addresses": [
+                {
+                    "id": "2e6eb639-fb1b-4cbc-80d0-45c546eaa6e7",
+                    "address": "Thôn phong thành",
+                    "country_code": 84,
+                    "commune_id": "1170521",
+                    "district_id": "11705",
+                    "full_address": "Thôn phong thành, Xã Đồng Phong, Huyện Nho Quan, Ninh Bình",
+                    "post_code": null,
+                    "province_id": "117",
+                    "phone_number": "0987226517",
+                    "full_name": "anh Chức"
+                }
+            ],
+            "name": "anh Chức",
+            "date_of_birth": null,
+            "last_order_at": "2024-07-09T12:32:39",
+            "inserted_at": "2024-07-07T07:30:30",
+            "purchased_amount": 2610000,
+            "returned_order_count": 0,
+            "identity_code": null,
+            "total_amount_referred": null,
+            "creator_id": null,
+            "assigned_user_id": "736f9f21-9c9d-4171-997f-4e4a991354e1",
+            "is_discount_by_level": true,
+            "fb_id": "310726348795037_8301630386516295",
+            "user_block_id": null,
+            "notes": [
+                {
+                    "created_at": 1720336855435,
+                    "created_by": {
+                        "application": 1,
+                        "fb_id": "109322270135266",
+                        "fb_name": "Phương Thanh Sale",
+                        "session_id": "v23w+war4vl9GJeSQRL0WcUCWgaGql2ExxpBMl8J/9o",
+                        "uid": "8a994efd-b393-4974-ad2b-a4b6978146bf"
+                    },
+                    "edit_history": [],
+                    "id": "a035b90a-b0d2-43af-bfa4-7c09e05ca26f",
+                    "images": [],
+                    "links": [],
+                    "message": "64",
+                    "order_id": "",
+                    "removed_at": null,
+                    "updated_at": null
+                }
+            ],
+            "company_info": null
+        },
+        {
+            "reward_point": 0,
+            "current_debts": 0,
+            "phone_numbers": [
+                "0986713455"
+            ],
+            "list_voucher": [],
+            "used_reward_point": null,
+            "tags": [],
+            "customer_id": "51b49b0c-c26a-4950-ac7b-25bb6993c1d7",
+            "emails": [],
+            "level": null,
+            "is_block": false,
+            "active_levera_pay": false,
+            "conversation_tags": null,
+            "order_sources": [
+                "-1"
+            ],
+            "creator": null,
+            "pages_customers": [
+                {
+                    "id": "196059750263125",
+                    "name": "Bác Sĩ Nam Khoa - Đức Mạnh",
+                    "platform": "facebook"
+                }
+            ],
+            "order_count": 0,
+            "updated_at": "2024-07-06T08:46:31",
+            "conversation_link": "https://pancake.vn/196059750263125?customer_id=51b49b0c-c26a-4950-ac7b-25bb6993c1d7",
+            "referral_code": "v5yV9Otx",
+            "gender": "male",
+            "currency": null,
+            "username": null,
+            "shop_id": 1546758,
+            "is_adjust_debts": null,
+            "succeed_order_count": 1,
+            "count_referrals": 0,
+            "id": "8a17e782-e009-4efd-a33a-dc981bb349e5",
+            "shop_customer_addresses": [
+                {
+                    "id": "3a077d5a-8d7b-4484-9665-726425f5cb63",
+                    "address": "61 Bùi Hữu Nghĩa",
+                    "country_code": 84,
+                    "commune_id": "6010103",
+                    "district_id": "60101",
+                    "full_address": "61 Bùi Hữu Nghĩa, Phường Duy Tân, Thành phố Kon Tum, Kon Tum",
+                    "post_code": null,
+                    "province_id": "601",
+                    "phone_number": "0986713455",
+                    "full_name": "Mai Tiến"
+                },
+                {
+                    "id": "b94698fa-e6e8-4e24-a2cf-4ee33f4f1071",
+                    "address": null,
+                    "country_code": null,
+                    "commune_id": null,
+                    "district_id": null,
+                    "full_address": null,
+                    "post_code": null,
+                    "province_id": null,
+                    "phone_number": "0986713455",
+                    "full_name": "Mai Tiến"
+                }
+            ],
+            "name": "Mai Tiến",
+            "date_of_birth": null,
+            "last_order_at": "2024-07-09T11:29:36",
+            "inserted_at": "2024-07-06T08:00:52",
+            "purchased_amount": 2610000,
+            "returned_order_count": 0,
+            "identity_code": null,
+            "total_amount_referred": null,
+            "creator_id": null,
+            "assigned_user_id": "18191849-4287-4974-ae5f-a1a524a0b532",
+            "is_discount_by_level": true,
+            "fb_id": "196059750263125_7816554675089389",
+            "user_block_id": null,
+            "notes": [
+                {
+                    "created_at": 1723039534285,
+                    "created_by": {
+                        "application": 1,
+                        "fb_id": "122180877464026509",
+                        "fb_name": "Thu Hương",
+                        "session_id": "4RgE2jhCRL1ZAPwrEGd/2UsRaqj/s0sLOQ3/HLr+6LA",
+                        "uid": "ee57c11b-608e-44d9-a87e-bd7a9868562e"
+                    },
+                    "edit_history": [],
+                    "id": "82e17e4c-a3be-4785-a4e4-b9b584ee14e6",
+                    "images": [],
+                    "links": [],
+                    "message": "0986713455 cskh Thanh",
+                    "order_id": "1925156821",
+                    "removed_at": null,
+                    "updated_at": null
+                },
+                {
+                    "created_at": 1720255359713,
+                    "created_by": {
+                        "application": 1,
+                        "fb_id": "612620145582974",
+                        "fb_name": "Nguyễn Thị Lựu",
+                        "session_id": "KvFxq5Ff7f4BQCPuNxWa/MXcOvsDOQkcA8scJ98pA5M",
+                        "uid": "18191849-4287-4974-ae5f-a1a524a0b532"
+                    },
+                    "edit_history": [],
+                    "id": "1d5c0161-6db3-48b5-a4d1-824645cd1a4e",
+                    "images": [],
+                    "links": [],
+                    "message": "Anh Tiến gần 60 tuổi, cương kém còn 6-8 phần kèm xts thay đổi, khoảng 2-3; 5-7 7-10 phút thôi, có hút thuốc, khó ngủ, bị tiểu đường typ 2 đang uống thuốc",
+                    "order_id": "964145036",
+                    "removed_at": 1720255734689,
+                    "removed_by": {
+                        "application": 1,
+                        "fb_id": "612620145582974",
+                        "fb_name": "Nguyễn Thị Lựu",
+                        "session_id": "KvFxq5Ff7f4BQCPuNxWa/MXcOvsDOQkcA8scJ98pA5M",
+                        "uid": "18191849-4287-4974-ae5f-a1a524a0b532"
+                    },
+                    "updated_at": null
+                }
+            ],
+            "company_info": null
+        },
+        {
+            "reward_point": 0,
+            "current_debts": 0,
+            "phone_numbers": [
+                "0908664071"
+            ],
+            "list_voucher": [],
+            "used_reward_point": null,
+            "tags": [],
+            "customer_id": "8b0cfcea-fff8-4486-a425-10efad13c251",
+            "emails": [],
+            "level": null,
+            "is_block": false,
+            "active_levera_pay": false,
+            "conversation_tags": null,
+            "order_sources": [
+                "-1"
+            ],
+            "creator": null,
+            "pages_customers": [
+                {
+                    "id": "332300999970726",
+                    "name": "Bác Sĩ Đức Mạnh - Nam Khoa",
+                    "platform": "facebook"
+                }
+            ],
+            "order_count": 0,
+            "updated_at": "2024-07-09T13:46:47",
+            "conversation_link": "https://pancake.vn/332300999970726?customer_id=8b0cfcea-fff8-4486-a425-10efad13c251",
+            "referral_code": "PWNl6N3B",
+            "gender": "male",
+            "currency": null,
+            "username": null,
+            "shop_id": 1546758,
+            "is_adjust_debts": null,
+            "succeed_order_count": 0,
+            "count_referrals": 0,
+            "id": "565f67ca-e046-4ac0-af56-75552c29712f",
+            "shop_customer_addresses": [
+                {
+                    "id": "3d1d3c25-2fa2-402e-831d-f85c5e6314f0",
+                    "address": null,
+                    "country_code": null,
+                    "commune_id": null,
+                    "district_id": null,
+                    "full_address": null,
+                    "post_code": null,
+                    "province_id": null,
+                    "phone_number": "0908664071",
+                    "full_name": "Nguyễn Văn Toàn"
+                }
+            ],
+            "name": "Nguyễn Văn Toàn",
+            "date_of_birth": null,
+            "last_order_at": "2024-07-09T13:46:47",
+            "inserted_at": "2024-07-09T13:46:47",
+            "purchased_amount": 0,
+            "returned_order_count": 0,
+            "identity_code": null,
+            "total_amount_referred": null,
+            "creator_id": null,
+            "assigned_user_id": null,
+            "is_discount_by_level": true,
+            "fb_id": "332300999970726_7692474437457053",
+            "user_block_id": null,
+            "notes": [
+                {
+                    "created_at": 1723107226696,
+                    "created_by": {
+                        "fb_id": "154345018746466",
+                        "fb_name": "Huyền Trang",
+                        "uid": "b33f228b-b214-4efb-b19c-7d6f46d095ce"
+                    },
+                    "edit_history": [],
+                    "id": "41aa919f-6268-4d09-912b-9a03e8640335",
+                    "images": [],
+                    "links": [],
+                    "message": "lúc khác gọi lại ",
+                    "order_id": "1926338985",
+                    "removed_at": null,
+                    "updated_at": null
+                }
+            ],
+            "company_info": null
+        }
+    ],
+    "success": true,
+    "page_size": 20,
+    "total_pages": 13094,
+    "page_number": 1,
+    "total_entries": 261874
+}

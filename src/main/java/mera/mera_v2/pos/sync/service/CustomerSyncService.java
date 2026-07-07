@@ -7,12 +7,14 @@ import lombok.extern.slf4j.Slf4j;
 import mera.mera_v2.entity.Customer;
 import mera.mera_v2.entity.CustomerNote;
 import mera.mera_v2.entity.CustomerNoteEditHistory;
+import mera.mera_v2.entity.CustomerPhoneNumber;
 import mera.mera_v2.pos.sync.client.CustomerApiClient;
 import mera.mera_v2.pos.sync.dto.CustomerApiDto;
 import mera.mera_v2.pos.sync.dto.CustomerListResponseDto;
 import mera.mera_v2.pos.sync.dto.NoteApiDto;
 import mera.mera_v2.repository.CustomerNoteEditHistoryRepository;
 import mera.mera_v2.repository.CustomerNoteRepository;
+import mera.mera_v2.repository.CustomerPhoneNumberRepository;
 import mera.mera_v2.repository.CustomerRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -37,6 +39,7 @@ public class CustomerSyncService {
     private final CustomerRepository customerRepository;
     private final CustomerNoteRepository customerNoteRepository;
     private final CustomerNoteEditHistoryRepository editHistoryRepository;
+    private final CustomerPhoneNumberRepository customerPhoneNumberRepository;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public CustomerSyncResult syncCustomers(String startDate, String endDate, Integer pageSize) {
@@ -51,6 +54,7 @@ public class CustomerSyncService {
         int updatedNotes = 0;
         int insertedEditHistory = 0;
         int skippedNotes = 0;
+        int insertedPhones = 0;
 
         int totalPages = 1;
         int currentPage = 1;
@@ -89,22 +93,14 @@ public class CustomerSyncService {
             updatedNotes += outcome.updatedNotes;
             insertedEditHistory += outcome.insertedEditHistory;
             skippedNotes += outcome.skippedNotes;
+            insertedPhones += outcome.insertedPhones;
 
+            // API trả total_pages/total_entries chuẩn — chỉ cần tăng page_number đến hết.
             currentPage++;
-            // Defensive: nếu API trả total_pages quá nhỏ nhưng page này đầy → vẫn thử page kế tiếp.
-            if (currentPage > totalPages && customers.size() >= size) {
-                log.warn("API reported total_pages={} but a full page was returned, checking next page anyway", totalPages);
-                totalPages = currentPage;
-            }
-            // Hard stop: tránh loop vô tận nếu POS API luôn trả đầy page nhưng page_number tăng vẫn không hết.
-            if (currentPage > 1000) {
-                log.warn("Reached safety limit (1000 pages), stopping to avoid infinite loop");
-                break;
-            }
         } while (currentPage <= totalPages);
 
-        log.info("Customer sync completed. fetched={}, insertedCustomers={}, updatedCustomers={}, insertedNotes={}, updatedNotes={}, editHistory={}",
-                fetched, insertedCustomers, updatedCustomers, insertedNotes, updatedNotes, insertedEditHistory);
+        log.info("Customer sync completed. fetched={}, insertedCustomers={}, updatedCustomers={}, insertedNotes={}, updatedNotes={}, editHistory={}, insertedPhones={}",
+                fetched, insertedCustomers, updatedCustomers, insertedNotes, updatedNotes, insertedEditHistory, insertedPhones);
 
         return CustomerSyncResult.builder()
                 .totalCustomersFromApi(totalFromApi)
@@ -115,6 +111,7 @@ public class CustomerSyncService {
                 .updatedNotes(updatedNotes)
                 .insertedEditHistory(insertedEditHistory)
                 .skippedNotes(skippedNotes)
+                .insertedPhones(insertedPhones)
                 .build();
     }
 
@@ -151,9 +148,24 @@ public class CustomerSyncService {
             }
         }
 
+        // SĐT đã có trong DB (đã chuẩn hoá) + KH nào đã có số primary
+        Map<String, Set<String>> existingPhonesByCustomer = new HashMap<>();
+        Set<String> customersWithPrimaryPhone = new HashSet<>();
+        if (!customerIds.isEmpty()) {
+            for (CustomerPhoneNumber pn : customerPhoneNumberRepository.findByCustomerIdIn(customerIds)) {
+                existingPhonesByCustomer
+                        .computeIfAbsent(pn.getCustomerId(), k -> new HashSet<>())
+                        .add(normalizePhoneNumber(pn.getPhoneNumber()));
+                if (Boolean.TRUE.equals(pn.getIsPrimary())) {
+                    customersWithPrimaryPhone.add(pn.getCustomerId());
+                }
+            }
+        }
+
         List<Customer> customersToSave = new ArrayList<>();
         List<CustomerNote> notesToSave = new ArrayList<>();
         List<CustomerNoteEditHistory> historyToSave = new ArrayList<>();
+        List<CustomerPhoneNumber> phonesToSave = new ArrayList<>();
         Set<String> noteIdsToDelete = new HashSet<>();
 
         for (CustomerApiDto dto : customers) {
@@ -182,6 +194,28 @@ public class CustomerSyncService {
             customersToSave.add(customer);
             if (isNewCustomer) outcome.insertedCustomers++;
             else outcome.updatedCustomers++;
+
+            // Lưu SĐT từ API (bảng customer_phone_numbers) — số đầu tiên là primary nếu KH chưa có primary
+            if (dto.getPhoneNumbers() != null && !dto.getPhoneNumbers().isEmpty()) {
+                Set<String> knownPhones = existingPhonesByCustomer.computeIfAbsent(customerId, k -> new HashSet<>());
+                boolean hasPrimary = customersWithPrimaryPhone.contains(customerId);
+                for (String rawPhone : dto.getPhoneNumbers()) {
+                    String normalized = normalizePhoneNumber(rawPhone);
+                    if (normalized == null || normalized.isBlank() || knownPhones.contains(normalized)) {
+                        continue;
+                    }
+                    CustomerPhoneNumber cpn = new CustomerPhoneNumber();
+                    cpn.setCustomerId(customerId);
+                    cpn.setPhoneNumber(normalized);
+                    cpn.setIsPrimary(!hasPrimary);
+                    cpn.setCreatedAt(now);
+                    phonesToSave.add(cpn);
+                    knownPhones.add(normalized);
+                    hasPrimary = true;
+                    customersWithPrimaryPhone.add(customerId);
+                    outcome.insertedPhones++;
+                }
+            }
 
             List<NoteApiDto> apiNotes = dto.getNotes() != null ? dto.getNotes() : List.of();
             List<CustomerNote> currentDbNotes = notesByCustomer.getOrDefault(customerId, List.of());
@@ -278,8 +312,16 @@ public class CustomerSyncService {
         if (!historyToSave.isEmpty()) {
             editHistoryRepository.saveAll(historyToSave);
         }
+        if (!phonesToSave.isEmpty()) {
+            customerPhoneNumberRepository.saveAll(phonesToSave);
+        }
 
         return outcome;
+    }
+
+    private String normalizePhoneNumber(String phone) {
+        if (phone == null) return null;
+        return phone.replaceAll("[^0-9]", "");
     }
 
     private LocalDateTime parseDateTime(String value, String fieldName) {
@@ -318,5 +360,6 @@ public class CustomerSyncService {
         public int updatedNotes;
         public int insertedEditHistory;
         public int skippedNotes;
+        public int insertedPhones;
     }
 }

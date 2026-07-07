@@ -50,11 +50,39 @@ public class BitableService {
 
   private final RestTemplate restTemplate;
   private final LarkTokenService tokenService;
+  private final mera.mera_v2.lark.webhook.service.TenantTokenService tenantTokenService;
   private final ObjectMapper objectMapper = new ObjectMapper();
 
-  public BitableService(LarkTokenService tokenService) {
+  public BitableService(LarkTokenService tokenService,
+      mera.mera_v2.lark.webhook.service.TenantTokenService tenantTokenService) {
     this.restTemplate = new RestTemplate();
     this.tokenService = tokenService;
+    this.tenantTokenService = tenantTokenService;
+  }
+
+  /**
+   * User token (OAuth) là token chính; trả null nếu chưa login / app vừa restart (token in-memory).
+   */
+  private String getUserAccessTokenOrNull(HttpSession session) {
+    try {
+      return tokenService.getAccessToken(session, false);
+    } catch (Exception e) {
+      log.warn("Khong lay duoc user access token: {}", e.getMessage());
+      return null;
+    }
+  }
+
+  /**
+   * Tenant token (bot) dùng làm fallback — không cần login, nhưng chỉ đọc được các base
+   * mà bot được cấp quyền (các base hệ thống như TỪ CHỐI CHĂM, ĐANG CHĂM...).
+   */
+  private String getTenantAccessTokenOrNull() {
+    try {
+      return tenantTokenService.getTenantAccessToken();
+    } catch (Exception e) {
+      log.warn("Khong lay duoc tenant access token: {}", e.getMessage());
+      return null;
+    }
   }
 
   /** Lấy tables SALE, chỉ giữ table name có "_" */
@@ -74,6 +102,37 @@ public class BitableService {
       return new ArrayList<>();
     }
     return listTables(session, baseId, DEFAULT_TABLE_PAGE_SIZE);
+  }
+
+  /**
+   * Lấy tất cả tables từ một Base ID, chọn token theo loại base
+   * (preferTenant=true cho base hệ thống — cùng cơ chế như searchCustomerByPhone).
+   */
+  public List<BitableTable> getTablesByBaseId(HttpSession session, String baseId, boolean preferTenant) throws Exception {
+    if (baseId == null || baseId.isBlank()) {
+      return new ArrayList<>();
+    }
+
+    String primary = preferTenant ? getTenantAccessTokenOrNull() : getUserAccessTokenOrNull(session);
+    String secondary = preferTenant ? getUserAccessTokenOrNull(session) : getTenantAccessTokenOrNull();
+
+    if (primary != null) {
+      try {
+        List<BitableTable> tables = listTablesWithToken(primary, baseId, DEFAULT_TABLE_PAGE_SIZE);
+        if (!tables.isEmpty()) {
+          return tables;
+        }
+        log.warn("BaseId={} - List tables bang token chinh (preferTenant={}) rong, thu token du phong", baseId, preferTenant);
+      } catch (Exception e) {
+        log.warn("BaseId={} - List tables bang token chinh (preferTenant={}) loi: {}, thu token du phong",
+            baseId, preferTenant, e.getMessage());
+      }
+    }
+
+    if (secondary == null) {
+      return new ArrayList<>();
+    }
+    return listTablesWithToken(secondary, baseId, DEFAULT_TABLE_PAGE_SIZE);
   }
 
   /** Tìm kiếm records từ một table với filter tùy chỉnh */
@@ -185,14 +244,49 @@ public class BitableService {
     return hints.get(0);
   }
 
-  /** Tìm kiếm khách hàng theo số điện thoại (Search đa dạng) */
+  /** Tìm kiếm khách hàng theo số điện thoại — mặc định ưu tiên user token (base sale). */
   public List<BitableRecord> searchCustomerByPhone(HttpSession session, String baseId, String tableId,
       String phoneNumber, String viewId) throws Exception {
+    return searchCustomerByPhone(session, baseId, tableId, phoneNumber, viewId, false);
+  }
+
+  /**
+   * Tìm kiếm khách hàng theo số điện thoại (Search đa dạng).
+   *
+   * Quyền hai loại token lệch nhau: user token (OAuth) vào được base sale nhưng có thể bị
+   * giới hạn role ở base hệ thống (Lark trả success + 0 kết quả, KHÔNG báo lỗi); tenant token
+   * (bot) đọc được base hệ thống (TỪ CHỐI CHĂM, ĐANG CHĂM...) nhưng bị RolePermNotAllow ở base sale.
+   *
+   * @param preferTenant true cho base hệ thống (không gắn POS user) → dùng tenant token làm chính,
+   *                     user token dự phòng; false cho base sale → ngược lại.
+   */
+  public List<BitableRecord> searchCustomerByPhone(HttpSession session, String baseId, String tableId,
+      String phoneNumber, String viewId, boolean preferTenant) throws Exception {
     if (baseId == null || baseId.isBlank() || tableId == null || tableId.isBlank() || phoneNumber == null) {
       return new ArrayList<>();
     }
 
-    String accessToken = tokenService.getAccessToken(session, false);
+    String primary = preferTenant ? getTenantAccessTokenOrNull() : getUserAccessTokenOrNull(session);
+    String secondary = preferTenant ? getUserAccessTokenOrNull(session) : getTenantAccessTokenOrNull();
+
+    if (primary != null) {
+      try {
+        return searchCustomerByPhoneWithToken(primary, baseId, tableId, phoneNumber, viewId);
+      } catch (Exception e) {
+        log.warn("BaseId={} - Search KH bang token chinh (preferTenant={}) loi: {}, thu token du phong",
+            baseId, preferTenant, e.getMessage());
+      }
+    }
+
+    if (secondary == null) {
+      log.error("BaseId={} - Khong co token nao kha dung de search KH", baseId);
+      return new ArrayList<>();
+    }
+    return searchCustomerByPhoneWithToken(secondary, baseId, tableId, phoneNumber, viewId);
+  }
+
+  private List<BitableRecord> searchCustomerByPhoneWithToken(String accessToken, String baseId, String tableId,
+      String phoneNumber, String viewId) throws Exception {
     List<Map<String, Object>> actualFields = getFieldsByTableId(accessToken, baseId, tableId);
     String phoneFieldName = detectFieldName(actualFields, List.of("Điện thoại", "SĐT", "Số điện thoại", "Số Điện Thoại", "Phone"));
 
@@ -241,7 +335,7 @@ public class BitableService {
         } catch (HttpClientErrorException.TooManyRequests e) {
           if (attempt == retries) {
             log.error("Rate limit (429) exceeded after {} retries for phone search: {}", retries, e.getMessage());
-            return new ArrayList<>();
+            throw new RuntimeException("Rate limit (429) exceeded for phone search", e);
           }
           long waitMs = 1000L * attempt;
           log.warn("Rate limit (429) on phone search attempt {}/{}, waiting {}ms...", attempt, retries, waitMs);
@@ -251,24 +345,24 @@ public class BitableService {
           if (body != null && body.contains("request trigger frequency limit")) {
             if (attempt == retries) {
               log.error("Rate limit (freq) exceeded after {} retries for phone search", retries);
-              return new ArrayList<>();
+              throw new RuntimeException("Rate limit (freq) exceeded for phone search", e);
             }
             long waitMs = 1500L * attempt;
             log.warn("Rate limit (freq) on phone search attempt {}/{}, waiting {}ms...", attempt, retries, waitMs);
             Thread.sleep(waitMs);
           } else {
             log.error("Bitable BAD_REQUEST for phone search: {}", body);
-            return new ArrayList<>();
+            throw new RuntimeException("Bitable BAD_REQUEST for phone search: " + body, e);
           }
         } catch (RestClientException e) {
           log.error("Error calling Bitable search customer by phone API: {}", e.getMessage(), e);
-          return new ArrayList<>();
+          throw new RuntimeException("Failed to call Bitable phone search API: " + e.getMessage(), e);
         }
       }
 
       if (response == null) {
         log.error("All retries failed for phone search URL: {}", url);
-        return new ArrayList<>();
+        throw new RuntimeException("All retries failed for phone search");
       }
 
       if (response.getStatusCode() != HttpStatus.OK || response.getBody() == null) {
@@ -485,20 +579,94 @@ public class BitableService {
     return body.data != null && body.data.items != null && !body.data.items.isEmpty();
   }
 
-  /** Tìm kiếm trao đổi hoặc lịch hẹn theo record_id của khách hàng */
+  /** Tìm trao đổi/lịch hẹn theo record_id khách hàng — mặc định ưu tiên user token (base sale). */
   public List<BitableRecord> searchRecordsByCustomerId(HttpSession session, String baseId, String tableId,
       String customerRecordId, List<String> fieldNames, String viewId) throws Exception {
-    if (baseId == null || baseId.isBlank() || tableId == null || tableId.isBlank() 
+    return searchRecordsByCustomerId(session, baseId, tableId, customerRecordId, fieldNames, viewId, false, null);
+  }
+
+  /**
+   * Tìm kiếm trao đổi hoặc lịch hẹn theo record_id của khách hàng.
+   * Cùng cơ chế chọn token như searchCustomerByPhone (xem chú thích ở đó).
+   *
+   * @param phoneNumber SĐT khách — dùng để filter khi bảng trao đổi KHÔNG có cột link
+   *                    "Khách Hàng" mà chỉ có cột SĐT (VD bảng trao đổi của base TỪ CHỐI CHĂM).
+   */
+  public List<BitableRecord> searchRecordsByCustomerId(HttpSession session, String baseId, String tableId,
+      String customerRecordId, List<String> fieldNames, String viewId, boolean preferTenant,
+      String phoneNumber) throws Exception {
+    if (baseId == null || baseId.isBlank() || tableId == null || tableId.isBlank()
         || customerRecordId == null || customerRecordId.isBlank()) {
       return new ArrayList<>();
     }
 
-    String accessToken = tokenService.getAccessToken(session, false);
+    String primary = preferTenant ? getTenantAccessTokenOrNull() : getUserAccessTokenOrNull(session);
+    String secondary = preferTenant ? getUserAccessTokenOrNull(session) : getTenantAccessTokenOrNull();
+
+    if (primary != null) {
+      try {
+        return searchRecordsByCustomerIdWithToken(primary, baseId, tableId, customerRecordId, phoneNumber, viewId);
+      } catch (Exception e) {
+        log.warn("BaseId={} - Search TD bang token chinh (preferTenant={}) loi: {}, thu token du phong",
+            baseId, preferTenant, e.getMessage());
+      }
+    }
+
+    if (secondary == null) {
+      log.error("BaseId={} - Khong co token nao kha dung de search TD", baseId);
+      return new ArrayList<>();
+    }
+    return searchRecordsByCustomerIdWithToken(secondary, baseId, tableId, customerRecordId, phoneNumber, viewId);
+  }
+
+  /** Tìm tên field tồn tại thực sự trong table (null nếu không đọc được fields hoặc không khớp hint nào). */
+  private String detectExistingFieldName(List<Map<String, Object>> fields, List<String> hints) {
+    if (fields == null || fields.isEmpty()) return null;
+    for (String hint : hints) {
+      for (Map<String, Object> field : fields) {
+        String actualName = (String) field.get("field_name");
+        if (actualName != null && actualName.equalsIgnoreCase(hint)) {
+          return actualName;
+        }
+      }
+    }
+    return null;
+  }
+
+  private List<BitableRecord> searchRecordsByCustomerIdWithToken(String accessToken, String baseId, String tableId,
+      String customerRecordId, String phoneNumber, String viewId) throws Exception {
     List<Map<String, Object>> actualFields = getFieldsByTableId(accessToken, baseId, tableId);
-    String customerLinkFieldName = detectFieldName(actualFields, List.of("Khách Hàng", "Khách hàng", "Customer", "Mã khách hàng", "Mã KH"));
-    log.info("BaseId={} - TD table fields: detectedLinkField='{}', allFields={}", baseId, customerLinkFieldName,
+    String linkField = detectExistingFieldName(actualFields,
+        List.of("Khách Hàng", "Khách hàng", "Customer", "Mã khách hàng", "Mã KH"));
+    String phoneField = detectExistingFieldName(actualFields,
+        List.of("SDT", "SĐT", "Điện thoại", "Số điện thoại", "Phone"));
+
+    // Chọn cách filter: ưu tiên cột link khách hàng; nếu bảng không có cột link
+    // (VD chỉ có [Nội dung, SDT]) thì filter theo SĐT; cuối cùng fallback tên mặc định.
+    String filterFieldName;
+    String filterOperator;
+    String filterValue;
+    if (linkField != null) {
+      filterFieldName = linkField;
+      filterOperator = "is";
+      filterValue = customerRecordId;
+    } else if (phoneField != null && phoneNumber != null && !phoneNumber.isBlank()) {
+      String searchPhone = phoneNumber.trim();
+      if (searchPhone.length() > 9) {
+        searchPhone = searchPhone.substring(searchPhone.length() - 9);
+      }
+      filterFieldName = phoneField;
+      filterOperator = "contains";
+      filterValue = searchPhone;
+    } else {
+      filterFieldName = "Khách Hàng";
+      filterOperator = "is";
+      filterValue = customerRecordId;
+    }
+
+    log.info("BaseId={} - TD table fields: filterField='{}' ({}), allFields={}", baseId, filterFieldName, filterOperator,
             actualFields.stream().map(f -> f.get("field_name")).collect(Collectors.toList()));
-    log.info("BaseId={} - Searching TD with customerRecordId='{}', viewId='{}'", baseId, customerRecordId, viewId);
+    log.info("BaseId={} - Searching TD with filterValue='{}', viewId='{}'", baseId, filterValue, viewId);
 
     HttpHeaders headers = new HttpHeaders();
     headers.setBearerAuth(accessToken);
@@ -519,9 +687,9 @@ public class BitableService {
       }
 
       Condition c = new Condition();
-      c.fieldName = customerLinkFieldName;
-      c.operator = "is";
-      c.value = List.of(customerRecordId);
+      c.fieldName = filterFieldName;
+      c.operator = filterOperator;
+      c.value = List.of(filterValue);
 
       Filter f = new Filter();
       f.conjunction = "and";
@@ -529,8 +697,8 @@ public class BitableService {
 
       bodyReq.filter = f;
 
-      log.info("BaseId={} - TD API request: url={}, filterField='{}', filterValue='{}', viewId='{}', pageToken='{}'",
-              baseId, url, customerLinkFieldName, customerRecordId, viewId, pageToken);
+      log.info("BaseId={} - TD API request: url={}, filterField='{}', operator='{}', filterValue='{}', viewId='{}', pageToken='{}'",
+              baseId, url, filterFieldName, filterOperator, filterValue, viewId, pageToken);
 
       HttpEntity<RecordSearchRequest> entity = new HttpEntity<>(bodyReq, headers);
 
@@ -723,8 +891,10 @@ public class BitableService {
   // ================== list tables ==================
 
   private List<BitableTable> listTables(HttpSession session, String appToken, int pageSize) throws Exception {
-    String accessToken = tokenService.getAccessToken(session, false);
+    return listTablesWithToken(tokenService.getAccessToken(session, false), appToken, pageSize);
+  }
 
+  private List<BitableTable> listTablesWithToken(String accessToken, String appToken, int pageSize) throws Exception {
     HttpHeaders headers = new HttpHeaders();
     headers.setBearerAuth(accessToken);
     headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));

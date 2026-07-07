@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import mera.mera_v2.entity.SearchConfig;
 import mera.mera_v2.model.BitableRecord;
+import mera.mera_v2.model.BitableTable;
 import mera.mera_v2.model.UserConfigDto;
 import mera.mera_v2.repository.SearchConfigRepository;
 import org.springframework.beans.factory.annotation.Value;
@@ -44,6 +45,53 @@ public class SearchService {
     private final SearchConfigRepository searchConfigRepository;
     private final RestTemplate restTemplate = new RestTemplate();
     private final ExecutorService executorService = Executors.newFixedThreadPool(10);
+
+    // Cache danh sách bảng KH / trao đổi của các base hệ thống (TỪ CHỐI CHĂM, Đơn hoàn, Hủy...)
+    // — các base này có thể có nhiều bảng (Khách Hàng, Khách Hàng 2...), phải quét hết để không sót data.
+    private static final long SYSTEM_BASE_TABLES_TTL_MS = 10 * 60 * 1000L;
+    private final Map<String, SystemBaseTables> systemBaseTablesCache = new java.util.concurrent.ConcurrentHashMap<>();
+
+    private static class SystemBaseTables {
+        final List<String> khachHangTableIds = new ArrayList<>();
+        final List<String> traoDoiTableIds = new ArrayList<>();
+        final long fetchedAt = System.currentTimeMillis();
+    }
+
+    /**
+     * Liệt kê tất cả bảng khách hàng + trao đổi của một base hệ thống (cache 10 phút).
+     * Base hệ thống dùng tenant token (bot) — xem chú thích ở BitableService.
+     */
+    private SystemBaseTables resolveSystemBaseTables(String baseId) {
+        SystemBaseTables cached = systemBaseTablesCache.get(baseId);
+        if (cached != null && System.currentTimeMillis() - cached.fetchedAt < SYSTEM_BASE_TABLES_TTL_MS) {
+            return cached;
+        }
+
+        SystemBaseTables result = new SystemBaseTables();
+        try {
+            List<BitableTable> tables = bitableService.getTablesByBaseId(null, baseId, true);
+            for (BitableTable t : tables) {
+                String name = t.getName() != null ? t.getName().trim().toLowerCase() : "";
+                if (name.contains("trao đổi") || name.contains("trao doi")
+                        || name.contains("nhật ký") || name.contains("nhat ky")
+                        || name.contains("interaction") || name.contains("log")) {
+                    result.traoDoiTableIds.add(t.getTableId());
+                } else if (name.contains("khách hàng") || name.contains("khach hang")
+                        || name.contains("customer") || name.contains("kh")) {
+                    result.khachHangTableIds.add(t.getTableId());
+                }
+            }
+            log.info("BaseId={} - System base tables: KH={}, TD={}", baseId,
+                    result.khachHangTableIds, result.traoDoiTableIds);
+        } catch (Exception e) {
+            log.warn("BaseId={} - Khong liet ke duoc tables cua base he thong: {}", baseId, e.getMessage());
+        }
+
+        if (!result.khachHangTableIds.isEmpty() || !result.traoDoiTableIds.isEmpty()) {
+            systemBaseTablesCache.put(baseId, result);
+        }
+        return result;
+    }
 
     @PostConstruct
     public void init() {
@@ -304,16 +352,44 @@ public class SearchService {
             .filter(c -> c.getBaseId() != null && !c.getBaseId().isBlank())
             .map(config -> CompletableFuture.runAsync(() -> {
             try {
-                if (config.getKhachHangTableId().isEmpty()) {
-                    log.debug("Skipping config for base {} (No Khach Hang table ID)", config.getBaseId());
-                    return;
-                }
-
                 String posName = config.getPosName() != null ? config.getPosName() : "";
                 boolean isSpecialBase = posName.startsWith("__SPECIAL__:");
                 String specialTableName = isSpecialBase ? posName.substring("__SPECIAL__:".length()) : null;
 
-                List<BitableRecord> customers = bitableService.searchCustomerByPhone(null, config.getBaseId(), config.getKhachHangTableId(), phone, null);
+                // Base hệ thống (không gắn POS user: TỪ CHỐI CHĂM, ĐANG CHĂM, Đơn hoàn...) → bot có quyền,
+                // user token có thể bị giới hạn role → ưu tiên tenant token cho các base này.
+                boolean systemBase = isSpecialBase || posName.isBlank();
+
+                // Base hệ thống có thể có NHIỀU bảng khách hàng / trao đổi (Khách Hàng, Khách Hàng 2...)
+                // → liệt kê trực tiếp từ Lark (cache 10 phút) và quét tất cả để không sót data.
+                List<String> khTableIds = new ArrayList<>();
+                List<String> tdTableIds = new ArrayList<>();
+                if (systemBase) {
+                    SystemBaseTables sysTables = resolveSystemBaseTables(config.getBaseId());
+                    khTableIds.addAll(sysTables.khachHangTableIds);
+                    tdTableIds.addAll(sysTables.traoDoiTableIds);
+                }
+                if (khTableIds.isEmpty() && !config.getKhachHangTableId().isEmpty()) {
+                    khTableIds.add(config.getKhachHangTableId());
+                }
+                if (tdTableIds.isEmpty() && !config.getTraoDoiTableId().isEmpty()) {
+                    tdTableIds.add(config.getTraoDoiTableId());
+                }
+
+                if (khTableIds.isEmpty()) {
+                    log.debug("Skipping config for base {} (No Khach Hang table ID)", config.getBaseId());
+                    return;
+                }
+
+                List<BitableRecord> customers = null;
+                for (String khTableId : khTableIds) {
+                    List<BitableRecord> found = bitableService.searchCustomerByPhone(null, config.getBaseId(), khTableId, phone, null, systemBase);
+                    if (found != null && !found.isEmpty()) {
+                        customers = found;
+                        log.info("BaseId={} - Customer matched in KH table {}", config.getBaseId(), khTableId);
+                        break;
+                    }
+                }
                 if (customers != null && !customers.isEmpty()) {
                     String recordId = customers.get(0).getRecordId();
                     log.info("BaseId={} - Found customer recordId='{}', fields={}", config.getBaseId(), recordId,
@@ -334,10 +410,10 @@ public class SearchService {
                         return;
                     }
 
-                    if (config.getTraoDoiTableId().isEmpty()) {
+                    if (tdTableIds.isEmpty()) {
                         log.info("Virtual exchange for Base {}", config.getLarkName());
                         Map<String, Object> virtualEx = new HashMap<>();
-                        virtualEx.put("content", "Khach hang nam trong Base [" + config.getLarkName() + "]");
+                        virtualEx.put("content", "Khách hàng nằm trong Base [" + config.getLarkName() + "]");
                         virtualEx.put("date", "-");
                         virtualEx.put("person", "System");
                         virtualEx.put("source", config.getLarkName());
@@ -347,19 +423,28 @@ public class SearchService {
                         return;
                     }
 
-                    List<BitableRecord> exchanges = null;
-                    String traoDoiViewId = config.getTraoDoiViewId();
-                    try {
-                        log.debug("BaseId={} - Searching TD with viewId={}", config.getBaseId(), traoDoiViewId);
-                        exchanges = bitableService.searchRecordsByCustomerId(null, config.getBaseId(), config.getTraoDoiTableId(), recordId, null, traoDoiViewId);
-                    } catch (Exception e) {
-                        log.warn("BaseId={} - View ID search failed: {}, trying without view ID", config.getBaseId(), e.getMessage());
-                    }
-
-                    if (exchanges == null || exchanges.isEmpty()) {
-                        log.warn("BaseId={} - TD search returned 0 results. recordId='{}', viewId='{}', tableId='{}'",
-                                config.getBaseId(), recordId, traoDoiViewId, config.getTraoDoiTableId());
-                        exchanges = bitableService.searchRecordsByCustomerId(null, config.getBaseId(), config.getTraoDoiTableId(), recordId, null, null);
+                    // Quét tất cả bảng trao đổi, gộp kết quả. ViewId chỉ áp cho bảng đã cấu hình sẵn.
+                    List<BitableRecord> exchanges = new ArrayList<>();
+                    for (String tdTableId : tdTableIds) {
+                        String tdViewId = tdTableId.equals(config.getTraoDoiTableId()) ? config.getTraoDoiViewId() : null;
+                        List<BitableRecord> exs = null;
+                        try {
+                            exs = bitableService.searchRecordsByCustomerId(null, config.getBaseId(), tdTableId, recordId, null, tdViewId, systemBase, phone);
+                        } catch (Exception e) {
+                            log.warn("BaseId={} - TD search (viewId={}) loi tren table {}: {}, thu lai khong view",
+                                    config.getBaseId(), tdViewId, tdTableId, e.getMessage());
+                        }
+                        if ((exs == null || exs.isEmpty()) && tdViewId != null && !tdViewId.isBlank()) {
+                            try {
+                                exs = bitableService.searchRecordsByCustomerId(null, config.getBaseId(), tdTableId, recordId, null, null, systemBase, phone);
+                            } catch (Exception e) {
+                                // TD lỗi vẫn phải báo "khách nằm trong base" thay vì mất cả config
+                                log.warn("BaseId={} - TD search failed hoàn toàn tren table {}: {}", config.getBaseId(), tdTableId, e.getMessage());
+                            }
+                        }
+                        if (exs != null && !exs.isEmpty()) {
+                            exchanges.addAll(exs);
+                        }
                     }
 
                     if (exchanges != null && !exchanges.isEmpty()) {
@@ -392,7 +477,7 @@ public class SearchService {
                     } else {
                         log.info("Customer exists but no exchanges in Base {}. Adding placeholder.", config.getLarkName());
                         Map<String, Object> virtualEx = new HashMap<>();
-                        virtualEx.put("content", "Khach hang nam trong Base [" + config.getLarkName() + "] (Chua co nhat ky)");
+                        virtualEx.put("content", "Khách hàng nằm trong Base [" + config.getLarkName() + "] (Chưa có trao đổi)");
                         virtualEx.put("date", "-");
                         virtualEx.put("person", "System");
                         virtualEx.put("source", config.getLarkName());

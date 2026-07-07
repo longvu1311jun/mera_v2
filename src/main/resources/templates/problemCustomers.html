@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Số Thả Nổi - Mera</title>
+    <link rel="icon" type="image/jpeg" href="/meraicon.ico">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f7f7f4;
+            color: #26251e;
+            min-height: 100vh;
+            padding: 24px;
+        }
+        .container { max-width: 1400px; margin: 0 auto; }
+        .page-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .page-title { font-size: 24px; font-weight: 700; display: flex; align-items: center; gap: 10px; }
+        .page-subtitle { font-size: 13px; color: #807d72; margin-top: 4px; }
+        .back-link {
+            font-size: 13px;
+            color: #1456f0;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .back-link:hover { text-decoration: underline; }
+
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 14px;
+            margin-bottom: 20px;
+        }
+        .summary-card {
+            background: white;
+            border: 1px solid #e6e5e0;
+            border-radius: 12px;
+            padding: 16px 20px;
+        }
+        .summary-card .label { font-size: 12px; color: #807d72; font-weight: 500; text-transform: uppercase; letter-spacing: 0.4px; }
+        .summary-card .value { font-size: 28px; font-weight: 700; margin-top: 6px; }
+        .summary-card.total .value { color: #1456f0; }
+        .summary-card.group-a .value { color: #d97706; }
+        .summary-card.group-b .value { color: #dc2626; }
+
+        .filter-form {
+            background: white;
+            border: 1px solid #e6e5e0;
+            border-radius: 12px;
+            padding: 16px 20px;
+            display: flex;
+            align-items: flex-end;
+            flex-wrap: wrap;
+            gap: 14px;
+            margin-bottom: 20px;
+        }
+        .filter-group { display: flex; flex-direction: column; gap: 6px; }
+        .filter-group label { font-size: 12px; font-weight: 600; color: #55534a; }
+        .filter-group input {
+            width: 130px;
+            padding: 8px 10px;
+            border: 1px solid #d9d8d2;
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 14px;
+        }
+        .filter-group input:focus {
+            outline: none;
+            border-color: #1456f0;
+            box-shadow: 0 0 0 3px rgba(20, 86, 240, 0.12);
+        }
+        .btn-filter {
+            background: #1456f0;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 9px 20px;
+            font-family: inherit;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .btn-filter:hover { background: #0f45c4; }
+
+        .alert {
+            border-radius: 10px;
+            padding: 12px 16px;
+            font-size: 13px;
+            margin-bottom: 16px;
+        }
+        .alert-warning { background: #fef3c7; border: 1px solid #fcd34d; color: #92400e; }
+        .alert-error { background: #fee2e2; border: 1px solid #fca5a5; color: #991b1b; }
+
+        .table-card {
+            background: white;
+            border: 1px solid #e6e5e0;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        .table-scroll { overflow-x: auto; max-height: 70vh; overflow-y: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        thead th {
+            background: #fafaf8;
+            padding: 10px 12px;
+            text-align: left;
+            font-weight: 600;
+            color: #55534a;
+            border-bottom: 1px solid #e6e5e0;
+            white-space: nowrap;
+            position: sticky;
+            top: 0;
+            z-index: 1;
+        }
+        tbody td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #f0efe9;
+            vertical-align: top;
+        }
+        tbody tr:hover td { background: #f7f9ff; }
+        .num { text-align: right; font-variant-numeric: tabular-nums; }
+        .note-hot { font-weight: 700; color: #d97706; }
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 999px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-right: 4px;
+            white-space: nowrap;
+        }
+        .badge-a { background: #fef3c7; color: #92400e; }
+        .badge-b { background: #fee2e2; color: #991b1b; }
+        .badge-yes { background: #dcfce7; color: #166534; }
+        .badge-no { background: #f3f4f6; color: #6b7280; }
+        .customer-id { font-size: 11px; color: #807d72; word-break: break-all; }
+        .reason-text { font-size: 12px; color: #55534a; }
+        .empty-state { padding: 48px; text-align: center; color: #807d72; font-size: 14px; }
+        .meta-line { font-size: 12px; color: #807d72; margin-top: 10px; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="page-header">
+        <div>
+            <div class="page-title"><span>⚠️</span> Số Thả Nổi</div>
+            <div class="page-subtitle">
+                Khách hàng cần chú ý: chăm nhiều (Nhóm A) hoặc để lâu (Nhóm B) mà chưa có đơn nào đang xử lý / thành công
+                (Chờ hàng, Đã xác nhận, Đang đóng hàng, Chờ chuyển hàng, Đã gửi hàng, Đã nhận, Đã thu tiền).
+                Đơn được khớp theo mã KH hoặc theo SĐT.
+            </div>
+        </div>
+        <a href="/" class="back-link">← Về Dashboard</a>
+    </div>
+
+    <div class="summary-cards">
+        <div class="summary-card total">
+            <div class="label">Tổng KH cảnh báo</div>
+            <div class="value" th:text="${total}">0</div>
+        </div>
+        <div class="summary-card group-a">
+            <div class="label">Nhóm A — chăm nhiều chưa chốt</div>
+            <div class="value" th:text="${groupACount}">0</div>
+        </div>
+        <div class="summary-card group-b">
+            <div class="label">Nhóm B — quá hạn chưa lên đơn</div>
+            <div class="value" th:text="${groupBCount}">0</div>
+        </div>
+    </div>
+
+    <form class="filter-form" method="get" action="/khach-hang-canh-bao">
+        <div class="filter-group">
+            <label for="minNotes">Số ghi chú tối thiểu (Nhóm A)</label>
+            <input type="number" id="minNotes" name="minNotes" min="1" th:value="${minNotes}">
+        </div>
+        <div class="filter-group">
+            <label for="hours">Số giờ chưa lên đơn (Nhóm B)</label>
+            <input type="number" id="hours" name="hours" min="1" th:value="${hours}">
+        </div>
+        <div class="filter-group">
+            <label for="maxDays">Cửa sổ tối đa (ngày, Nhóm B)</label>
+            <input type="number" id="maxDays" name="maxDays" min="1" th:value="${maxDays}">
+        </div>
+        <div class="filter-group">
+            <label for="limit">Giới hạn dòng</label>
+            <input type="number" id="limit" name="limit" min="1" max="5000" th:value="${limit}">
+        </div>
+        <button type="submit" class="btn-filter">Lọc</button>
+    </form>
+
+    <div class="alert alert-error" th:if="${errorMessage}" th:text="${errorMessage}"></div>
+
+    <div class="alert alert-warning" th:if="${capped}">
+        ⚠️ Kết quả đã bị cắt ở <b th:text="${limit}">1000</b> dòng — có thể còn khách hàng khác chưa hiển thị.
+        Tăng "Giới hạn dòng" hoặc siết bộ lọc để xem đầy đủ.
+    </div>
+
+    <div class="table-card">
+        <div class="table-scroll" th:if="${total > 0}">
+            <table>
+                <thead>
+                <tr>
+                    <th>STT</th>
+                    <th>Tên khách hàng</th>
+                    <th>SĐT</th>
+                    <th>Mã KH</th>
+                    <th class="num">Ghi chú</th>
+                    <th class="num">Tổng đơn</th>
+                    <th class="num">Đơn thành công</th>
+                    <th>Ngày tạo KH</th>
+                    <th>Ghi chú gần nhất</th>
+                    <th>Lý do cảnh báo</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="row, stat : ${rows}">
+                    <td th:text="${stat.count}">1</td>
+                    <td th:text="${row.name}">Nguyễn Văn A</td>
+                    <td th:text="${row.phone != null ? row.phone : '—'}">0900000000</td>
+                    <td class="customer-id" th:text="${row.customerId}">abc-123</td>
+                    <td class="num">
+                        <span th:classappend="${row.noteCount >= minNotes} ? 'note-hot'" th:text="${row.noteCount}">5</span>
+                    </td>
+                    <td class="num" th:text="${row.orderCount}">0</td>
+                    <td class="num" th:text="${row.succeedOrderCount}">0</td>
+                    <td th:text="${row.insertedAt}">01/01/2026</td>
+                    <td th:text="${row.lastNoteAt}">01/01/2026</td>
+                    <td>
+                        <span class="badge badge-a" th:if="${row.groupA}">Nhóm A</span>
+                        <span class="badge badge-b" th:if="${row.groupB}">Nhóm B</span>
+                        <div class="reason-text" th:text="${row.reason}"></div>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="empty-state" th:if="${total == 0 and errorMessage == null}">
+            🎉 Không có khách hàng nào rơi vào diện cảnh báo với bộ lọc hiện tại.
+        </div>
+        <div class="empty-state" th:if="${errorMessage != null}">
+            Không có dữ liệu để hiển thị.
+        </div>
+    </div>
+
+    <div class="meta-line">
+        Dữ liệu truy vấn trực tiếp từ POS DB lúc <span th:text="${generatedAt}">--</span>.
+        Nhóm B chỉ tính khách có ≥ 1 ghi chú, tạo trong vòng <span th:text="${maxDays}">30</span> ngày gần nhất.
+    </div>
+</div>
+</body>
+</html>

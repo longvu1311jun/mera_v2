@@ -16,4 +16,5 @@ public class CustomerSyncResult {
     private int updatedNotes;
     private int insertedEditHistory;
     private int skippedNotes;
+    private int insertedPhones;
 }

@@ -1,7 +1,37 @@
 {
   "permissions": {
     "allow": [
-      "Bash(tail:*)"
+      "Bash(tail:*)",
+      "Bash(git rm *)",
+      "Bash(./mvnw -q compile -DskipTests)",
+      "Bash(git fetch *)",
+      "Bash(git restore *)",
+      "Bash(git checkout *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git credential *)",
+      "Bash(git pull *)",
+      "Bash(git branch *)",
+      "Bash(git push *)",
+      "Bash(grep -E '\\\\.md$|\\\\.sql$|^d')",
+      "Bash(awk '{print $9, $5}')",
+      "Bash(grep -E '\\\\.\\(json|log|cache\\)$')",
+      "Bash(./mvnw -q compile)",
+      "Bash(grep -c \"INSERT INTO \\\\`customer_phone_numbers\\\\`\" dump-pos_db-202607060916.sql)",
+      "Bash(grep -m2 \"CREATE TABLE \\\\`customer_phone_numbers\\\\`\" -A 15 dump-pos_db-202607060916.sql)",
+      "Bash(mysql -h 100.70.133.122 -P 3306 -u root -p123123123 pos_db -e \"SELECT COUNT\\(*\\) AS total_phones FROM customer_phone_numbers; SELECT c.id, c.name, p.phone_number FROM customers c LEFT JOIN customer_phone_numbers p ON p.customer_id = c.id WHERE c.id IN \\('57cab618-51b4-4377-9888-767048c82deb','387fe612-3f80-4d62-bc01-7e0ac9f7c58a','2a8936a2-52f4-4a0a-9837-e54d85ecb4b9'\\);\")",
+      "Bash(grep -o \"INSERT INTO \\\\`customer_phone_numbers\\\\`[^;]\\\\{0,200\\\\}\" dump-pos_db-202607060916.sql)",
+      "Bash(echo \"EXIT=$?\")",
+      "Bash(grep -o \"\\(581822,[^\\)]\\\\{0,400\\\\}\" dump-pos_db-202607060916.sql)",
+      "Bash(curl -s --max-time 90 \"http://localhost:8080/api/search-info?phone=0944757075\" -o /tmp/search_result.json)",
+      "Bash(python -c ' *)",
+      "Read(//tmp/**)",
+      "Bash(grep -m1 \"CREATE TABLE \\\\`search_config\\\\`\" -A 30 dump-pos_db-202607060916.sql)",
+      "Bash(sed -n '/Dumping data for table .search_config./,/UNLOCK TABLES/p' dump-pos_db-202607060916.sql)",
+      "Bash(curl -s --max-time 90 \"http://localhost:8080/api/search-info?phone=0944757075\" -o /dev/null)",
+      "Bash(curl -s --max-time 30 \"http://localhost:8080/logs\" -o /tmp/logs.html)",
+      "Bash(rm -f tmp_lark_body.json tmp_lark_result.json /tmp/search_result.json /tmp/logs.html)",
+      "Bash(curl -s --max-time 90 \"http://localhost:8080/api/search-info?phone=0944757075\")",
+      "Bash(python -X utf8 -c ' *)"
     ]
   }
 }
