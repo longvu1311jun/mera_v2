@@ -25,4 +25,9 @@ public interface ProblemCustomerView {
     Integer getNoteCount();
 
     LocalDateTime getLastNoteAt();
+
+    Integer getHasReceivedOrder();
+
+    /** Thời điểm đơn đã nhận gần nhất; null khi chưa có đơn đã nhận. */
+    LocalDateTime getLastReceivedAt();
 }

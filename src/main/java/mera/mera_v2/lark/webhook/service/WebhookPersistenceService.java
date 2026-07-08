@@ -188,7 +188,7 @@ public class WebhookPersistenceService {
 
             // Map customer fields
             customer.setName(getCustomerName(customerInfo, webhook));
-            customer.setShopId(1L); // Default shop ID
+            customer.setShopId(webhook.getShopId() != null ? webhook.getShopId() : 1546758L);
             customer.setUpdatedAt(LocalDateTime.now());
 
             // Luu customer

@@ -24,8 +24,9 @@ public class ProblemCustomerController {
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 
     private static final int DEFAULT_MIN_NOTES = 5;
-    private static final int DEFAULT_HOURS = 72;
+    private static final int DEFAULT_HOURS = 7;
     private static final int DEFAULT_MAX_DAYS = 30;
+    private static final int DEFAULT_STALE_MONTHS = 5;
     private static final int DEFAULT_LIMIT = 1000;
     private static final int MAX_LIMIT = 5000;
 
@@ -40,6 +41,7 @@ public class ProblemCustomerController {
             @RequestParam(value = "minNotes", required = false, defaultValue = "" + DEFAULT_MIN_NOTES) int minNotes,
             @RequestParam(value = "hours", required = false, defaultValue = "" + DEFAULT_HOURS) int hours,
             @RequestParam(value = "maxDays", required = false, defaultValue = "" + DEFAULT_MAX_DAYS) int maxDays,
+            @RequestParam(value = "months", required = false, defaultValue = "" + DEFAULT_STALE_MONTHS) int months,
             @RequestParam(value = "limit", required = false, defaultValue = "" + DEFAULT_LIMIT) int limit,
             Model model
     ) {
@@ -47,6 +49,7 @@ public class ProblemCustomerController {
         if (minNotes < 1) minNotes = 1;
         if (hours < 1) hours = 1;
         if (maxDays < 1) maxDays = 1;
+        if (months < 1) months = 1;
         if (limit < 1) limit = 1;
         if (limit > MAX_LIMIT) limit = MAX_LIMIT;
         // Cửa sổ nhóm B phải rộng hơn ngưỡng giờ
@@ -57,37 +60,46 @@ public class ProblemCustomerController {
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime threshold = now.minusHours(hours);
         LocalDateTime oldest = now.minusDays(maxDays);
+        LocalDateTime stale = now.minusMonths(months);
 
         model.addAttribute("minNotes", minNotes);
         model.addAttribute("hours", hours);
         model.addAttribute("maxDays", maxDays);
+        model.addAttribute("months", months);
         model.addAttribute("limit", limit);
         model.addAttribute("generatedAt", now.format(DATE_FMT));
 
         try {
-            List<ProblemCustomerView> views = repository.findProblemCustomers(minNotes, threshold, oldest, limit);
+            List<ProblemCustomerView> views = repository.findProblemCustomers(minNotes, threshold, oldest, stale, limit);
 
             List<ProblemCustomerRow> rows = new ArrayList<>(views.size());
             int groupACount = 0;
             int groupBCount = 0;
+            int groupCCount = 0;
 
             for (ProblemCustomerView v : views) {
                 int noteCount = v.getNoteCount() != null ? v.getNoteCount() : 0;
                 LocalDateTime insertedAt = v.getInsertedAt();
+                boolean hasReceived = v.getHasReceivedOrder() != null && v.getHasReceivedOrder() > 0;
+                LocalDateTime lastReceivedAt = v.getLastReceivedAt();
 
-                // Query đã loại sẵn khách có đơn đang xử lý / thành công (status 11,1,8,9,2,3,16)
-                boolean groupA = noteCount >= minNotes;
-                boolean groupB = insertedAt != null
+                // Query đã loại sẵn khách có đơn đang xử lý (status 11,1,8,9,2)
+                boolean groupA = !hasReceived && noteCount >= minNotes;
+                boolean groupB = !hasReceived
+                        && insertedAt != null
                         && insertedAt.isBefore(threshold)
                         && !insertedAt.isBefore(oldest)
                         && noteCount >= 1;
+                boolean groupC = hasReceived && lastReceivedAt != null && lastReceivedAt.isBefore(stale);
 
                 if (groupA) groupACount++;
                 if (groupB) groupBCount++;
+                if (groupC) groupCCount++;
 
                 List<String> reasons = new ArrayList<>(2);
-                if (groupA) reasons.add("Chăm " + noteCount + " ghi chú nhưng chưa có đơn xử lý");
-                if (groupB) reasons.add("Quá " + hours + "h chưa có đơn xử lý");
+                if (groupA) reasons.add("Chăm " + noteCount + " ghi chú nhưng chưa có đơn xử lý / đã nhận");
+                if (groupB) reasons.add("Quá " + hours + "h chưa có đơn xử lý / đã nhận");
+                if (groupC) reasons.add("Đơn đã nhận gần nhất quá " + months + " tháng");
 
                 ProblemCustomerRow row = new ProblemCustomerRow();
                 row.setCustomerId(v.getCustomerId());
@@ -98,8 +110,10 @@ public class ProblemCustomerController {
                 row.setSucceedOrderCount(v.getSucceedOrderCount() != null ? v.getSucceedOrderCount() : 0);
                 row.setInsertedAt(insertedAt != null ? insertedAt.format(DATE_FMT) : "—");
                 row.setLastNoteAt(v.getLastNoteAt() != null ? v.getLastNoteAt().format(DATE_FMT) : "—");
+                row.setLastReceivedAt(lastReceivedAt != null ? lastReceivedAt.format(DATE_FMT) : "—");
                 row.setGroupA(groupA);
                 row.setGroupB(groupB);
+                row.setGroupC(groupC);
                 row.setReason(String.join(" · ", reasons));
                 rows.add(row);
             }
@@ -108,6 +122,7 @@ public class ProblemCustomerController {
             model.addAttribute("total", rows.size());
             model.addAttribute("groupACount", groupACount);
             model.addAttribute("groupBCount", groupBCount);
+            model.addAttribute("groupCCount", groupCCount);
             model.addAttribute("capped", rows.size() >= limit);
         } catch (Exception e) {
             log.error("Lỗi truy vấn khách hàng cảnh báo", e);
@@ -115,6 +130,7 @@ public class ProblemCustomerController {
             model.addAttribute("total", 0);
             model.addAttribute("groupACount", 0);
             model.addAttribute("groupBCount", 0);
+            model.addAttribute("groupCCount", 0);
             model.addAttribute("capped", false);
             model.addAttribute("errorMessage", "Không truy vấn được dữ liệu: " + e.getMessage());
         }
@@ -132,8 +148,10 @@ public class ProblemCustomerController {
         private int succeedOrderCount;
         private String insertedAt;
         private String lastNoteAt;
+        private String lastReceivedAt;
         private boolean groupA;
         private boolean groupB;
+        private boolean groupC;
         private String reason;
 
         public String getCustomerId() { return customerId; }
@@ -152,10 +170,14 @@ public class ProblemCustomerController {
         public void setInsertedAt(String insertedAt) { this.insertedAt = insertedAt; }
         public String getLastNoteAt() { return lastNoteAt; }
         public void setLastNoteAt(String lastNoteAt) { this.lastNoteAt = lastNoteAt; }
+        public String getLastReceivedAt() { return lastReceivedAt; }
+        public void setLastReceivedAt(String lastReceivedAt) { this.lastReceivedAt = lastReceivedAt; }
         public boolean isGroupA() { return groupA; }
         public void setGroupA(boolean groupA) { this.groupA = groupA; }
         public boolean isGroupB() { return groupB; }
         public void setGroupB(boolean groupB) { this.groupB = groupB; }
+        public boolean isGroupC() { return groupC; }
+        public void setGroupC(boolean groupC) { this.groupC = groupC; }
         public String getReason() { return reason; }
         public void setReason(String reason) { this.reason = reason; }
     }

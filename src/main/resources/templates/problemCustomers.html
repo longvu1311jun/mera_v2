@@ -53,6 +53,7 @@
         .summary-card.total .value { color: #1456f0; }
         .summary-card.group-a .value { color: #d97706; }
         .summary-card.group-b .value { color: #dc2626; }
+        .summary-card.group-c .value { color: #7c3aed; }
 
         .filter-form {
             background: white;
@@ -141,6 +142,7 @@
         }
         .badge-a { background: #fef3c7; color: #92400e; }
         .badge-b { background: #fee2e2; color: #991b1b; }
+        .badge-c { background: #ede9fe; color: #5b21b6; }
         .badge-yes { background: #dcfce7; color: #166534; }
         .badge-no { background: #f3f4f6; color: #6b7280; }
         .customer-id { font-size: 11px; color: #807d72; word-break: break-all; }
@@ -155,8 +157,9 @@
         <div>
             <div class="page-title"><span>⚠️</span> Số Thả Nổi</div>
             <div class="page-subtitle">
-                Khách hàng cần chú ý: chăm nhiều (Nhóm A) hoặc để lâu (Nhóm B) mà chưa có đơn nào đang xử lý / thành công
-                (Chờ hàng, Đã xác nhận, Đang đóng hàng, Chờ chuyển hàng, Đã gửi hàng, Đã nhận, Đã thu tiền).
+                Nhóm A: chăm nhiều ghi chú nhưng chưa có đơn đang xử lý / đã nhận.
+                Nhóm B: quá hạn giờ từ ngày tạo mà chưa có đơn đang xử lý / đã nhận.
+                Nhóm C: đơn đã nhận gần nhất đã quá lâu và hiện không có đơn đang xử lý.
                 Đơn được khớp theo mã KH hoặc theo SĐT.
             </div>
         </div>
@@ -176,6 +179,10 @@
             <div class="label">Nhóm B — quá hạn chưa lên đơn</div>
             <div class="value" th:text="${groupBCount}">0</div>
         </div>
+        <div class="summary-card group-c">
+            <div class="label">Nhóm C — lâu chưa mua lại</div>
+            <div class="value" th:text="${groupCCount}">0</div>
+        </div>
     </div>
 
     <form class="filter-form" method="get" action="/khach-hang-canh-bao">
@@ -190,6 +197,10 @@
         <div class="filter-group">
             <label for="maxDays">Cửa sổ tối đa (ngày, Nhóm B)</label>
             <input type="number" id="maxDays" name="maxDays" min="1" th:value="${maxDays}">
+        </div>
+        <div class="filter-group">
+            <label for="months">Số tháng chưa mua lại (Nhóm C)</label>
+            <input type="number" id="months" name="months" min="1" th:value="${months}">
         </div>
         <div class="filter-group">
             <label for="limit">Giới hạn dòng</label>
@@ -219,6 +230,7 @@
                     <th class="num">Đơn thành công</th>
                     <th>Ngày tạo KH</th>
                     <th>Ghi chú gần nhất</th>
+                    <th>Đơn nhận gần nhất</th>
                     <th>Lý do cảnh báo</th>
                 </tr>
                 </thead>
@@ -235,9 +247,11 @@
                     <td class="num" th:text="${row.succeedOrderCount}">0</td>
                     <td th:text="${row.insertedAt}">01/01/2026</td>
                     <td th:text="${row.lastNoteAt}">01/01/2026</td>
+                    <td th:text="${row.lastReceivedAt}">—</td>
                     <td>
                         <span class="badge badge-a" th:if="${row.groupA}">Nhóm A</span>
                         <span class="badge badge-b" th:if="${row.groupB}">Nhóm B</span>
+                        <span class="badge badge-c" th:if="${row.groupC}">Nhóm C</span>
                         <div class="reason-text" th:text="${row.reason}"></div>
                     </td>
                 </tr>
@@ -255,6 +269,7 @@
     <div class="meta-line">
         Dữ liệu truy vấn trực tiếp từ POS DB lúc <span th:text="${generatedAt}">--</span>.
         Nhóm B chỉ tính khách có ≥ 1 ghi chú, tạo trong vòng <span th:text="${maxDays}">30</span> ngày gần nhất.
+        Nhóm C: đơn đã nhận (Đã nhận / Đã thu tiền) gần nhất cách đây hơn <span th:text="${months}">5</span> tháng.
     </div>
 </div>
 </body>
