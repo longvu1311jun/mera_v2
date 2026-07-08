@@ -158,15 +158,11 @@ public class WebhookPersistenceService {
                 return result;
             }
 
-            // Generate customer ID from phone number (CustomerInfo doesn't have id field)
-            String customerId = null;
-            String phone = getPhoneNumber(webhook);
-            if (phone != null && !phone.isBlank()) {
-                customerId = "CUST_" + phone.replaceAll("[^0-9]", "");
-            }
-
+            // Dùng mã khách thật từ payload (ưu tiên id — trùng customers.id của luồng đồng bộ),
+            // KHÔNG tự chế mã từ SĐT nữa
+            String customerId = resolveCustomerId(customerInfo);
             if (customerId == null || customerId.isBlank()) {
-                log.info("   Customer: khong co phone de tao customer ID, bo qua");
+                log.info("   Customer: webhook khong co customer id, bo qua");
                 return result;
             }
 
@@ -188,7 +184,8 @@ public class WebhookPersistenceService {
 
             // Map customer fields
             customer.setName(getCustomerName(customerInfo, webhook));
-            customer.setShopId(webhook.getShopId() != null ? webhook.getShopId() : 1546758L);
+            Long shopId = customerInfo.getShopId() != null ? customerInfo.getShopId() : webhook.getShopId();
+            customer.setShopId(shopId != null ? shopId : 1546758L);
             customer.setUpdatedAt(LocalDateTime.now());
 
             // Luu customer
@@ -289,9 +286,9 @@ public class WebhookPersistenceService {
             order.setAccount(webhook.getAccountName());
 
             // === Customer ===
-            String phone = getPhoneNumber(webhook);
-            if (phone != null && !phone.isBlank()) {
-                order.setCustomerId("CUST_" + phone.replaceAll("[^0-9]", ""));
+            String orderCustomerId = resolveCustomerId(getCustomerInfo(webhook));
+            if (orderCustomerId != null && !orderCustomerId.isBlank()) {
+                order.setCustomerId(orderCustomerId);
             }
 
             // === User IDs ===
@@ -699,6 +696,21 @@ public class WebhookPersistenceService {
         }
         if (webhook.getData() != null && webhook.getData().getCustomer() != null) {
             return webhook.getData().getCustomer();
+        }
+        return null;
+    }
+
+    /**
+     * Mã khách thật từ payload webhook: ưu tiên customer.id (trùng customers.id của luồng
+     * đồng bộ POS), fallback customer.customer_id. Trả null nếu payload không có — KHÔNG tự tạo mã.
+     */
+    private String resolveCustomerId(PosOrderWebhook.CustomerInfo customerInfo) {
+        if (customerInfo == null) return null;
+        if (customerInfo.getId() != null && !customerInfo.getId().isBlank()) {
+            return customerInfo.getId();
+        }
+        if (customerInfo.getCustomerId() != null && !customerInfo.getCustomerId().isBlank()) {
+            return customerInfo.getCustomerId();
         }
         return null;
     }

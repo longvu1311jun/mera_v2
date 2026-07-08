@@ -31,7 +31,10 @@
       "Bash(curl -s --max-time 30 \"http://localhost:8080/logs\" -o /tmp/logs.html)",
       "Bash(rm -f tmp_lark_body.json tmp_lark_result.json /tmp/search_result.json /tmp/logs.html)",
       "Bash(curl -s --max-time 90 \"http://localhost:8080/api/search-info?phone=0944757075\")",
-      "Bash(python -X utf8 -c ' *)"
+      "Bash(python -X utf8 -c ' *)",
+      "Bash(grep -o \"CONSTRAINT [^,]*REFERENCES \\\\`customers\\\\`[^,\\)]*\" dump-pos_db-202607060916.sql)",
+      "Bash(grep -o \"CONSTRAINT \\\\`fk_\\\\\\(addr\\\\|note\\\\|phone\\\\|ctag\\\\|order\\\\\\)_cust\\\\`[^,\\)]*\\)\\\\\\( ON DELETE [A-Z ]*\\\\\\)\\\\?\" dump-pos_db-202607060916.sql)",
+      "Bash(grep -o \"CONSTRAINT \\\\`fk_order_cust\\\\`.\\\\{0,120\\\\}\" dump-pos_db-202607060916.sql)"
     ]
   }
 }

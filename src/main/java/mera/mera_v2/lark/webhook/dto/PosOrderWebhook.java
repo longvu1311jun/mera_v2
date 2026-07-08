@@ -371,6 +371,16 @@ public class PosOrderWebhook {
     @Data
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class CustomerInfo {
+        // Mã khách thật từ POS (shop customer id) — trùng customers.id của luồng đồng bộ
+        @JsonProperty("id")
+        private String id;
+
+        @JsonProperty("customer_id")
+        private String customerId;
+
+        @JsonProperty("shop_id")
+        private Long shopId;
+
         @JsonProperty("full_name")
         private String fullName;
         
