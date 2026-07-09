@@ -16,6 +16,12 @@
         .filter-form .mr-input { width: 130px; }
         .note-hot { font-weight: 700; color: var(--mr-warn); }
         .mr-table .mr-badge { margin-right: 4px; }
+        /* Cột sort được: click luân phiên tăng -> giảm -> bỏ sort */
+        th.pc-sortable { cursor: pointer; user-select: none; white-space: nowrap; }
+        th.pc-sortable:hover { color: var(--mr-accent, #2563eb); }
+        th.pc-sortable::after { content: ' ↕'; font-size: 11px; opacity: .35; }
+        th.pc-sortable[data-dir="asc"]::after { content: ' ↑'; opacity: 1; color: var(--mr-accent, #2563eb); }
+        th.pc-sortable[data-dir="desc"]::after { content: ' ↓'; opacity: 1; color: var(--mr-accent, #2563eb); }
         .customer-id { font-size: 11px; color: var(--mr-muted); word-break: break-all; }
         .reason-text { font-size: 12px; color: var(--mr-text-2); }
 
@@ -41,6 +47,31 @@
         .pc-viewbar { display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
         .pc-viewbar .pc-search { flex: 1; min-width: 220px; }
         .pc-viewbar .pc-group { min-width: 150px; }
+
+        /* Bộ chọn khoảng ngày (popover + preset + Áp dụng) */
+        .pc-daterange { position: relative; }
+        .pc-dd { position: relative; }
+        .pc-date-trigger { display: inline-flex; align-items: center; justify-content: space-between;
+            gap: 10px; min-width: 210px; cursor: pointer; text-align: left; }
+        .pc-date-trigger .pc-cal { opacity: .7; }
+        .pc-date-popover { position: absolute; z-index: 60; top: calc(100% + 6px); left: 0;
+            display: flex; gap: 14px; padding: 14px; background: var(--mr-surface, #fff);
+            border: 1px solid var(--mr-border); border-radius: 12px; box-shadow: 0 14px 36px rgba(0,0,0,.18); }
+        .pc-date-popover[hidden] { display: none; }
+        .pc-presets { display: flex; flex-direction: column; gap: 2px; min-width: 150px;
+            border-right: 1px solid var(--mr-border); padding-right: 12px; }
+        .pc-preset { text-align: left; padding: 7px 10px; border: none; background: transparent;
+            border-radius: 8px; font-size: 13px; color: var(--mr-text-2); cursor: pointer; font-family: inherit; }
+        .pc-preset:hover { background: var(--mr-surface-2); color: var(--mr-text); }
+        .pc-date-body { display: flex; flex-direction: column; justify-content: space-between; gap: 14px; }
+        .pc-date-fields { display: flex; flex-direction: column; gap: 10px; }
+        .pc-date-fields label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--mr-muted); }
+        .pc-date-fields .mr-input { width: 180px; }
+        .pc-date-actions { display: flex; justify-content: flex-end; gap: 8px; }
+        @media (max-width: 900px) {
+            .pc-date-popover { flex-direction: column; }
+            .pc-presets { border-right: none; border-bottom: 1px solid var(--mr-border); padding-right: 0; padding-bottom: 10px; }
+        }
 
         /* Thanh phân trang */
         .pc-pagination-bar {
@@ -111,14 +142,6 @@
             <label for="months">Số tháng chưa mua lại (Nhóm C)</label>
             <input class="mr-input" type="number" id="months" name="months" min="1" th:value="${months}">
         </div>
-        <div class="mr-field">
-            <label for="fromDate">Ngày tạo KH từ</label>
-            <input class="mr-input" type="date" id="fromDate" name="fromDate" th:value="${fromDate}">
-        </div>
-        <div class="mr-field">
-            <label for="toDate">Đến ngày</label>
-            <input class="mr-input" type="date" id="toDate" name="toDate" th:value="${toDate}">
-        </div>
         <button type="submit" class="mr-btn mr-btn--primary">Lọc</button>
     </form>
 
@@ -151,6 +174,37 @@
                 <option value="C">Nhóm C</option>
             </select>
         </div>
+        <div class="mr-field pc-daterange">
+            <label>Ngày tạo KH</label>
+            <div class="pc-dd">
+                <button type="button" class="mr-input pc-date-trigger" id="pcDateBtn" aria-haspopup="true">
+                    <span id="pcDateLabel">Tất cả thời gian</span>
+                    <span class="pc-cal" aria-hidden="true">📅</span>
+                </button>
+                <div class="pc-date-popover" id="pcDatePopover" hidden>
+                    <div class="pc-presets">
+                        <button type="button" class="pc-preset" data-preset="today">Hôm nay</button>
+                        <button type="button" class="pc-preset" data-preset="yesterday">Hôm qua</button>
+                        <button type="button" class="pc-preset" data-preset="last7">7 ngày qua</button>
+                        <button type="button" class="pc-preset" data-preset="last30">30 ngày qua</button>
+                        <button type="button" class="pc-preset" data-preset="last90">90 ngày qua</button>
+                        <button type="button" class="pc-preset" data-preset="lastMonth">Tháng trước</button>
+                        <button type="button" class="pc-preset" data-preset="weekToDate">Đầu tuần đến nay</button>
+                        <button type="button" class="pc-preset" data-preset="monthToDate">Đầu tháng đến nay</button>
+                    </div>
+                    <div class="pc-date-body">
+                        <div class="pc-date-fields">
+                            <label>Từ ngày<input class="mr-input" type="date" id="fromDate" th:value="${fromDate}"></label>
+                            <label>Đến ngày<input class="mr-input" type="date" id="toDate" th:value="${toDate}"></label>
+                        </div>
+                        <div class="pc-date-actions">
+                            <button type="button" class="mr-btn" id="pcDateClear">Xoá</button>
+                            <button type="button" class="mr-btn mr-btn--primary" id="pcDateApply">Áp dụng</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
         <div class="mr-field pc-search">
             <label for="pcSearch">Tìm kiếm (tên hoặc SĐT)</label>
             <input class="mr-input" type="text" id="pcSearch" placeholder="Nhập tên khách hoặc số điện thoại…" style="width:100%">
@@ -166,12 +220,12 @@
                     <th>Tên khách hàng</th>
                     <th>SĐT</th>
                     <th>Mã KH</th>
-                    <th class="num">Ghi chú</th>
-                    <th class="num">Tổng đơn</th>
-                    <th class="num">Đơn thành công</th>
-                    <th>Ngày tạo KH</th>
-                    <th>Ghi chú gần nhất</th>
-                    <th>Đơn nhận gần nhất</th>
+                    <th class="num pc-sortable" data-sort="noteCount">Ghi chú</th>
+                    <th class="num pc-sortable" data-sort="orderCount">Tổng đơn</th>
+                    <th class="num pc-sortable" data-sort="succeedOrderCount">Đơn thành công</th>
+                    <th class="pc-sortable" data-sort="insertedAt">Ngày tạo KH</th>
+                    <th class="pc-sortable" data-sort="lastNoteAt">Ghi chú gần nhất</th>
+                    <th class="pc-sortable" data-sort="lastReceivedAt">Đơn nhận gần nhất</th>
                     <th>Lý do cảnh báo</th>
                 </tr>
                 </thead>
@@ -206,273 +260,6 @@
     </div>
 </div>
 <th:block th:replace="~{fragments/mera-layout :: shellScript}"></th:block>
-<script th:inline="javascript">
-(function () {
-    const DATA_URL = '/api/khach-hang-canh-bao/data';
-    const POLL_INTERVAL_MS = 60000;
-    const SERVER_FILTER_KEYS = ['minNotes', 'hours', 'maxDays', 'months', 'fromDate', 'toDate'];
-
-    const $ = (id) => document.getElementById(id);
-    const body = $('pcBody');
-
-    // Toàn bộ tập (cache client) + trạng thái xem
-    let allRows = [];
-    let lastData = null;
-    let errorState = false;
-    let inFlight = false;
-    let pollTimer = null;
-    let searchDebounce = null;
-
-    const state = {
-        page: 1,
-        pageSize: /*[[${pageSize}]]*/ 50,
-        group: 'all',        // all | A | B | C
-        search: ''
-    };
-
-    function escapeHtml(s) {
-        if (s === null || s === undefined) return '';
-        return String(s)
-            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-    }
-    function normDigits(s) { return (s || '').replace(/\D/g, ''); }
-    function toggle(el, show) { if (el) el.style.display = show ? '' : 'none'; }
-    function badge(cls, txt) { return '<span class="mr-badge ' + cls + '">' + txt + '</span>'; }
-
-    function setLive(cls, text) {
-        const wrap = $('pcLiveStatus'), label = $('pcLiveText');
-        if (wrap) { wrap.classList.remove('is-live', 'is-down', 'is-refresh'); if (cls) wrap.classList.add(cls); }
-        if (label && text) label.textContent = text;
-    }
-
-    // ---- Lọc client (nhóm + tìm kiếm) ----
-    function filteredRows() {
-        const g = state.group;
-        const term = state.search.trim().toLowerCase();
-        const digits = normDigits(state.search);
-        return allRows.filter(r => {
-            if (g === 'A' && !r.groupA) return false;
-            if (g === 'B' && !r.groupB) return false;
-            if (g === 'C' && !r.groupC) return false;
-            if (term) {
-                const nameMatch = (r.name || '').toLowerCase().indexOf(term) > -1;
-                const phoneMatch = digits.length > 0 && normDigits(r.phone).indexOf(digits) > -1;
-                if (!nameMatch && !phoneMatch) return false;
-            }
-            return true;
-        });
-    }
-
-    function renderRows(rows, offset) {
-        if (!rows.length) { body.innerHTML = ''; return; }
-        const minNotes = lastData ? lastData.minNotes : 0;
-        let html = '';
-        for (let i = 0; i < rows.length; i++) {
-            const r = rows[i];
-            const noteCls = r.noteCount >= minNotes ? ' class="note-hot"' : '';
-            let badges = '';
-            if (r.groupA) badges += badge('mr-badge--warn', 'Nhóm A');
-            if (r.groupB) badges += badge('mr-badge--danger', 'Nhóm B');
-            if (r.groupC) badges += badge('mr-badge--info', 'Nhóm C');
-            html += '<tr>'
-                + '<td>' + (offset + i + 1) + '</td>'
-                + '<td>' + escapeHtml(r.name) + '</td>'
-                + '<td>' + escapeHtml(r.phone != null ? r.phone : '—') + '</td>'
-                + '<td class="customer-id">' + escapeHtml(r.customerId) + '</td>'
-                + '<td class="num"><span' + noteCls + '>' + r.noteCount + '</span></td>'
-                + '<td class="num">' + r.orderCount + '</td>'
-                + '<td class="num">' + r.succeedOrderCount + '</td>'
-                + '<td>' + escapeHtml(r.insertedAt) + '</td>'
-                + '<td>' + escapeHtml(r.lastNoteAt) + '</td>'
-                + '<td>' + escapeHtml(r.lastReceivedAt) + '</td>'
-                + '<td>' + badges + '<div class="reason-text">' + escapeHtml(r.reason) + '</div></td>'
-                + '</tr>';
-        }
-        body.innerHTML = html;
-    }
-
-    function pageButton(label, page, opts) {
-        opts = opts || {};
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = 'mr-page-btn' + (opts.active ? ' active' : '');
-        btn.textContent = label;
-        if (opts.disabled) btn.disabled = true;
-        else btn.addEventListener('click', () => goToPage(page));
-        return btn;
-    }
-
-    function pageList(current, totalPages) {
-        const pages = [];
-        const add = (p) => { if (!pages.includes(p)) pages.push(p); };
-        add(1);
-        for (let p = current - 2; p <= current + 2; p++) if (p >= 1 && p <= totalPages) add(p);
-        add(totalPages);
-        pages.sort((a, b) => a - b);
-        const out = [];
-        for (let i = 0; i < pages.length; i++) {
-            if (i > 0 && pages[i] - pages[i - 1] > 1) out.push('…');
-            out.push(pages[i]);
-        }
-        return out;
-    }
-
-    function renderPagination(current, totalPages) {
-        const pager = $('pcPager');
-        pager.innerHTML = '';
-        pager.appendChild(pageButton('‹', current - 1, { disabled: current <= 1 }));
-        pageList(current, totalPages).forEach(item => {
-            if (item === '…') {
-                const span = document.createElement('span');
-                span.className = 'pc-ellipsis';
-                span.textContent = '…';
-                pager.appendChild(span);
-            } else {
-                pager.appendChild(pageButton(String(item), item, { active: item === current }));
-            }
-        });
-        pager.appendChild(pageButton('›', current + 1, { disabled: current >= totalPages }));
-    }
-
-    // ---- Áp dụng bộ lọc/tìm kiếm + phân trang (tức thời, không gọi server) ----
-    function applyView() {
-        const rows = filteredRows();
-        const total = rows.length;
-        const totalPages = Math.max(1, Math.ceil(total / state.pageSize));
-        if (state.page > totalPages) state.page = totalPages;
-        if (state.page < 1) state.page = 1;
-
-        const offset = (state.page - 1) * state.pageSize;
-        const slice = rows.slice(offset, offset + state.pageSize);
-        renderRows(slice, offset);
-        toggle($('pcEmpty'), total === 0 && !errorState);
-
-        const fullTotal = allRows.length;
-        let info;
-        if (total === 0) {
-            info = 'Không có kết quả';
-        } else {
-            const filteredNote = (total !== fullTotal) ? (' (lọc từ ' + fullTotal + ')') : '';
-            info = 'Hiển thị ' + (offset + 1) + '–' + (offset + slice.length) + ' / ' + total + ' KH' + filteredNote
-                 + ' · Trang ' + state.page + '/' + totalPages;
-        }
-        $('pcPageInfo').textContent = info;
-        renderPagination(state.page, totalPages);
-    }
-
-    function goToPage(page) {
-        if (page < 1) return;
-        state.page = page;
-        applyView();
-    }
-
-    function setGroup(group) {
-        state.group = group;
-        state.page = 1;
-        $('pcGroupFilter').value = group;
-        document.querySelectorAll('.mr-stat[data-group]').forEach(el => {
-            el.classList.toggle('is-active', el.getAttribute('data-group') === group);
-        });
-        applyView();
-    }
-
-    // ---- Nạp dữ liệu từ server (fetch toàn bộ) ----
-    function serverFilters() {
-        const p = new URLSearchParams();
-        SERVER_FILTER_KEYS.forEach(k => { const el = $(k); if (el && el.value !== '') p.set(k, el.value); });
-        return p;
-    }
-
-    async function loadData(silent) {
-        if (inFlight) return;
-        inFlight = true;
-        if (!silent) setLive('is-refresh', 'Đang cập nhật…');
-        try {
-            const params = serverFilters();
-            const res = await fetch(DATA_URL + '?' + params.toString());
-            if (!res.ok) throw new Error('HTTP ' + res.status);
-            const data = await res.json();
-            lastData = data;
-            allRows = data.rows || [];
-            errorState = !!data.errorMessage;
-
-            // Số liệu tổng (toàn tập)
-            $('pcTotal').textContent = data.total;
-            $('pcGroupA').textContent = data.groupACount;
-            $('pcGroupB').textContent = data.groupBCount;
-            $('pcGroupC').textContent = data.groupCCount;
-
-            // Cảnh báo
-            const errAlert = $('pcErrorAlert');
-            errAlert.textContent = errorState ? data.errorMessage : '';
-            toggle(errAlert, errorState);
-            toggle($('pcCappedAlert'), data.capped && !errorState);
-
-            // Meta + đồng bộ input đã clamp
-            $('pcGeneratedAt').textContent = data.generatedAt;
-            $('pcMaxDays').textContent = data.maxDays;
-            $('pcMonths').textContent = data.months;
-            SERVER_FILTER_KEYS.forEach(k => { const el = $(k); if (el && data[k] != null) el.value = data[k]; });
-
-            // Giữ URL cho các filter server
-            try { history.replaceState(null, '', '/khach-hang-canh-bao?' + params.toString()); } catch (e) {}
-
-            applyView();
-            setLive('is-live', 'Cập nhật ' + new Date().toLocaleTimeString('vi-VN'));
-        } catch (e) {
-            console.error('Load số nổi lỗi:', e);
-            setLive('is-down', 'Lỗi tải dữ liệu');
-        } finally {
-            inFlight = false;
-        }
-    }
-
-    // ---- Sự kiện ----
-    $('pcFilterForm').addEventListener('submit', function (ev) {
-        ev.preventDefault();
-        state.page = 1;
-        loadData(false);   // filter server -> fetch lại
-    });
-
-    $('pcRefreshBtn').addEventListener('click', () => loadData(false));
-
-    $('pcPageSize').addEventListener('change', function () {
-        state.pageSize = parseInt(this.value, 10) || state.pageSize;
-        state.page = 1;
-        applyView();
-    });
-
-    $('pcGroupFilter').addEventListener('change', function () { setGroup(this.value); });
-
-    // Khoảng Ngày tạo KH là filter server -> đổi ngày thì fetch lại
-    ['fromDate', 'toDate'].forEach(id => {
-        const el = $(id);
-        if (el) el.addEventListener('change', function () { state.page = 1; loadData(false); });
-    });
-
-    document.querySelectorAll('.mr-stat[data-group]').forEach(el => {
-        el.addEventListener('click', () => setGroup(el.getAttribute('data-group')));
-    });
-
-    $('pcSearch').addEventListener('input', function () {
-        const v = this.value;
-        clearTimeout(searchDebounce);
-        searchDebounce = setTimeout(() => {
-            state.search = v;
-            state.page = 1;
-            applyView();
-        }, 200);
-    });
-
-    function startPolling() { stopPolling(); pollTimer = setInterval(() => loadData(true), POLL_INTERVAL_MS); }
-    function stopPolling() { if (pollTimer) { clearInterval(pollTimer); pollTimer = null; } }
-    $('pcAutoRefresh').addEventListener('change', function () { this.checked ? startPolling() : stopPolling(); });
-
-    // Khởi động
-    loadData(false);
-    if ($('pcAutoRefresh').checked) startPolling();
-})();
-</script>
+<script src="/js/problem-customers.js"></script>
 </body>
 </html>

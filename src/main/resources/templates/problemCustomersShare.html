@@ -11,7 +11,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/css/mera-ui.css">
     <style>
-        /* ---------- Standalone Modern Minimal ---------- */
+        /* --------- - Standalone Modern Minimal ---------- */
         .share-page { max-width: 1320px; margin: 0 auto; padding: 32px 28px 56px; }
 
         .share-header {
@@ -55,6 +55,7 @@
             content: attr(data-tip);
             position: absolute; bottom: calc(100% + 10px); left: 50%; transform: translateX(-50%);
             width: 240px; text-align: left; line-height: 1.45;
+            text-transform: none; letter-spacing: normal; font-weight: 400;
             background: var(--mr-surface, #fff); color: var(--mr-text, #111);
             border: 1px solid var(--mr-border); border-radius: 10px; padding: 10px 12px;
             font-size: 12px; font-weight: 400;
@@ -70,11 +71,41 @@
         .pc-viewbar { display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap; margin: 22px 0 14px; }
         .pc-viewbar .pc-search { flex: 1; min-width: 220px; }
         .pc-viewbar .pc-group { min-width: 160px; }
-        .pc-viewbar .pc-date .mr-input { width: 150px; }
+
+        /* Bộ chọn khoảng ngày (popover + preset + Áp dụng) */
+        .pc-daterange { position: relative; }
+        .pc-dd { position: relative; }
+        .pc-date-trigger { display: inline-flex; align-items: center; justify-content: space-between;
+            gap: 10px; min-width: 210px; cursor: pointer; text-align: left; }
+        .pc-date-trigger .pc-cal { opacity: .7; }
+        .pc-date-popover { position: absolute; z-index: 60; top: calc(100% + 6px); left: 0;
+            display: flex; gap: 14px; padding: 14px; background: var(--mr-surface, #fff);
+            border: 1px solid var(--mr-border); border-radius: 12px; box-shadow: 0 14px 36px rgba(0,0,0,.18); }
+        .pc-date-popover[hidden] { display: none; }
+        .pc-presets { display: flex; flex-direction: column; gap: 2px; min-width: 150px;
+            border-right: 1px solid var(--mr-border); padding-right: 12px; }
+        .pc-preset { text-align: left; padding: 7px 10px; border: none; background: transparent;
+            border-radius: 8px; font-size: 13px; color: var(--mr-text-2); cursor: pointer; font-family: inherit; }
+        .pc-preset:hover { background: var(--mr-surface-2); color: var(--mr-text); }
+        .pc-date-body { display: flex; flex-direction: column; justify-content: space-between; gap: 14px; }
+        .pc-date-fields { display: flex; flex-direction: column; gap: 10px; }
+        .pc-date-fields label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--mr-muted); }
+        .pc-date-fields .mr-input { width: 180px; }
+        .pc-date-actions { display: flex; justify-content: flex-end; gap: 8px; }
+        @media (max-width: 900px) {
+            .pc-date-popover { flex-direction: column; }
+            .pc-presets { border-right: none; border-bottom: 1px solid var(--mr-border); padding-right: 0; padding-bottom: 10px; }
+        }
 
         /* Bảng */
         .note-hot { font-weight: 700; color: var(--mr-warn); }
         .mr-table .mr-badge { margin-right: 4px; }
+        /* Cột sort được: click luân phiên tăng -> giảm -> bỏ sort */
+        th.pc-sortable { cursor: pointer; user-select: none; white-space: nowrap; }
+        th.pc-sortable:hover { color: var(--mr-accent, #2563eb); }
+        th.pc-sortable::after { content: ' ↕'; font-size: 11px; opacity: .35; }
+        th.pc-sortable[data-dir="asc"]::after { content: ' ↑'; opacity: 1; color: var(--mr-accent, #2563eb); }
+        th.pc-sortable[data-dir="desc"]::after { content: ' ↓'; opacity: 1; color: var(--mr-accent, #2563eb); }
         .customer-id { font-size: 11px; color: var(--mr-muted); word-break: break-all; }
         .reason-text { font-size: 12px; color: var(--mr-text-2); }
 
@@ -108,7 +139,7 @@
             <span id="pcLiveStatus" class="pc-live" title="Trạng thái cập nhật realtime">
                 <span class="pc-live-dot"></span><span id="pcLiveText">Đang tải…</span>
             </span>
-            <button type="button" class="mr-btn" id="pcRefreshBtn">↻ Làm mới</button>
+<!--            <button type="button" class="mr-btn" id="pcRefreshBtn">↻ Làm mới</button>-->
 <!--            <label class="pc-autorefresh">-->
 <!--                <input type="checkbox" id="pcAutoRefresh" checked> Tự động cập nhật (60s)-->
 <!--            </label>-->
@@ -162,14 +193,37 @@
                 <option value="C">Nhóm C</option>
             </select>
         </div>
-        <div class="mr-field pc-date">
-            <label for="fromDate">Ngày tạo KH từ</label>
-            <input class="mr-input" type="date" id="fromDate" th:value="${fromDate}">
-        </div>
-        <div class="mr-field pc-date">
-            <label for="toDate">Đến ngày</label>
-            <input class="mr-input" type="date" id="toDate" th:value="${toDate}">
-        </div>
+<!--        <div class="mr-field pc-daterange">-->
+<!--            <label>Ngày tạo KH</label>-->
+<!--            <div class="pc-dd">-->
+<!--                <button type="button" class="mr-input pc-date-trigger" id="pcDateBtn" aria-haspopup="true">-->
+<!--                    <span id="pcDateLabel">Tất cả thời gian</span>-->
+<!--                    <span class="pc-cal" aria-hidden="true">📅</span>-->
+<!--                </button>-->
+<!--                <div class="pc-date-popover" id="pcDatePopover" hidden>-->
+<!--                    <div class="pc-presets">-->
+<!--                        <button type="button" class="pc-preset" data-preset="today">Hôm nay</button>-->
+<!--                        <button type="button" class="pc-preset" data-preset="yesterday">Hôm qua</button>-->
+<!--                        <button type="button" class="pc-preset" data-preset="last7">7 ngày qua</button>-->
+<!--                        <button type="button" class="pc-preset" data-preset="last30">30 ngày qua</button>-->
+<!--                        <button type="button" class="pc-preset" data-preset="last90">90 ngày qua</button>-->
+<!--                        <button type="button" class="pc-preset" data-preset="lastMonth">Tháng trước</button>-->
+<!--                        <button type="button" class="pc-preset" data-preset="weekToDate">Đầu tuần đến nay</button>-->
+<!--                        <button type="button" class="pc-preset" data-preset="monthToDate">Đầu tháng đến nay</button>-->
+<!--                    </div>-->
+<!--                    <div class="pc-date-body">-->
+<!--                        <div class="pc-date-fields">-->
+<!--                            <label>Từ ngày<input class="mr-input" type="date" id="fromDate" th:value="${fromDate}"></label>-->
+<!--                            <label>Đến ngày<input class="mr-input" type="date" id="toDate" th:value="${toDate}"></label>-->
+<!--                        </div>-->
+<!--                        <div class="pc-date-actions">-->
+<!--                            <button type="button" class="mr-btn" id="pcDateClear">Xoá</button>-->
+<!--                            <button type="button" class="mr-btn mr-btn&#45;&#45;primary" id="pcDateApply">Áp dụng</button>-->
+<!--                        </div>-->
+<!--                    </div>-->
+<!--                </div>-->
+<!--            </div>-->
+<!--        </div>-->
         <div class="mr-field pc-search">
             <label for="pcSearch">Tìm kiếm (tên hoặc SĐT)</label>
             <input class="mr-input" type="text" id="pcSearch" placeholder="Nhập tên khách hoặc số điện thoại…" style="width:100%">
@@ -185,12 +239,12 @@
                     <th>Tên khách hàng</th>
                     <th>SĐT</th>
                     <th>Mã KH</th>
-                    <th class="num">Ghi chú</th>
-                    <th class="num">Tổng đơn</th>
-                    <th class="num">Đơn thành công</th>
-                    <th>Ngày tạo KH</th>
-                    <th>Ghi chú gần nhất</th>
-                    <th>Đơn nhận gần nhất</th>
+                    <th class="num pc-sortable" data-sort="noteCount">Ghi chú</th>
+                    <th class="num pc-sortable" data-sort="orderCount">Tổng đơn</th>
+                    <th class="num pc-sortable" data-sort="succeedOrderCount">Đơn thành công</th>
+                    <th class="pc-sortable" data-sort="insertedAt">Ngày tạo KH</th>
+                    <th class="pc-sortable" data-sort="lastNoteAt">Ghi chú gần nhất</th>
+                    <th class="pc-sortable" data-sort="lastReceivedAt">Đơn nhận gần nhất</th>
                     <th>Lý do cảnh báo</th>
                 </tr>
                 </thead>
@@ -215,11 +269,11 @@
         </select>
     </div>
 
-    <div class="share-meta">
-        Dữ liệu truy vấn trực tiếp từ POS DB lúc <span id="pcGeneratedAt">--</span>.
-        Nhóm B tính khách có ≥ 1 ghi chú, tạo trong vòng <span id="pcMaxDays" th:text="${maxDays}">30</span> ngày gần nhất;
-        Nhóm C: đơn đã nhận gần nhất cách đây hơn <span id="pcMonths" th:text="${months}">5</span> tháng.
-    </div>
+<!--    <div class="share-meta">-->
+<!--        Dữ liệu truy vấn trực tiếp từ POS DB lúc <span id="pcGeneratedAt">&#45;&#45;</span>.-->
+<!--        Nhóm B tính khách có ≥ 1 ghi chú, tạo trong vòng <span id="pcMaxDays" th:text="${maxDays}">30</span> ngày gần nhất;-->
+<!--        Nhóm C: đơn đã nhận gần nhất cách đây hơn <span id="pcMonths" th:text="${months}">5</span> tháng.-->
+<!--    </div>-->
 
     <div class="share-foot">MeraGroup · Số Thả Nổi</div>
 </div>

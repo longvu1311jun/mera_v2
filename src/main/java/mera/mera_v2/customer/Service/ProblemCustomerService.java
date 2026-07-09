@@ -27,7 +27,7 @@ public class ProblemCustomerService {
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 
     public static final int DEFAULT_MIN_NOTES = 5;
-    public static final int DEFAULT_HOURS = 7;
+    public static final int DEFAULT_HOURS = 72;
     public static final int DEFAULT_MAX_DAYS = 30;
     public static final int DEFAULT_STALE_MONTHS = 5;
 

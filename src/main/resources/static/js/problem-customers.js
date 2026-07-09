@@ -20,6 +20,7 @@
     let lastData = null;
     let errorState = false;
     let inFlight = false;
+    let currentAbort = null;
     let pollTimer = null;
     let searchDebounce = null;
 
@@ -28,7 +29,9 @@
         page: 1,
         pageSize: (pageSizeEl && parseInt(pageSizeEl.value, 10)) || 50,
         group: 'all',        // all | A | B | C
-        search: ''
+        search: '',
+        sortKey: null,       // null = giữ thứ tự mặc định từ server
+        sortDir: null        // 'asc' | 'desc' | null
     };
 
     function escapeHtml(s) {
@@ -63,6 +66,62 @@
             }
             return true;
         });
+    }
+
+    // ---- Sắp xếp theo cột (asc -> desc -> bỏ sort) ----
+    /** "dd/MM/yyyy HH:mm" -> số so sánh được; "—"/rỗng -> null (luôn đẩy xuống cuối). */
+    function dateSortVal(s) {
+        if (!s || s === '—') return null;
+        const m = s.match(/(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2})/);
+        if (!m) return null;
+        return +(m[3] + m[2] + m[1] + m[4] + m[5]);
+    }
+
+    const SORT_COLS = {
+        noteCount: r => r.noteCount,
+        orderCount: r => r.orderCount,
+        succeedOrderCount: r => r.succeedOrderCount,
+        insertedAt: r => dateSortVal(r.insertedAt),
+        lastNoteAt: r => dateSortVal(r.lastNoteAt),
+        lastReceivedAt: r => dateSortVal(r.lastReceivedAt)
+    };
+
+    function sortedRows(rows) {
+        const getter = state.sortKey && SORT_COLS[state.sortKey];
+        if (!getter || !state.sortDir) return rows;
+        const dir = state.sortDir === 'asc' ? 1 : -1;
+        return rows.slice().sort((a, b) => {
+            const va = getter(a), vb = getter(b);
+            if (va == null && vb == null) return 0;
+            if (va == null) return 1;   // giá trị rỗng luôn xuống cuối
+            if (vb == null) return -1;
+            return va < vb ? -dir : (va > vb ? dir : 0);
+        });
+    }
+
+    function updateSortIndicators() {
+        document.querySelectorAll('th.pc-sortable').forEach(th => {
+            if (th.getAttribute('data-sort') === state.sortKey && state.sortDir) {
+                th.setAttribute('data-dir', state.sortDir);
+            } else {
+                th.removeAttribute('data-dir');
+            }
+        });
+    }
+
+    function toggleSort(key) {
+        if (state.sortKey !== key) {
+            state.sortKey = key;
+            state.sortDir = 'asc';
+        } else if (state.sortDir === 'asc') {
+            state.sortDir = 'desc';
+        } else {
+            state.sortKey = null;   // lần 3: bỏ sort, về thứ tự mặc định
+            state.sortDir = null;
+        }
+        state.page = 1;
+        updateSortIndicators();
+        applyView();
     }
 
     function renderRows(rows, offset) {
@@ -138,7 +197,7 @@
 
     // ---- Áp dụng bộ lọc/tìm kiếm + phân trang (tức thời, không gọi server) ----
     function applyView() {
-        const rows = filteredRows();
+        const rows = sortedRows(filteredRows());
         const total = rows.length;
         const totalPages = Math.max(1, Math.ceil(total / state.pageSize));
         if (state.page > totalPages) state.page = totalPages;
@@ -188,12 +247,22 @@
     }
 
     async function loadData(silent) {
-        if (inFlight) return;
+        if (inFlight) {
+            if (silent) return;               // poll nền có thể bỏ qua
+            if (currentAbort) currentAbort.abort(); // hành động của user: hủy request cũ, ưu tiên chạy ngay
+        }
         inFlight = true;
-        if (!silent) setLive('is-refresh', 'Đang cập nhật…');
+        const ac = new AbortController();
+        currentAbort = ac;
+        if (!silent) {
+            setLive('is-refresh', 'Đang cập nhật…');
+            // Feedback rõ ràng: bảng chuyển sang trạng thái đang tải (query có thể mất ~30s lần đầu)
+            body.innerHTML = '<tr><td colspan="11" class="mr-empty">⏳ Đang truy vấn dữ liệu, vui lòng đợi…</td></tr>';
+            toggle($('pcEmpty'), false);
+        }
         try {
             const params = serverFilters();
-            const res = await fetch(DATA_URL + '?' + params.toString());
+            const res = await fetch(DATA_URL + '?' + params.toString(), { signal: ac.signal });
             if (!res.ok) throw new Error('HTTP ' + res.status);
             const data = await res.json();
             lastData = data;
@@ -217,6 +286,7 @@
             set('pcMaxDays', data.maxDays);
             set('pcMonths', data.months);
             SERVER_FILTER_KEYS.forEach(k => { const el = $(k); if (el && data[k] != null) el.value = data[k]; });
+            updateDateLabel();
 
             // Giữ URL cho các filter server (chỉ khi trang có form)
             if ($('pcFilterForm')) {
@@ -226,10 +296,12 @@
             applyView();
             setLive('is-live', 'Cập nhật ' + new Date().toLocaleTimeString('vi-VN'));
         } catch (e) {
+            if (e.name === 'AbortError') return; // đã bị thay thế bởi request mới hơn
             console.error('Load số nổi lỗi:', e);
             setLive('is-down', 'Lỗi tải dữ liệu');
+            if (!silent) applyView(); // khôi phục bảng từ cache client thay vì kẹt ở "đang tải"
         } finally {
-            inFlight = false;
+            if (currentAbort === ac) { inFlight = false; currentAbort = null; }
         }
     }
 
@@ -257,14 +329,13 @@
     const groupSel = $('pcGroupFilter');
     if (groupSel) groupSel.addEventListener('change', function () { setGroup(this.value); });
 
-    // Khoảng Ngày tạo KH là filter server -> đổi ngày thì fetch lại
-    ['fromDate', 'toDate'].forEach(id => {
-        const el = $(id);
-        if (el) el.addEventListener('change', function () { state.page = 1; loadData(false); });
-    });
-
     document.querySelectorAll('.mr-stat[data-group]').forEach(el => {
         el.addEventListener('click', () => setGroup(el.getAttribute('data-group')));
+    });
+
+    // Sort theo cột: click luân phiên tăng dần -> giảm dần -> bỏ sort
+    document.querySelectorAll('th.pc-sortable').forEach(th => {
+        th.addEventListener('click', () => toggleSort(th.getAttribute('data-sort')));
     });
 
     const searchEl = $('pcSearch');
@@ -280,6 +351,102 @@
     function stopPolling() { if (pollTimer) { clearInterval(pollTimer); pollTimer = null; } }
     const auto = $('pcAutoRefresh');
     if (auto) auto.addEventListener('change', function () { this.checked ? startPolling() : stopPolling(); });
+
+    // ---- Bộ chọn khoảng Ngày tạo KH (popover + preset + Áp dụng) ----
+    const dateBtn = $('pcDateBtn');
+    const datePopover = $('pcDatePopover');
+    const dateLabel = $('pcDateLabel');
+    const fromEl = $('fromDate');
+    const toEl = $('toDate');
+
+    function pad2(n) { return String(n).padStart(2, '0'); }
+    function fmtISO(d) { return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); }
+    function isoToDisplay(iso) {
+        if (!iso) return '';
+        const p = iso.split('-');
+        return p.length === 3 ? (p[2] + '/' + p[1] + '/' + p[0]) : iso;
+    }
+
+    function updateDateLabel() {
+        if (!dateLabel) return;
+        const f = fromEl ? fromEl.value : '';
+        const t = toEl ? toEl.value : '';
+        if (f && t) dateLabel.textContent = isoToDisplay(f) + ' – ' + isoToDisplay(t);
+        else if (f) dateLabel.textContent = 'Từ ' + isoToDisplay(f);
+        else if (t) dateLabel.textContent = 'Đến ' + isoToDisplay(t);
+        else dateLabel.textContent = 'Tất cả thời gian';
+    }
+
+    function onDateOutside(e) {
+        if (!datePopover) return;
+        if (!datePopover.contains(e.target) && dateBtn && !dateBtn.contains(e.target)) closeDatePopover();
+    }
+    function openDatePopover() {
+        if (!datePopover) return;
+        datePopover.hidden = false;
+        document.addEventListener('mousedown', onDateOutside);
+    }
+    function closeDatePopover() {
+        if (!datePopover) return;
+        datePopover.hidden = true;
+        document.removeEventListener('mousedown', onDateOutside);
+    }
+
+    function computePreset(name) {
+        const now = new Date();
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const start = new Date(today), end = new Date(today);
+        switch (name) {
+            case 'today': break;
+            case 'yesterday': start.setDate(today.getDate() - 1); end.setDate(today.getDate() - 1); break;
+            case 'last7': start.setDate(today.getDate() - 6); break;
+            case 'last30': start.setDate(today.getDate() - 29); break;
+            case 'last90': start.setDate(today.getDate() - 89); break;
+            case 'lastMonth': {
+                const s = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+                const e = new Date(today.getFullYear(), today.getMonth(), 0);
+                return { from: fmtISO(s), to: fmtISO(e) };
+            }
+            case 'weekToDate': { const dow = (today.getDay() + 6) % 7; start.setDate(today.getDate() - dow); break; }
+            case 'monthToDate': start.setDate(1); break;
+            default: return { from: '', to: '' };
+        }
+        return { from: fmtISO(start), to: fmtISO(end) };
+    }
+
+    function applyDates() {
+        updateDateLabel();
+        state.page = 1;
+        closeDatePopover();
+        loadData(false);
+    }
+
+    if (dateBtn && datePopover) {
+        dateBtn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            datePopover.hidden ? openDatePopover() : closeDatePopover();
+        });
+        document.querySelectorAll('.pc-preset').forEach(btn => {
+            btn.addEventListener('click', function () {
+                const r = computePreset(this.getAttribute('data-preset'));
+                if (fromEl) fromEl.value = r.from;
+                if (toEl) toEl.value = r.to;
+                applyDates();
+            });
+        });
+        const dateApply = $('pcDateApply');
+        if (dateApply) dateApply.addEventListener('click', applyDates);
+        const dateClear = $('pcDateClear');
+        if (dateClear) dateClear.addEventListener('click', function () {
+            if (fromEl) fromEl.value = '';
+            if (toEl) toEl.value = '';
+            applyDates();
+        });
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape' && !datePopover.hidden) closeDatePopover();
+        });
+    }
+    updateDateLabel();
 
     // Khởi động
     loadData(false);

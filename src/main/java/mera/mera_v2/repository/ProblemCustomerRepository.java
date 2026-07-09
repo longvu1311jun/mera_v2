@@ -1,10 +1,14 @@
 package mera.mera_v2.repository;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
+import jakarta.persistence.QueryHint;
+import mera.mera_v2.customer.DTO.OrderPresenceView;
 import mera.mera_v2.customer.DTO.ProblemCustomerView;
 import mera.mera_v2.entity.Customer;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.QueryHints;
 import org.springframework.data.repository.Repository;
 import org.springframework.data.repository.query.Param;
 
@@ -25,9 +29,15 @@ import org.springframework.data.repository.query.Param;
  *
  * lastReceivedAt = MAX của 2 nhánh (khớp mã KH / khớp SĐT); NULL khi chưa có đơn đã nhận.
  * Dùng GREATEST(COALESCE(a,b), COALESCE(b,a)) để giữ đúng kiểu DATETIME (tránh sentinel chuỗi).
+ *
+ * Hiệu năng: filter khoảng Ngày tạo KH (:fromDate/:toDate) được đẩy vào TỪNG derived table
+ * (JOIN customers c2 đã lọc) để khi chọn khoảng hẹp, các phép GROUP BY chỉ chạy trên tập
+ * khách trong khoảng thay vì toàn bảng orders / customer_notes. Query cũng đặt timeout 90s
+ * (query hint) để không bao giờ treo vô hạn khi DB quá tải.
  */
 public interface ProblemCustomerRepository extends Repository<Customer, String> {
 
+    @QueryHints(@QueryHint(name = "jakarta.persistence.query.timeout", value = "90000"))
     @Query(value = """
         SELECT c.id AS customerId,
                c.name AS name,
@@ -43,34 +53,44 @@ public interface ProblemCustomerRepository extends Repository<Customer, String> 
                         COALESCE(oph.last_received_at, rcv.last_received_at)) AS lastReceivedAt
         FROM customers c
         LEFT JOIN (
-            SELECT customer_id, COUNT(*) AS note_count, MAX(created_at) AS last_note_at
-            FROM customer_notes
-            WHERE removed_at IS NULL
-            GROUP BY customer_id
+            SELECT cn.customer_id, COUNT(*) AS note_count, MAX(cn.created_at) AS last_note_at
+            FROM customer_notes cn
+            JOIN customers c2 ON c2.id = cn.customer_id
+                 AND c2.inserted_at >= :fromDate AND c2.inserted_at < :toDate
+            WHERE cn.removed_at IS NULL
+            GROUP BY cn.customer_id
         ) n ON n.customer_id = c.id
         LEFT JOIN (
-            SELECT customer_id, COUNT(*) AS cnt
-            FROM orders
-            WHERE status IN (11, 1, 8, 9, 2)
-            GROUP BY customer_id
+            SELECT o.customer_id, COUNT(*) AS cnt
+            FROM orders o
+            JOIN customers c2 ON c2.id = o.customer_id
+                 AND c2.inserted_at >= :fromDate AND c2.inserted_at < :toDate
+            WHERE o.status IN (11, 1, 8, 9, 2)
+            GROUP BY o.customer_id
         ) act ON act.customer_id = c.id
         LEFT JOIN (
-            SELECT customer_id, COUNT(*) AS cnt, MAX(inserted_at) AS last_received_at
-            FROM orders
-            WHERE status IN (3, 16)
-            GROUP BY customer_id
+            SELECT o.customer_id, COUNT(*) AS cnt, MAX(o.inserted_at) AS last_received_at
+            FROM orders o
+            JOIN customers c2 ON c2.id = o.customer_id
+                 AND c2.inserted_at >= :fromDate AND c2.inserted_at < :toDate
+            WHERE o.status IN (3, 16)
+            GROUP BY o.customer_id
         ) rcv ON rcv.customer_id = c.id
         -- Tổng đơn (mọi trạng thái) khớp theo mã KH
         LEFT JOIN (
-            SELECT customer_id, COUNT(*) AS cnt
-            FROM orders
-            GROUP BY customer_id
+            SELECT o.customer_id, COUNT(*) AS cnt
+            FROM orders o
+            JOIN customers c2 ON c2.id = o.customer_id
+                 AND c2.inserted_at >= :fromDate AND c2.inserted_at < :toDate
+            GROUP BY o.customer_id
         ) tot ON tot.customer_id = c.id
         LEFT JOIN (
-            SELECT customer_id,
-                   SUBSTRING_INDEX(GROUP_CONCAT(phone_number ORDER BY is_primary DESC, id ASC), ',', 1) AS phone_number
-            FROM customer_phone_numbers
-            GROUP BY customer_id
+            SELECT cpn.customer_id,
+                   SUBSTRING_INDEX(GROUP_CONCAT(cpn.phone_number ORDER BY cpn.is_primary DESC, cpn.id ASC), ',', 1) AS phone_number
+            FROM customer_phone_numbers cpn
+            JOIN customers c2 ON c2.id = cpn.customer_id
+                 AND c2.inserted_at >= :fromDate AND c2.inserted_at < :toDate
+            GROUP BY cpn.customer_id
         ) p ON p.customer_id = c.id
         LEFT JOIN (
             SELECT cpn.customer_id,
@@ -81,6 +101,8 @@ public interface ProblemCustomerRepository extends Repository<Customer, String> 
                    SUM(CASE WHEN op.status IN (3, 16) AND NOT (op.customer_id <=> cpn.customer_id) THEN 1 ELSE 0 END) AS received_cnt,
                    SUM(CASE WHEN NOT (op.customer_id <=> cpn.customer_id) THEN 1 ELSE 0 END) AS total_cnt
             FROM customer_phone_numbers cpn
+            JOIN customers c2 ON c2.id = cpn.customer_id
+                 AND c2.inserted_at >= :fromDate AND c2.inserted_at < :toDate
             JOIN (
                 SELECT customer_id, status, inserted_at,
                        RIGHT(REGEXP_REPLACE(customer_phone, '[^0-9]', ''), 9) AS p9
@@ -122,4 +144,49 @@ public interface ProblemCustomerRepository extends Repository<Customer, String> 
         @Param("toDate") LocalDateTime toDate,
         @Param("maxRows") int maxRows
     );
+
+    /**
+     * Kiểm tra một tập khách (đã rời danh sách Số thả nổi) hiện có đơn hay không, để phân biệt
+     * "đã tối ưu" (có đơn đang xử lý / đã nhận) với "rời vì lý do khác".
+     *
+     * <p>Đối chiếu đơn theo mã KH VÀ theo SĐT (9 số cuối), khử trùng phần khớp SĐT với phần đã
+     * khớp mã KH — cùng logic với {@link #findProblemCustomers}. Chỉ quét trong phạm vi :ids nên
+     * nhẹ hơn nhiều so với query danh sách đầy đủ.</p>
+     */
+    @QueryHints(@QueryHint(name = "jakarta.persistence.query.timeout", value = "90000"))
+    @Query(value = """
+        SELECT c.id AS customerId,
+               (COALESCE(byId.act, 0) + COALESCE(byPhone.act, 0)) AS activeCount,
+               (COALESCE(byId.rcv, 0) + COALESCE(byPhone.rcv, 0)) AS receivedCount,
+               (COALESCE(byId.tot, 0) + COALESCE(byPhone.tot, 0)) AS totalCount
+        FROM customers c
+        LEFT JOIN (
+            SELECT o.customer_id AS cid,
+                   SUM(CASE WHEN o.status IN (11, 1, 8, 9, 2) THEN 1 ELSE 0 END) AS act,
+                   SUM(CASE WHEN o.status IN (3, 16) THEN 1 ELSE 0 END) AS rcv,
+                   COUNT(*) AS tot
+            FROM orders o
+            WHERE o.customer_id IN (:ids)
+            GROUP BY o.customer_id
+        ) byId ON byId.cid = c.id
+        LEFT JOIN (
+            SELECT cpn.customer_id AS cid,
+                   SUM(CASE WHEN op.status IN (11, 1, 8, 9, 2) AND NOT (op.customer_id <=> cpn.customer_id) THEN 1 ELSE 0 END) AS act,
+                   SUM(CASE WHEN op.status IN (3, 16) AND NOT (op.customer_id <=> cpn.customer_id) THEN 1 ELSE 0 END) AS rcv,
+                   SUM(CASE WHEN NOT (op.customer_id <=> cpn.customer_id) THEN 1 ELSE 0 END) AS tot
+            FROM customer_phone_numbers cpn
+            JOIN (
+                SELECT customer_id, status,
+                       RIGHT(REGEXP_REPLACE(customer_phone, '[^0-9]', ''), 9) AS p9
+                FROM orders
+                WHERE customer_phone IS NOT NULL
+                  AND LENGTH(REGEXP_REPLACE(customer_phone, '[^0-9]', '')) >= 9
+            ) op ON RIGHT(cpn.phone_number, 9) = op.p9
+            WHERE cpn.customer_id IN (:ids)
+              AND LENGTH(cpn.phone_number) >= 9
+            GROUP BY cpn.customer_id
+        ) byPhone ON byPhone.cid = c.id
+        WHERE c.id IN (:ids)
+        """, nativeQuery = true)
+    List<OrderPresenceView> checkOrderPresence(@Param("ids") Collection<String> ids);
 }

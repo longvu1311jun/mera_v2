@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Khách Đã Tối Ưu - Mera</title>
+    <script th:replace="~{fragments/mera-layout :: themeInit}"></script>
+    <link rel="icon" type="image/jpeg" href="/meraicon.ico">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/mera-ui.css">
+    <style>
+        th.oc-sortable { cursor: pointer; user-select: none; white-space: nowrap; }
+        th.oc-sortable:hover { color: var(--mr-accent, #2563eb); }
+        th.oc-sortable::after { content: ' ↕'; font-size: 11px; opacity: .35; }
+        th.oc-sortable[data-dir="asc"]::after { content: ' ↑'; opacity: 1; color: var(--mr-accent, #2563eb); }
+        th.oc-sortable[data-dir="desc"]::after { content: ' ↓'; opacity: 1; color: var(--mr-accent, #2563eb); }
+        .customer-id { font-size: 11px; color: var(--mr-muted); word-break: break-all; }
+        .reason-text { font-size: 12px; color: var(--mr-text-2); }
+        .oc-arrow { color: var(--mr-muted); margin: 0 3px; }
+        .oc-after { font-weight: 700; color: var(--mr-ok, #16a34a); }
+
+        .pc-toolbar { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 12px; }
+        .pc-live { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--mr-muted); }
+        .pc-live-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--mr-muted); transition: background .3s; }
+        .pc-live.is-live .pc-live-dot { background: var(--mr-ok, #16a34a); animation: pcPulse 2s infinite; }
+        .pc-live.is-down .pc-live-dot { background: var(--mr-danger, #dc2626); }
+        .pc-live.is-refresh .pc-live-dot { background: var(--mr-accent, #2563eb); }
+        @keyframes pcPulse {
+            0% { box-shadow: 0 0 0 0 rgba(22,163,74,.5); }
+            70% { box-shadow: 0 0 0 6px rgba(22,163,74,0); }
+            100% { box-shadow: 0 0 0 0 rgba(22,163,74,0); }
+        }
+        .pc-autorefresh { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--mr-text-2); cursor: pointer; }
+
+        .pc-viewbar { display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+        .pc-viewbar .pc-search { flex: 1; min-width: 220px; }
+
+        .pc-pagination-bar {
+            display: flex; align-items: center; justify-content: space-between;
+            gap: 12px; flex-wrap: wrap; padding: 14px 4px 2px;
+        }
+        .pc-pagination-info { font-size: 13px; color: var(--mr-muted); }
+        .pc-ellipsis { min-width: 32px; text-align: center; color: var(--mr-muted); user-select: none; }
+        .pc-pagesize { width: auto; min-width: 120px; }
+
+        @media (max-width: 768px) {
+            .pc-pagination-bar { justify-content: center; }
+        }
+    </style>
+</head>
+<body class="mera-page">
+<div class="mr-shell">
+    <th:block th:replace="~{fragments/mera-layout :: sidebar('optimizedCustomers')}"></th:block>
+    <div class="mr-shell-main">
+        <th:block th:replace="~{fragments/mera-layout :: topbar('Khách Đã Tối Ưu')}"></th:block>
+        <main class="mr-shell-content">
+    <div class="mr-page-header">
+        <div>
+            <div class="mr-page-title"><span>✅</span> Khách Đã Tối Ưu</div>
+            <div class="mr-page-subtitle">
+                Khách từng nằm trong danh sách Số thả nổi và đã rời khỏi danh sách vì đã lên đơn
+                (đơn đang xử lý hoặc đã nhận) sau khi được sale chăm lại.
+            </div>
+        </div>
+    </div>
+
+    <div class="mr-stat-grid">
+        <div class="mr-stat mr-stat--accent">
+            <div class="mr-stat-label">Tổng khách đã tối ưu</div>
+            <div class="mr-stat-value" id="ocTotal">0</div>
+        </div>
+        <div class="mr-stat mr-stat--success">
+            <div class="mr-stat-label">Tối ưu hôm nay</div>
+            <div class="mr-stat-value" id="ocToday">0</div>
+        </div>
+    </div>
+
+    <div class="pc-toolbar">
+        <button type="button" class="mr-btn" id="ocRefreshBtn">↻ Làm mới</button>
+        <label class="pc-autorefresh">
+            <input type="checkbox" id="ocAutoRefresh" checked>
+            Tự động cập nhật (60s)
+        </label>
+        <span id="ocLiveStatus" class="pc-live" title="Trạng thái cập nhật">
+            <span class="pc-live-dot"></span><span id="ocLiveText">Đang tải…</span>
+        </span>
+    </div>
+
+    <div class="mr-alert mr-alert--danger" id="ocErrorAlert" style="display:none"></div>
+
+    <div class="pc-viewbar">
+        <div class="mr-field pc-search">
+            <label for="ocSearch">Tìm kiếm (tên hoặc SĐT)</label>
+            <input class="mr-input" type="text" id="ocSearch" placeholder="Nhập tên khách hoặc số điện thoại…" style="width:100%">
+        </div>
+    </div>
+
+    <div class="mr-card mr-card--flush">
+        <div class="mr-table-scroll">
+            <table class="mr-table">
+                <thead>
+                <tr>
+                    <th>STT</th>
+                    <th>Tên khách hàng</th>
+                    <th>SĐT</th>
+                    <th>Mã KH</th>
+                    <th class="num oc-sortable" data-sort="noteCount">Ghi chú</th>
+                    <th>Tổng đơn (trước → sau)</th>
+                    <th>Đơn thành công (trước → sau)</th>
+                    <th class="oc-sortable" data-sort="customerCreatedText">Ngày tạo KH</th>
+                    <th class="oc-sortable" data-sort="firstSeenAt">Vào danh sách</th>
+                    <th>Lý do khi thả nổi</th>
+                    <th class="oc-sortable" data-sort="optimizedAt">Thời điểm tối ưu</th>
+                </tr>
+                </thead>
+                <tbody id="ocBody">
+                <tr><td colspan="11" class="mr-empty">Đang tải dữ liệu…</td></tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="mr-empty" id="ocEmpty" style="display:none">
+            Chưa có khách hàng nào được ghi nhận đã tối ưu.
+        </div>
+    </div>
+
+    <div class="pc-pagination-bar">
+        <div class="pc-pagination-info" id="ocPageInfo">—</div>
+        <div class="mr-pagination" id="ocPager"></div>
+        <select class="mr-select pc-pagesize" id="ocPageSize">
+            <option th:each="opt : ${pageSizeOptions}"
+                    th:value="${opt}"
+                    th:text="${opt} + ' / trang'"
+                    th:selected="${opt == pageSize}">50 / trang</option>
+        </select>
+    </div>
+
+    <div class="mr-meta-line">
+        Danh sách được đối soát tự động mỗi giờ. Cập nhật lúc <span id="ocGeneratedAt">--</span>.
+        Khách được ghi nhận "đã tối ưu" khi rời danh sách Số thả nổi vì phát sinh đơn đang xử lý hoặc đã nhận.
+    </div>
+        </main>
+        <footer class="mr-shell-footer">MeraGroup Dashboard v2.0</footer>
+    </div>
+</div>
+<th:block th:replace="~{fragments/mera-layout :: shellScript}"></th:block>
+<script src="/js/optimized-customers.js"></script>
+</body>
+</html>
