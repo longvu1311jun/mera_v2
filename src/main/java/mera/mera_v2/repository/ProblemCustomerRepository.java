@@ -93,6 +93,9 @@ public interface ProblemCustomerRepository extends Repository<Customer, String> 
         ) oph ON oph.customer_id = c.id
         WHERE COALESCE(act.cnt, 0) = 0
           AND COALESCE(oph.has_active, 0) = 0
+          -- Lọc theo khoảng Ngày tạo KH (mặc định mở rộng khi không truyền)
+          AND c.inserted_at >= :fromDate
+          AND c.inserted_at < :toDate
           AND (
                -- Nhóm A / B: chưa có đơn đã nhận
                (COALESCE(rcv.cnt, 0) = 0 AND COALESCE(oph.has_received, 0) = 0
@@ -115,6 +118,8 @@ public interface ProblemCustomerRepository extends Repository<Customer, String> 
         @Param("thresholdTime") LocalDateTime thresholdTime,
         @Param("oldestTime") LocalDateTime oldestTime,
         @Param("staleTime") LocalDateTime staleTime,
+        @Param("fromDate") LocalDateTime fromDate,
+        @Param("toDate") LocalDateTime toDate,
         @Param("maxRows") int maxRows
     );
 }

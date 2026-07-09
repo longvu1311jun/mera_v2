@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Số Thả Nổi</title>
+    <script th:replace="~{fragments/mera-layout :: themeInit}"></script>
+    <link rel="icon" type="image/jpeg" href="/meraicon.ico">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/mera-ui.css">
+    <style>
+        /* ---------- Standalone Modern Minimal ---------- */
+        .share-page { max-width: 1320px; margin: 0 auto; padding: 32px 28px 56px; }
+
+        .share-header {
+            display: flex; align-items: center; justify-content: space-between; gap: 16px;
+            flex-wrap: wrap; padding-bottom: 20px; margin-bottom: 28px;
+            border-bottom: 1px solid var(--mr-border);
+        }
+        .share-title { display: flex; align-items: center; gap: 10px; font-size: 22px; font-weight: 700; letter-spacing: -0.01em; }
+        .share-title .share-badge {
+            font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase;
+            color: var(--mr-muted); padding-left: 12px; margin-left: 4px; border-left: 1px solid var(--mr-border);
+        }
+        .share-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+
+        /* Realtime indicator */
+        .pc-live { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--mr-muted); }
+        .pc-live-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--mr-muted); transition: background .3s; }
+        .pc-live.is-live .pc-live-dot { background: var(--mr-ok, #16a34a); animation: pcPulse 2s infinite; }
+        .pc-live.is-down .pc-live-dot { background: var(--mr-danger, #dc2626); }
+        .pc-live.is-refresh .pc-live-dot { background: var(--mr-accent, #2563eb); }
+        @keyframes pcPulse {
+            0% { box-shadow: 0 0 0 0 rgba(22,163,74,.5); }
+            70% { box-shadow: 0 0 0 6px rgba(22,163,74,0); }
+            100% { box-shadow: 0 0 0 0 rgba(22,163,74,0); }
+        }
+        .pc-autorefresh { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--mr-text-2); cursor: pointer; }
+
+        /* Stat tiles có tooltip */
+        .mr-stat { position: relative; cursor: pointer; transition: box-shadow .15s; }
+        .mr-stat.is-active { outline: 2px solid var(--mr-accent, #2563eb); outline-offset: 1px; }
+        .mr-stat-label { display: inline-flex; align-items: center; gap: 6px; }
+        .pc-tip {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 15px; height: 15px; border-radius: 50%;
+            border: 1px solid var(--mr-border); color: var(--mr-muted);
+            font-size: 10px; font-weight: 700; font-style: normal; line-height: 1;
+            cursor: help; user-select: none;
+        }
+        .pc-tip:hover { color: var(--mr-accent, #2563eb); border-color: var(--mr-accent, #2563eb); }
+        .pc-tip::after {
+            content: attr(data-tip);
+            position: absolute; bottom: calc(100% + 10px); left: 50%; transform: translateX(-50%);
+            width: 240px; text-align: left; line-height: 1.45;
+            background: var(--mr-surface, #fff); color: var(--mr-text, #111);
+            border: 1px solid var(--mr-border); border-radius: 10px; padding: 10px 12px;
+            font-size: 12px; font-weight: 400;
+            box-shadow: 0 10px 30px rgba(0,0,0,.14);
+            opacity: 0; visibility: hidden; transform-origin: bottom center;
+            transition: opacity .14s ease; z-index: 30; pointer-events: none;
+        }
+        .pc-tip:hover::after { opacity: 1; visibility: visible; }
+        .pc-tip--start::after { left: 0; transform: none; }
+        .pc-tip--end::after { left: auto; right: 0; transform: none; }
+
+        /* Lọc nhóm + tìm kiếm */
+        .pc-viewbar { display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap; margin: 22px 0 14px; }
+        .pc-viewbar .pc-search { flex: 1; min-width: 220px; }
+        .pc-viewbar .pc-group { min-width: 160px; }
+        .pc-viewbar .pc-date .mr-input { width: 150px; }
+
+        /* Bảng */
+        .note-hot { font-weight: 700; color: var(--mr-warn); }
+        .mr-table .mr-badge { margin-right: 4px; }
+        .customer-id { font-size: 11px; color: var(--mr-muted); word-break: break-all; }
+        .reason-text { font-size: 12px; color: var(--mr-text-2); }
+
+        /* Phân trang */
+        .pc-pagination-bar {
+            display: flex; align-items: center; justify-content: space-between;
+            gap: 12px; flex-wrap: wrap; padding: 16px 4px 2px;
+        }
+        .pc-pagination-info { font-size: 13px; color: var(--mr-muted); }
+        .pc-ellipsis { min-width: 32px; text-align: center; color: var(--mr-muted); user-select: none; }
+        .pc-pagesize { width: auto; min-width: 120px; }
+
+        .share-meta { margin-top: 18px; font-size: 12px; color: var(--mr-muted); }
+        .share-foot { margin-top: 40px; text-align: center; font-size: 12px; color: var(--mr-muted); }
+
+        @media (max-width: 768px) {
+            .share-page { padding: 20px 16px 40px; }
+            .pc-pagination-bar { justify-content: center; }
+        }
+    </style>
+</head>
+<body class="mera-page">
+<div class="share-page">
+
+    <header class="share-header">
+        <div class="share-title">
+            <span>⚠️</span> Số Thả Nổi
+            <span class="share-badge">MeraGroup</span>
+        </div>
+        <div class="share-actions">
+            <span id="pcLiveStatus" class="pc-live" title="Trạng thái cập nhật realtime">
+                <span class="pc-live-dot"></span><span id="pcLiveText">Đang tải…</span>
+            </span>
+            <button type="button" class="mr-btn" id="pcRefreshBtn">↻ Làm mới</button>
+<!--            <label class="pc-autorefresh">-->
+<!--                <input type="checkbox" id="pcAutoRefresh" checked> Tự động cập nhật (60s)-->
+<!--            </label>-->
+            <button class="mr-icon-btn mr-theme-toggle" type="button" onclick="mrToggleTheme()"
+                    aria-label="Đổi giao diện sáng/tối" data-mr-tip="Sáng / Tối">
+                <span class="ico-moon">🌙</span><span class="ico-sun">☀️</span>
+            </button>
+        </div>
+    </header>
+
+    <div class="mr-stat-grid">
+        <div class="mr-stat mr-stat--accent" data-group="all">
+            <div class="mr-stat-label">Tổng KH cảnh báo
+                <span class="pc-tip pc-tip--start" data-tip="Tổng số khách hàng đang trong diện cảnh báo (thuộc ít nhất một nhóm A/B/C). Đơn được khớp theo mã KH hoặc theo SĐT.">?</span>
+            </div>
+            <div class="mr-stat-value" id="pcTotal">0</div>
+        </div>
+        <div class="mr-stat mr-stat--warn" data-group="A">
+            <div class="mr-stat-label">Nhóm A
+                <span class="pc-tip" data-tip="Chăm nhiều ghi chú nhưng chưa có đơn đang xử lý / đã nhận.">?</span>
+            </div>
+            <div class="mr-stat-value" id="pcGroupA">0</div>
+        </div>
+        <div class="mr-stat mr-stat--danger" data-group="B">
+            <div class="mr-stat-label">Nhóm B
+                <span class="pc-tip" data-tip="Quá hạn giờ tính từ ngày tạo mà chưa có đơn đang xử lý / đã nhận.">?</span>
+            </div>
+            <div class="mr-stat-value" id="pcGroupB">0</div>
+        </div>
+        <div class="mr-stat mr-stat--info" data-group="C">
+            <div class="mr-stat-label">Nhóm C
+                <span class="pc-tip pc-tip--end" data-tip="Đơn đã nhận gần nhất đã quá lâu và hiện không có đơn đang xử lý.">?</span>
+            </div>
+            <div class="mr-stat-value" id="pcGroupC">0</div>
+        </div>
+    </div>
+
+    <div class="mr-alert mr-alert--danger" id="pcErrorAlert" style="display:none"></div>
+
+<!--    <div class="mr-alert mr-alert&#45;&#45;warn" id="pcCappedAlert" style="display:none">-->
+<!--        ⚠️ Kết quả đã chạm trần <b id="pcCappedLimit">5000</b> dòng - có thể còn khách hàng khác chưa hiển thị.-->
+<!--    </div>-->
+
+    <div class="pc-viewbar">
+        <div class="mr-field pc-group">
+            <label for="pcGroupFilter">Lọc theo nhóm</label>
+            <select id="pcGroupFilter" class="mr-select">
+                <option value="all">Tất cả nhóm</option>
+                <option value="A">Nhóm A</option>
+                <option value="B">Nhóm B</option>
+                <option value="C">Nhóm C</option>
+            </select>
+        </div>
+        <div class="mr-field pc-date">
+            <label for="fromDate">Ngày tạo KH từ</label>
+            <input class="mr-input" type="date" id="fromDate" th:value="${fromDate}">
+        </div>
+        <div class="mr-field pc-date">
+            <label for="toDate">Đến ngày</label>
+            <input class="mr-input" type="date" id="toDate" th:value="${toDate}">
+        </div>
+        <div class="mr-field pc-search">
+            <label for="pcSearch">Tìm kiếm (tên hoặc SĐT)</label>
+            <input class="mr-input" type="text" id="pcSearch" placeholder="Nhập tên khách hoặc số điện thoại…" style="width:100%">
+        </div>
+    </div>
+
+    <div class="mr-card mr-card--flush">
+        <div class="mr-table-scroll">
+            <table class="mr-table">
+                <thead>
+                <tr>
+                    <th>STT</th>
+                    <th>Tên khách hàng</th>
+                    <th>SĐT</th>
+                    <th>Mã KH</th>
+                    <th class="num">Ghi chú</th>
+                    <th class="num">Tổng đơn</th>
+                    <th class="num">Đơn thành công</th>
+                    <th>Ngày tạo KH</th>
+                    <th>Ghi chú gần nhất</th>
+                    <th>Đơn nhận gần nhất</th>
+                    <th>Lý do cảnh báo</th>
+                </tr>
+                </thead>
+                <tbody id="pcBody">
+                <tr><td colspan="11" class="mr-empty">Đang tải dữ liệu…</td></tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="mr-empty" id="pcEmpty" style="display:none">
+            🎉 Không có khách hàng nào khớp với bộ lọc hiện tại.
+        </div>
+    </div>
+
+    <div class="pc-pagination-bar">
+        <div class="pc-pagination-info" id="pcPageInfo">—</div>
+        <div class="mr-pagination" id="pcPager"></div>
+        <select class="mr-select pc-pagesize" id="pcPageSize">
+            <option th:each="opt : ${pageSizeOptions}"
+                    th:value="${opt}"
+                    th:text="${opt} + ' / trang'"
+                    th:selected="${opt == pageSize}">50 / trang</option>
+        </select>
+    </div>
+
+    <div class="share-meta">
+        Dữ liệu truy vấn trực tiếp từ POS DB lúc <span id="pcGeneratedAt">--</span>.
+        Nhóm B tính khách có ≥ 1 ghi chú, tạo trong vòng <span id="pcMaxDays" th:text="${maxDays}">30</span> ngày gần nhất;
+        Nhóm C: đơn đã nhận gần nhất cách đây hơn <span id="pcMonths" th:text="${months}">5</span> tháng.
+    </div>
+
+    <div class="share-foot">MeraGroup · Số Thả Nổi</div>
+</div>
+
+<th:block th:replace="~{fragments/mera-layout :: shellScript}"></th:block>
+<script src="/js/problem-customers.js"></script>
+</body>
+</html>

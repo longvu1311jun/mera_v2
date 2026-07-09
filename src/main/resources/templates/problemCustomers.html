@@ -18,8 +18,42 @@
         .mr-table .mr-badge { margin-right: 4px; }
         .customer-id { font-size: 11px; color: var(--mr-muted); word-break: break-all; }
         .reason-text { font-size: 12px; color: var(--mr-text-2); }
+
+        /* Stat card có thể bấm để lọc nhóm */
+        .mr-stat { cursor: pointer; transition: box-shadow .15s, transform .05s; }
+        .mr-stat.is-active { outline: 2px solid var(--mr-accent, #2563eb); outline-offset: 1px; }
+
+        /* Thanh công cụ realtime */
+        .pc-toolbar { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 12px; }
+        .pc-live { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--mr-muted); }
+        .pc-live-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--mr-muted); transition: background .3s; }
+        .pc-live.is-live .pc-live-dot { background: var(--mr-ok, #16a34a); animation: pcPulse 2s infinite; }
+        .pc-live.is-down .pc-live-dot { background: var(--mr-danger, #dc2626); }
+        .pc-live.is-refresh .pc-live-dot { background: var(--mr-accent, #2563eb); }
+        @keyframes pcPulse {
+            0% { box-shadow: 0 0 0 0 rgba(22,163,74,.5); }
+            70% { box-shadow: 0 0 0 6px rgba(22,163,74,0); }
+            100% { box-shadow: 0 0 0 0 rgba(22,163,74,0); }
+        }
+        .pc-autorefresh { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--mr-text-2); cursor: pointer; }
+
+        /* Thanh lọc/tìm kiếm phía client (không gọi lại server) */
+        .pc-viewbar { display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+        .pc-viewbar .pc-search { flex: 1; min-width: 220px; }
+        .pc-viewbar .pc-group { min-width: 150px; }
+
+        /* Thanh phân trang */
+        .pc-pagination-bar {
+            display: flex; align-items: center; justify-content: space-between;
+            gap: 12px; flex-wrap: wrap; padding: 14px 4px 2px;
+        }
+        .pc-pagination-info { font-size: 13px; color: var(--mr-muted); }
+        .pc-ellipsis { min-width: 32px; text-align: center; color: var(--mr-muted); user-select: none; }
+        .pc-pagesize { width: auto; min-width: 120px; }
+
         @media (max-width: 768px) {
             .filter-form .mr-input { width: 100%; }
+            .pc-pagination-bar { justify-content: center; }
         }
     </style>
 </head>
@@ -42,25 +76,25 @@
     </div>
 
     <div class="mr-stat-grid">
-        <div class="mr-stat mr-stat--accent">
+        <div class="mr-stat mr-stat--accent" data-group="all">
             <div class="mr-stat-label">Tổng KH cảnh báo</div>
-            <div class="mr-stat-value" th:text="${total}">0</div>
+            <div class="mr-stat-value" id="pcTotal">0</div>
         </div>
-        <div class="mr-stat mr-stat--warn">
+        <div class="mr-stat mr-stat--warn" data-group="A">
             <div class="mr-stat-label">Nhóm A - chăm nhiều chưa chốt</div>
-            <div class="mr-stat-value" th:text="${groupACount}">0</div>
+            <div class="mr-stat-value" id="pcGroupA">0</div>
         </div>
-        <div class="mr-stat mr-stat--danger">
+        <div class="mr-stat mr-stat--danger" data-group="B">
             <div class="mr-stat-label">Nhóm B - quá hạn chưa lên đơn</div>
-            <div class="mr-stat-value" th:text="${groupBCount}">0</div>
+            <div class="mr-stat-value" id="pcGroupB">0</div>
         </div>
-        <div class="mr-stat mr-stat--info">
+        <div class="mr-stat mr-stat--info" data-group="C">
             <div class="mr-stat-label">Nhóm C - lâu chưa mua lại</div>
-            <div class="mr-stat-value" th:text="${groupCCount}">0</div>
+            <div class="mr-stat-value" id="pcGroupC">0</div>
         </div>
     </div>
 
-    <form class="mr-card mr-form-row filter-form" method="get" action="/khach-hang-canh-bao">
+    <form id="pcFilterForm" class="mr-card mr-form-row filter-form" method="get" action="/khach-hang-canh-bao">
         <div class="mr-field">
             <label for="minNotes">Số ghi chú tối thiểu (Nhóm A)</label>
             <input class="mr-input" type="number" id="minNotes" name="minNotes" min="1" th:value="${minNotes}">
@@ -78,21 +112,53 @@
             <input class="mr-input" type="number" id="months" name="months" min="1" th:value="${months}">
         </div>
         <div class="mr-field">
-            <label for="limit">Giới hạn dòng</label>
-            <input class="mr-input" type="number" id="limit" name="limit" min="1" max="5000" th:value="${limit}">
+            <label for="fromDate">Ngày tạo KH từ</label>
+            <input class="mr-input" type="date" id="fromDate" name="fromDate" th:value="${fromDate}">
+        </div>
+        <div class="mr-field">
+            <label for="toDate">Đến ngày</label>
+            <input class="mr-input" type="date" id="toDate" name="toDate" th:value="${toDate}">
         </div>
         <button type="submit" class="mr-btn mr-btn--primary">Lọc</button>
     </form>
 
-    <div class="mr-alert mr-alert--danger" th:if="${errorMessage}" th:text="${errorMessage}"></div>
+    <div class="pc-toolbar">
+        <button type="button" class="mr-btn" id="pcRefreshBtn">↻ Làm mới</button>
+        <label class="pc-autorefresh">
+            <input type="checkbox" id="pcAutoRefresh" checked>
+            Tự động cập nhật (60s)
+        </label>
+        <span id="pcLiveStatus" class="pc-live" title="Trạng thái cập nhật realtime">
+            <span class="pc-live-dot"></span><span id="pcLiveText">Đang tải…</span>
+        </span>
+    </div>
 
-    <div class="mr-alert mr-alert--warn" th:if="${capped}">
-        ⚠️ Kết quả đã bị cắt ở <b th:text="${limit}">1000</b> dòng - có thể còn khách hàng khác chưa hiển thị.
-        Tăng "Giới hạn dòng" hoặc siết bộ lọc để xem đầy đủ.
+    <div class="mr-alert mr-alert--danger" id="pcErrorAlert" style="display:none"></div>
+
+    <div class="mr-alert mr-alert--warn" id="pcCappedAlert" style="display:none">
+        ⚠️ Kết quả đã chạm trần <b id="pcCappedLimit">5000</b> dòng - có thể còn khách hàng khác chưa hiển thị.
+        Siết bộ lọc để xem đầy đủ.
+    </div>
+
+    <!-- Lọc nhóm + tìm kiếm (xử lý tức thời phía client) -->
+    <div class="pc-viewbar">
+        <div class="mr-field pc-group">
+            <label for="pcGroupFilter">Lọc theo nhóm</label>
+            <select id="pcGroupFilter" class="mr-select">
+                <option value="all">Tất cả nhóm</option>
+                <option value="A">Nhóm A</option>
+                <option value="B">Nhóm B</option>
+                <option value="C">Nhóm C</option>
+            </select>
+        </div>
+        <div class="mr-field pc-search">
+            <label for="pcSearch">Tìm kiếm (tên hoặc SĐT)</label>
+            <input class="mr-input" type="text" id="pcSearch" placeholder="Nhập tên khách hoặc số điện thoại…" style="width:100%">
+        </div>
     </div>
 
     <div class="mr-card mr-card--flush">
-        <div class="mr-table-scroll" th:if="${total > 0}">
+        <div class="mr-table-scroll">
             <table class="mr-table">
                 <thead>
                 <tr>
@@ -109,47 +175,304 @@
                     <th>Lý do cảnh báo</th>
                 </tr>
                 </thead>
-                <tbody>
-                <tr th:each="row, stat : ${rows}">
-                    <td th:text="${stat.count}">1</td>
-                    <td th:text="${row.name}">Nguyễn Văn A</td>
-                    <td th:text="${row.phone != null ? row.phone : '—'}">0900000000</td>
-                    <td class="customer-id" th:text="${row.customerId}">abc-123</td>
-                    <td class="num">
-                        <span th:classappend="${row.noteCount >= minNotes} ? 'note-hot'" th:text="${row.noteCount}">5</span>
-                    </td>
-                    <td class="num" th:text="${row.orderCount}">0</td>
-                    <td class="num" th:text="${row.succeedOrderCount}">0</td>
-                    <td th:text="${row.insertedAt}">01/01/2026</td>
-                    <td th:text="${row.lastNoteAt}">01/01/2026</td>
-                    <td th:text="${row.lastReceivedAt}">—</td>
-                    <td>
-                        <span class="mr-badge mr-badge--warn" th:if="${row.groupA}">Nhóm A</span>
-                        <span class="mr-badge mr-badge--danger" th:if="${row.groupB}">Nhóm B</span>
-                        <span class="mr-badge mr-badge--info" th:if="${row.groupC}">Nhóm C</span>
-                        <div class="reason-text" th:text="${row.reason}"></div>
-                    </td>
-                </tr>
+                <tbody id="pcBody">
+                <tr><td colspan="11" class="mr-empty">Đang tải dữ liệu…</td></tr>
                 </tbody>
             </table>
         </div>
-        <div class="mr-empty" th:if="${total == 0 and errorMessage == null}">
-            🎉 Không có khách hàng nào rơi vào diện cảnh báo với bộ lọc hiện tại.
-        </div>
-        <div class="mr-empty" th:if="${errorMessage != null}">
-            Không có dữ liệu để hiển thị.
+        <div class="mr-empty" id="pcEmpty" style="display:none">
+            🎉 Không có khách hàng nào khớp với bộ lọc hiện tại.
         </div>
     </div>
 
+    <div class="pc-pagination-bar">
+        <div class="pc-pagination-info" id="pcPageInfo">—</div>
+        <div class="mr-pagination" id="pcPager"></div>
+        <select class="mr-select pc-pagesize" id="pcPageSize">
+            <option th:each="opt : ${pageSizeOptions}"
+                    th:value="${opt}"
+                    th:text="${opt} + ' / trang'"
+                    th:selected="${opt == pageSize}">50 / trang</option>
+        </select>
+    </div>
+
     <div class="mr-meta-line">
-        Dữ liệu truy vấn trực tiếp từ POS DB lúc <span th:text="${generatedAt}">--</span>.
-        Nhóm B chỉ tính khách có ≥ 1 ghi chú, tạo trong vòng <span th:text="${maxDays}">30</span> ngày gần nhất.
-        Nhóm C: đơn đã nhận (Đã nhận / Đã thu tiền) gần nhất cách đây hơn <span th:text="${months}">5</span> tháng.
+        Dữ liệu truy vấn trực tiếp từ POS DB lúc <span id="pcGeneratedAt">--</span>.
+        Nhóm B chỉ tính khách có ≥ 1 ghi chú, tạo trong vòng <span id="pcMaxDays" th:text="${maxDays}">30</span> ngày gần nhất.
+        Nhóm C: đơn đã nhận (Đã nhận / Đã thu tiền) gần nhất cách đây hơn <span id="pcMonths" th:text="${months}">5</span> tháng.
     </div>
         </main>
         <footer class="mr-shell-footer">MeraGroup Dashboard v2.0</footer>
     </div>
 </div>
 <th:block th:replace="~{fragments/mera-layout :: shellScript}"></th:block>
+<script th:inline="javascript">
+(function () {
+    const DATA_URL = '/api/khach-hang-canh-bao/data';
+    const POLL_INTERVAL_MS = 60000;
+    const SERVER_FILTER_KEYS = ['minNotes', 'hours', 'maxDays', 'months', 'fromDate', 'toDate'];
+
+    const $ = (id) => document.getElementById(id);
+    const body = $('pcBody');
+
+    // Toàn bộ tập (cache client) + trạng thái xem
+    let allRows = [];
+    let lastData = null;
+    let errorState = false;
+    let inFlight = false;
+    let pollTimer = null;
+    let searchDebounce = null;
+
+    const state = {
+        page: 1,
+        pageSize: /*[[${pageSize}]]*/ 50,
+        group: 'all',        // all | A | B | C
+        search: ''
+    };
+
+    function escapeHtml(s) {
+        if (s === null || s === undefined) return '';
+        return String(s)
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+    function normDigits(s) { return (s || '').replace(/\D/g, ''); }
+    function toggle(el, show) { if (el) el.style.display = show ? '' : 'none'; }
+    function badge(cls, txt) { return '<span class="mr-badge ' + cls + '">' + txt + '</span>'; }
+
+    function setLive(cls, text) {
+        const wrap = $('pcLiveStatus'), label = $('pcLiveText');
+        if (wrap) { wrap.classList.remove('is-live', 'is-down', 'is-refresh'); if (cls) wrap.classList.add(cls); }
+        if (label && text) label.textContent = text;
+    }
+
+    // ---- Lọc client (nhóm + tìm kiếm) ----
+    function filteredRows() {
+        const g = state.group;
+        const term = state.search.trim().toLowerCase();
+        const digits = normDigits(state.search);
+        return allRows.filter(r => {
+            if (g === 'A' && !r.groupA) return false;
+            if (g === 'B' && !r.groupB) return false;
+            if (g === 'C' && !r.groupC) return false;
+            if (term) {
+                const nameMatch = (r.name || '').toLowerCase().indexOf(term) > -1;
+                const phoneMatch = digits.length > 0 && normDigits(r.phone).indexOf(digits) > -1;
+                if (!nameMatch && !phoneMatch) return false;
+            }
+            return true;
+        });
+    }
+
+    function renderRows(rows, offset) {
+        if (!rows.length) { body.innerHTML = ''; return; }
+        const minNotes = lastData ? lastData.minNotes : 0;
+        let html = '';
+        for (let i = 0; i < rows.length; i++) {
+            const r = rows[i];
+            const noteCls = r.noteCount >= minNotes ? ' class="note-hot"' : '';
+            let badges = '';
+            if (r.groupA) badges += badge('mr-badge--warn', 'Nhóm A');
+            if (r.groupB) badges += badge('mr-badge--danger', 'Nhóm B');
+            if (r.groupC) badges += badge('mr-badge--info', 'Nhóm C');
+            html += '<tr>'
+                + '<td>' + (offset + i + 1) + '</td>'
+                + '<td>' + escapeHtml(r.name) + '</td>'
+                + '<td>' + escapeHtml(r.phone != null ? r.phone : '—') + '</td>'
+                + '<td class="customer-id">' + escapeHtml(r.customerId) + '</td>'
+                + '<td class="num"><span' + noteCls + '>' + r.noteCount + '</span></td>'
+                + '<td class="num">' + r.orderCount + '</td>'
+                + '<td class="num">' + r.succeedOrderCount + '</td>'
+                + '<td>' + escapeHtml(r.insertedAt) + '</td>'
+                + '<td>' + escapeHtml(r.lastNoteAt) + '</td>'
+                + '<td>' + escapeHtml(r.lastReceivedAt) + '</td>'
+                + '<td>' + badges + '<div class="reason-text">' + escapeHtml(r.reason) + '</div></td>'
+                + '</tr>';
+        }
+        body.innerHTML = html;
+    }
+
+    function pageButton(label, page, opts) {
+        opts = opts || {};
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'mr-page-btn' + (opts.active ? ' active' : '');
+        btn.textContent = label;
+        if (opts.disabled) btn.disabled = true;
+        else btn.addEventListener('click', () => goToPage(page));
+        return btn;
+    }
+
+    function pageList(current, totalPages) {
+        const pages = [];
+        const add = (p) => { if (!pages.includes(p)) pages.push(p); };
+        add(1);
+        for (let p = current - 2; p <= current + 2; p++) if (p >= 1 && p <= totalPages) add(p);
+        add(totalPages);
+        pages.sort((a, b) => a - b);
+        const out = [];
+        for (let i = 0; i < pages.length; i++) {
+            if (i > 0 && pages[i] - pages[i - 1] > 1) out.push('…');
+            out.push(pages[i]);
+        }
+        return out;
+    }
+
+    function renderPagination(current, totalPages) {
+        const pager = $('pcPager');
+        pager.innerHTML = '';
+        pager.appendChild(pageButton('‹', current - 1, { disabled: current <= 1 }));
+        pageList(current, totalPages).forEach(item => {
+            if (item === '…') {
+                const span = document.createElement('span');
+                span.className = 'pc-ellipsis';
+                span.textContent = '…';
+                pager.appendChild(span);
+            } else {
+                pager.appendChild(pageButton(String(item), item, { active: item === current }));
+            }
+        });
+        pager.appendChild(pageButton('›', current + 1, { disabled: current >= totalPages }));
+    }
+
+    // ---- Áp dụng bộ lọc/tìm kiếm + phân trang (tức thời, không gọi server) ----
+    function applyView() {
+        const rows = filteredRows();
+        const total = rows.length;
+        const totalPages = Math.max(1, Math.ceil(total / state.pageSize));
+        if (state.page > totalPages) state.page = totalPages;
+        if (state.page < 1) state.page = 1;
+
+        const offset = (state.page - 1) * state.pageSize;
+        const slice = rows.slice(offset, offset + state.pageSize);
+        renderRows(slice, offset);
+        toggle($('pcEmpty'), total === 0 && !errorState);
+
+        const fullTotal = allRows.length;
+        let info;
+        if (total === 0) {
+            info = 'Không có kết quả';
+        } else {
+            const filteredNote = (total !== fullTotal) ? (' (lọc từ ' + fullTotal + ')') : '';
+            info = 'Hiển thị ' + (offset + 1) + '–' + (offset + slice.length) + ' / ' + total + ' KH' + filteredNote
+                 + ' · Trang ' + state.page + '/' + totalPages;
+        }
+        $('pcPageInfo').textContent = info;
+        renderPagination(state.page, totalPages);
+    }
+
+    function goToPage(page) {
+        if (page < 1) return;
+        state.page = page;
+        applyView();
+    }
+
+    function setGroup(group) {
+        state.group = group;
+        state.page = 1;
+        $('pcGroupFilter').value = group;
+        document.querySelectorAll('.mr-stat[data-group]').forEach(el => {
+            el.classList.toggle('is-active', el.getAttribute('data-group') === group);
+        });
+        applyView();
+    }
+
+    // ---- Nạp dữ liệu từ server (fetch toàn bộ) ----
+    function serverFilters() {
+        const p = new URLSearchParams();
+        SERVER_FILTER_KEYS.forEach(k => { const el = $(k); if (el && el.value !== '') p.set(k, el.value); });
+        return p;
+    }
+
+    async function loadData(silent) {
+        if (inFlight) return;
+        inFlight = true;
+        if (!silent) setLive('is-refresh', 'Đang cập nhật…');
+        try {
+            const params = serverFilters();
+            const res = await fetch(DATA_URL + '?' + params.toString());
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            const data = await res.json();
+            lastData = data;
+            allRows = data.rows || [];
+            errorState = !!data.errorMessage;
+
+            // Số liệu tổng (toàn tập)
+            $('pcTotal').textContent = data.total;
+            $('pcGroupA').textContent = data.groupACount;
+            $('pcGroupB').textContent = data.groupBCount;
+            $('pcGroupC').textContent = data.groupCCount;
+
+            // Cảnh báo
+            const errAlert = $('pcErrorAlert');
+            errAlert.textContent = errorState ? data.errorMessage : '';
+            toggle(errAlert, errorState);
+            toggle($('pcCappedAlert'), data.capped && !errorState);
+
+            // Meta + đồng bộ input đã clamp
+            $('pcGeneratedAt').textContent = data.generatedAt;
+            $('pcMaxDays').textContent = data.maxDays;
+            $('pcMonths').textContent = data.months;
+            SERVER_FILTER_KEYS.forEach(k => { const el = $(k); if (el && data[k] != null) el.value = data[k]; });
+
+            // Giữ URL cho các filter server
+            try { history.replaceState(null, '', '/khach-hang-canh-bao?' + params.toString()); } catch (e) {}
+
+            applyView();
+            setLive('is-live', 'Cập nhật ' + new Date().toLocaleTimeString('vi-VN'));
+        } catch (e) {
+            console.error('Load số nổi lỗi:', e);
+            setLive('is-down', 'Lỗi tải dữ liệu');
+        } finally {
+            inFlight = false;
+        }
+    }
+
+    // ---- Sự kiện ----
+    $('pcFilterForm').addEventListener('submit', function (ev) {
+        ev.preventDefault();
+        state.page = 1;
+        loadData(false);   // filter server -> fetch lại
+    });
+
+    $('pcRefreshBtn').addEventListener('click', () => loadData(false));
+
+    $('pcPageSize').addEventListener('change', function () {
+        state.pageSize = parseInt(this.value, 10) || state.pageSize;
+        state.page = 1;
+        applyView();
+    });
+
+    $('pcGroupFilter').addEventListener('change', function () { setGroup(this.value); });
+
+    // Khoảng Ngày tạo KH là filter server -> đổi ngày thì fetch lại
+    ['fromDate', 'toDate'].forEach(id => {
+        const el = $(id);
+        if (el) el.addEventListener('change', function () { state.page = 1; loadData(false); });
+    });
+
+    document.querySelectorAll('.mr-stat[data-group]').forEach(el => {
+        el.addEventListener('click', () => setGroup(el.getAttribute('data-group')));
+    });
+
+    $('pcSearch').addEventListener('input', function () {
+        const v = this.value;
+        clearTimeout(searchDebounce);
+        searchDebounce = setTimeout(() => {
+            state.search = v;
+            state.page = 1;
+            applyView();
+        }, 200);
+    });
+
+    function startPolling() { stopPolling(); pollTimer = setInterval(() => loadData(true), POLL_INTERVAL_MS); }
+    function stopPolling() { if (pollTimer) { clearInterval(pollTimer); pollTimer = null; } }
+    $('pcAutoRefresh').addEventListener('change', function () { this.checked ? startPolling() : stopPolling(); });
+
+    // Khởi động
+    loadData(false);
+    if ($('pcAutoRefresh').checked) startPolling();
+})();
+</script>
 </body>
 </html>
