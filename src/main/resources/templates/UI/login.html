@@ -7,22 +7,24 @@
     <link rel="icon" type="image/jpeg" href="/meraicon.ico">
     <meta content="width=device-width, initial-scale=1.0" name="viewport" />
     <title>Đăng nhập | MeraGroup Sales Dashboard</title>
+    <script th:replace="~{fragments/mera-layout :: themeInit}"></script>
+    <link rel="stylesheet" href="/css/mera-ui.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet">
     <style>
         :root {
-            --color-primary: #1456f0;
-            --color-primary-hover: #0d47a1;
-            --color-canvas: #f7f7f4;
-            --color-canvas-soft: #fafaf7;
+            --color-primary: var(--mr-accent);
+            --color-primary-hover: var(--mr-accent-hover);
+            --color-canvas: var(--mr-canvas);
+            --color-canvas-soft: var(--mr-surface-2);
             --color-surface: #ffffff;
-            --color-ink: #26251e;
-            --color-body: #5a5852;
-            --color-muted: #807d72;
-            --color-hairline: #e6e5e0;
-            --color-hairline-strong: #cfcdc4;
+            --color-ink: var(--mr-text);
+            --color-body: var(--mr-text-2);
+            --color-muted: var(--mr-muted);
+            --color-hairline: var(--mr-border);
+            --color-hairline-strong: var(--mr-border);
             --color-on-primary: #ffffff;
         }
 
@@ -34,8 +36,8 @@
 
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: #f7f7f4;
-            color: #26251e;
+            background: var(--mr-canvas);
+            color: var(--mr-text);
             min-height: 100vh;
             display: flex;
         }
@@ -98,7 +100,7 @@
             width: 48px;
             height: 48px;
             border-radius: 12px;
-            background: #1456f0;
+            background: var(--mr-accent);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -111,26 +113,26 @@
         .brand-name {
             font-size: 28px;
             font-weight: 700;
-            color: #26251e;
+            color: var(--mr-text);
             letter-spacing: -0.5px;
         }
 
         .brand-title {
             font-size: 48px;
             font-weight: 600;
-            color: #26251e;
+            color: var(--mr-text);
             line-height: 1.2;
             letter-spacing: -1px;
             margin-bottom: 16px;
         }
 
         .brand-title span {
-            color: #1456f0;
+            color: var(--mr-accent);
         }
 
         .brand-desc {
             font-size: 16px;
-            color: #5a5852;
+            color: var(--mr-text-2);
             line-height: 1.6;
             max-width: 480px;
             margin-bottom: 48px;
@@ -144,9 +146,9 @@
         }
 
         .stat-card {
-            background: rgba(255, 255, 255, 0.8);
+            background: var(--mr-surface);
             backdrop-filter: blur(12px);
-            border: 1px solid #e6e5e0;
+            border: 1px solid var(--mr-border);
             border-radius: 12px;
             padding: 24px;
             transition: all 0.3s ease;
@@ -154,7 +156,7 @@
 
         .stat-card:hover {
             transform: translateY(-4px);
-            border-color: #cfcdc4;
+            border-color: var(--mr-border);
         }
 
         .stat-card-header {
@@ -177,20 +179,20 @@
             font-size: 11px;
             text-transform: uppercase;
             letter-spacing: 0.88px;
-            color: #807d72;
+            color: var(--mr-muted);
             font-weight: 600;
         }
 
         .stat-card-value {
             font-size: 20px;
             font-weight: 600;
-            color: #26251e;
+            color: var(--mr-text);
             margin-top: 8px;
         }
 
         .stat-bar {
             height: 6px;
-            background: #f7f7f4;
+            background: var(--mr-canvas);
             border-radius: 3px;
             margin-top: 12px;
             overflow: hidden;
@@ -221,7 +223,7 @@
             width: 36px;
             height: 36px;
             border-radius: 50%;
-            border: 2px solid white;
+            border: 2px solid var(--mr-surface);
             margin-left: -12px;
             object-fit: cover;
         }
@@ -230,7 +232,7 @@
             margin-left: 0;
         }
 
-        .user-avatar-small:nth-child(1) { background: #1456f0; }
+        .user-avatar-small:nth-child(1) { background: var(--mr-accent); }
         .user-avatar-small:nth-child(2) { background: #1f8a65; }
         .user-avatar-small:nth-child(3) { background: #b45309; }
 
@@ -243,7 +245,7 @@
             width: 8px;
             height: 8px;
             border-radius: 50%;
-            background: #1456f0;
+            background: var(--mr-accent);
         }
 
         .status-dot:nth-child(2) {
@@ -257,7 +259,7 @@
         /* Right Panel - Login */
         .login-panel {
             width: 480px;
-            background: white;
+            background: var(--mr-surface);
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -278,21 +280,21 @@
         .login-title {
             font-size: 28px;
             font-weight: 600;
-            color: #26251e;
+            color: var(--mr-text);
             letter-spacing: -0.5px;
             margin-bottom: 8px;
         }
 
         .login-subtitle {
             font-size: 14px;
-            color: #5a5852;
+            color: var(--mr-text-2);
         }
 
         /* Lark SSO Button */
         .btn-lark {
             width: 100%;
             height: 56px;
-            background: #1456f0;
+            background: var(--mr-accent);
             border: none;
             border-radius: 12px;
             display: flex;
@@ -308,7 +310,7 @@
         }
 
         .btn-lark:hover {
-            background: #0d47a1;
+            background: var(--mr-accent-hover);
             transform: scale(1.01);
         }
 
@@ -333,14 +335,14 @@
         .divider-line {
             flex: 1;
             height: 1px;
-            background: #e6e5e0;
+            background: var(--mr-border);
         }
 
         .divider-text {
             font-size: 11px;
             text-transform: uppercase;
             letter-spacing: 0.88px;
-            color: #a09c92;
+            color: var(--mr-muted);
             font-weight: 600;
         }
 
@@ -354,7 +356,7 @@
             font-size: 11px;
             text-transform: uppercase;
             letter-spacing: 0.88px;
-            color: #807d72;
+            color: var(--mr-muted);
             font-weight: 600;
             margin-bottom: 8px;
             margin-left: 4px;
@@ -367,23 +369,23 @@
         .form-input {
             width: 100%;
             padding: 14px 16px;
-            background: #fafaf7;
-            border: 1px solid #e6e5e0;
+            background: var(--mr-surface-2);
+            border: 1px solid var(--mr-border);
             border-radius: 12px;
             font-size: 14px;
             font-family: inherit;
-            color: #26251e;
+            color: var(--mr-text);
             transition: all 0.2s ease;
         }
 
         .form-input:focus {
             outline: none;
-            border-color: #1456f0;
+            border-color: var(--mr-accent);
             box-shadow: 0 0 0 4px rgba(20, 86, 240, 0.1);
         }
 
         .form-input::placeholder {
-            color: #a09c92;
+            color: var(--mr-muted);
         }
 
         .form-input-icon {
@@ -391,24 +393,24 @@
             right: 16px;
             top: 50%;
             transform: translateY(-50%);
-            color: #807d72;
+            color: var(--mr-muted);
         }
 
         .form-link {
             font-size: 12px;
             font-weight: 600;
-            color: #1456f0;
+            color: var(--mr-accent);
             text-decoration: none;
         }
 
         .form-link:hover {
-            color: #0d47a1;
+            color: var(--mr-accent-hover);
         }
 
         .btn-submit {
             width: 100%;
             height: 48px;
-            background: #26251e;
+            background: var(--mr-text);
             border: none;
             border-radius: 12px;
             display: flex;
@@ -417,13 +419,13 @@
             gap: 8px;
             font-size: 14px;
             font-weight: 600;
-            color: #f7f7f4;
+            color: var(--mr-canvas);
             cursor: pointer;
             transition: all 0.2s ease;
         }
 
         .btn-submit:hover {
-            background: #5a5852;
+            background: var(--mr-text-2);
         }
 
         /* Footer */
@@ -446,27 +448,27 @@
             font-size: 11px;
             text-transform: uppercase;
             letter-spacing: 0.88px;
-            color: #807d72;
+            color: var(--mr-muted);
             text-decoration: none;
             font-weight: 500;
         }
 
         .footer-link:hover {
-            color: #1456f0;
+            color: var(--mr-accent);
         }
 
         .footer-dot {
             width: 4px;
             height: 4px;
             border-radius: 50%;
-            background: #cfcdc4;
+            background: var(--mr-border);
         }
 
         .footer-copy {
             font-size: 11px;
             text-transform: uppercase;
             letter-spacing: 0.88px;
-            color: #a09c92;
+            color: var(--mr-muted);
             font-weight: 500;
         }
 
@@ -522,13 +524,13 @@
             <div class="stat-cards">
                 <div class="stat-card">
                     <div class="stat-card-header">
-                        <div class="stat-card-icon" style="background: rgba(20, 86, 240, 0.1); color: #1456f0;">
+                        <div class="stat-card-icon" style="background: rgba(20, 86, 240, 0.1); color: var(--mr-accent);">
                             <span class="material-symbols-outlined">shopping_cart</span>
                         </div>
                         <span class="stat-card-label">1,234 Đơn hàng</span>
                     </div>
                     <div class="stat-bar">
-                        <div class="stat-bar-fill" style="width: 75%; background: #1456f0;"></div>
+                        <div class="stat-bar-fill" style="width: 75%; background: var(--mr-accent);"></div>
                     </div>
                 </div>
 

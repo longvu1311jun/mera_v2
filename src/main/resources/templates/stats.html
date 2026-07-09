@@ -5,49 +5,55 @@
     <link rel="icon" type="image/jpeg" href="/meraicon.ico">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Thống kê lịch hẹn | MeraGroup</title>
+  <script th:replace="~{fragments/mera-layout :: themeInit}"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/mera-ui.css">
   <style>
+    /* Alias hệ biến cũ sang token mera-ui (giữ tương thích inline style / chuỗi HTML do JS render) */
     :root {
-      --color-primary: #1456f0;
-      --color-primary-hover: #0d47a1;
-      --color-canvas: #f7f7f4;
-      --color-canvas-soft: #fafaf7;
-      --color-surface: #ffffff;
-      --color-ink: #26251e;
-      --color-body: #5a5852;
-      --color-muted: #807d72;
-      --color-hairline: #e6e5e0;
+      --color-primary: var(--mr-accent);
+      --color-primary-hover: var(--mr-accent-hover);
+      --color-canvas: var(--mr-canvas);
+      --color-canvas-soft: var(--mr-surface-2);
+      --color-surface: var(--mr-surface);
+      --color-ink: var(--mr-text);
+      --color-body: var(--mr-text-2);
+      --color-muted: var(--mr-muted);
+      --color-hairline: var(--mr-border);
       --color-hairline-strong: #cfcdc4;
       --color-on-primary: #ffffff;
-      --color-success: #1f8a65;
-      --color-error: #cf2d56;
-      --color-warning: #b45309;
+      --color-success: #16a34a;
+      --color-error: #dc2626;
+      --color-warning: #d97706;
     }
-    
+
     * {
       margin: 0;
       padding: 0;
       box-sizing: border-box;
     }
-    
+
     html, body {
       height: 100%;
       overflow: hidden;
     }
-    
+
     body {
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-      background: var(--color-canvas);
-      color: var(--color-ink);
       display: flex;
       flex-direction: column;
-      padding: 20px 24px;
       height: 100vh;
-      font-size: 15px;
     }
-    
+
+    /* Workspace content full-height: giữ kiến trúc cuộn nội bộ của bảng */
+    .mr-workspace-content {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+    }
+
     /* Header - compact */
     .page-header {
       display: flex;
@@ -57,119 +63,126 @@
       margin-bottom: 16px;
       flex-shrink: 0;
     }
-    
-    .page-title {
-      font-size: 22px;
-      font-weight: 600;
-      color: var(--color-ink);
-    }
-    
+
     .page-meta {
       font-size: 12px;
-      color: var(--color-muted);
+      color: var(--mr-muted);
       margin-top: 2px;
     }
-    
+
     .page-actions {
       display: flex;
       gap: 10px;
       align-items: center;
       flex-shrink: 0;
     }
-    
+
     /* Month Toggle Buttons */
     .month-toggle {
       display: flex;
-      background: var(--color-surface);
-      border: 1px solid var(--color-hairline);
-      border-radius: 6px;
+      background: var(--mr-surface);
+      border: 1px solid var(--mr-border);
+      border-radius: var(--mr-radius-control);
       overflow: hidden;
     }
-    
+
     .month-btn {
       padding: 8px 14px;
       font-size: 13px;
       font-weight: 500;
-      color: var(--color-muted);
+      color: var(--mr-muted);
       background: transparent;
       border: none;
       cursor: pointer;
-      transition: all 0.15s ease;
+      transition: background 0.15s ease, color 0.15s ease;
       text-decoration: none;
     }
-    
+
     .month-btn:hover {
-      background: var(--color-canvas-soft);
-      color: var(--color-ink);
+      background: var(--mr-surface-2);
+      color: var(--mr-text);
     }
-    
+
     .month-btn.active {
-      background: var(--color-primary);
-      color: white;
+      background: var(--mr-accent);
+      color: #ffffff;
     }
-    
+
     .month-btn.active:hover {
-      background: var(--color-primary-hover);
+      background: var(--mr-accent-hover);
     }
-    
+
     /* Form Elements */
     select, input.search {
-      border: 1px solid var(--color-hairline);
-      border-radius: 6px;
+      border: 1px solid #d9d8d2;
+      border-radius: var(--mr-radius-control);
       padding: 8px 12px;
       font-size: 13px;
       font-family: inherit;
-      background: var(--color-surface);
-      color: var(--color-ink);
+      background: var(--mr-surface);
+      color: var(--mr-text);
       cursor: pointer;
     }
-    
+
     select:focus, input.search:focus {
       outline: none;
-      border-color: var(--color-primary);
+      border-color: var(--mr-accent);
+      box-shadow: 0 0 0 3px rgba(20, 86, 240, 0.12);
     }
-    
+
     input.search {
       width: 200px;
     }
-    
+
     button {
-      border: 1px solid var(--color-hairline);
-      border-radius: 6px;
+      border: 1px solid var(--mr-border);
+      border-radius: var(--mr-radius-control);
       padding: 8px 14px;
       font-size: 13px;
-      font-weight: 500;
+      font-weight: 600;
       font-family: inherit;
-      background: var(--color-surface);
-      color: var(--color-ink);
+      background: var(--mr-surface);
+      color: var(--mr-text);
       cursor: pointer;
-      transition: all 0.15s ease;
+      transition: background 0.15s ease, border-color 0.15s ease;
     }
-    
+
     button:hover {
-      background: var(--color-canvas-soft);
+      background: var(--mr-surface-2);
     }
-    
+
     button.primary {
-      background: var(--color-primary);
-      color: white;
-      border: none;
+      background: var(--mr-accent);
+      color: #ffffff;
+      border: 1px solid transparent;
     }
-    
+
     button.primary:hover {
-      background: var(--color-primary-hover);
+      background: var(--mr-accent-hover);
     }
-    
-    button.success {
-      background: var(--color-success);
-      color: white;
-      border: none;
+
+    a.btn-excel {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      border-radius: var(--mr-radius-control);
+      background: #16a34a;
+      color: #ffffff;
+      font-size: 13px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: background 0.15s ease;
     }
-    
+
+    a.btn-excel:hover {
+      background: #15803d;
+    }
+
     /* Alert */
     .alert {
       padding: 12px 16px;
-      border-radius: 6px;
+      border-radius: 10px;
       margin-bottom: 16px;
       font-size: 13px;
       display: flex;
@@ -177,19 +190,19 @@
       gap: 10px;
       flex-shrink: 0;
     }
-    
+
     .alert.error {
-      background: rgba(207, 45, 86, 0.08);
-      border: 1px solid rgba(207, 45, 86, 0.2);
-      color: var(--color-error);
+      background: var(--mr-danger-bg);
+      border: 1px solid #fca5a5;
+      color: var(--mr-danger);
     }
-    
+
     .alert.success {
-      background: rgba(31, 138, 101, 0.08);
-      border: 1px solid rgba(31, 138, 101, 0.2);
-      color: var(--color-success);
+      background: var(--mr-success-bg);
+      border: 1px solid #86efac;
+      color: var(--mr-success);
     }
-    
+
     /* Summary Cards - compact row */
     .stats-summary {
       display: flex;
@@ -197,137 +210,122 @@
       margin-bottom: 16px;
       flex-shrink: 0;
     }
-    
+
     .summary-card {
-      background: var(--color-surface);
-      border: 1px solid var(--color-hairline);
-      border-radius: 8px;
+      background: var(--mr-surface);
+      border: 1px solid var(--mr-border);
+      border-radius: var(--mr-radius-card);
       padding: 14px 18px;
       flex: 1;
       text-align: center;
     }
-    
+
     .summary-card h3 {
-      color: var(--color-muted);
+      color: var(--mr-muted);
       font-size: 11px;
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.5px;
       margin-bottom: 6px;
     }
-    
+
     .summary-card .value {
       font-size: 22px;
-      font-weight: 600;
-      color: var(--color-ink);
+      font-weight: 700;
+      color: var(--mr-text);
+      font-variant-numeric: tabular-nums;
     }
-    
+
     /* Table Container */
     .table-container {
       flex: 1;
       display: flex;
       flex-direction: column;
-      background: var(--color-surface);
-      border: 1px solid var(--color-hairline);
-      border-radius: 8px;
+      background: var(--mr-surface);
+      border: 1px solid var(--mr-border);
+      border-radius: var(--mr-radius-card);
       overflow: hidden;
       min-height: 0;
     }
-    
+
     .table-wrapper {
       flex: 1;
       overflow: auto;
       position: relative;
     }
-    
-    table {
-      width: 100%;
-      border-collapse: collapse;
+
+    table.mr-table {
       min-width: 800px;
     }
-    
+
     thead {
       position: sticky;
       top: 0;
       z-index: 10;
     }
-    
-    thead th {
-      background: var(--color-primary);
-      color: white;
-      text-align: left;
-      font-weight: 600;
-      padding: 12px 14px;
-      white-space: nowrap;
-      font-size: 13px;
-      letter-spacing: 0.3px;
-    }
-    
+
     thead th.sortable {
       cursor: pointer;
+      user-select: none;
     }
-    
+
     thead th.sortable:hover {
-      background: var(--color-primary-hover);
+      background: var(--mr-accent-soft);
+      color: var(--mr-accent);
     }
-    
+
     thead th .sort-indicator {
       margin-left: 6px;
       font-size: 11px;
       opacity: 0.7;
     }
-    
-    tbody td {
+
+    .mr-table tbody td {
       padding: 10px 14px;
-      border-bottom: 1px solid var(--color-hairline);
-      font-size: 14px;
       vertical-align: middle;
     }
-    
-    tbody tr:nth-child(even) {
-      background: var(--color-canvas-soft);
+
+    .mr-table tbody tr:nth-child(even) {
+      background: var(--mr-surface-2);
     }
-    
-    tbody tr:hover {
-      background: rgba(20, 86, 240, 0.04);
-    }
-    
+
     /* Footer - fixed at bottom */
     tfoot {
       position: sticky;
       bottom: 0;
       z-index: 5;
     }
-    
+
     tfoot tr {
-      background: var(--color-canvas);
+      background: var(--mr-surface-2);
       font-weight: 600;
     }
-    
+
     tfoot td {
       padding: 10px 12px;
-      border-top: 2px solid var(--color-primary);
+      border-top: 2px solid var(--mr-accent);
       font-size: 12px;
-      color: var(--color-ink);
+      color: var(--mr-text);
     }
-    
+
     .stt {
-      color: var(--color-primary);
+      color: var(--mr-accent);
       font-weight: 600;
       text-align: center;
       width: 50px;
     }
-    
+
     .number-cell {
       text-align: center;
       font-weight: 500;
+      font-variant-numeric: tabular-nums;
     }
-    
+
     .employee-name {
       font-weight: 600;
-      color: var(--color-ink);
+      color: var(--mr-text);
     }
-    
+
     /* Loading */
     .loading-overlay {
       position: fixed;
@@ -341,89 +339,81 @@
       justify-content: center;
       z-index: 9999;
     }
-    
+
     .loading-content {
-      background: white;
+      background: var(--mr-surface);
       padding: 24px 40px;
-      border-radius: 8px;
+      border-radius: var(--mr-radius-card);
       text-align: center;
-      border: 1px solid var(--color-hairline);
+      border: 1px solid var(--mr-border);
     }
-    
+
     .loading-spinner {
-      border: 3px solid var(--color-hairline);
-      border-top: 3px solid var(--color-primary);
+      border: 3px solid var(--mr-border);
+      border-top: 3px solid var(--mr-accent);
       border-radius: 50%;
       width: 32px;
       height: 32px;
       animation: spin 0.8s linear infinite;
       margin: 0 auto 12px;
     }
-    
+
     @keyframes spin {
       0% { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
     }
-    
+
     .loading-overlay.hidden {
       display: none;
     }
-    
-    /* Responsive */
-    @media (max-width: 1024px) {
-      .main-content {
-        margin-left: 280px;
-        padding: 32px;
-      }
-      
-      .stats-grid {
-        grid-template-columns: repeat(2, 1fr) !important;
-      }
-      
-      .grid-3 {
-        grid-template-columns: 1fr !important;
-      }
+
+    [data-theme="dark"] .loading-overlay {
+      background: rgba(22, 24, 29, 0.95);
     }
-    
+
+    [data-theme="dark"] select, [data-theme="dark"] input.search {
+      border-color: #383d48;
+    }
+
+    /* Responsive */
     @media (max-width: 768px) {
       body {
-        padding: 12px;
         height: auto;
         overflow: auto;
       }
-      
+
       .page-header {
         flex-direction: column;
         align-items: flex-start;
         gap: 12px;
       }
-      
+
       .page-actions {
         width: 100%;
         flex-wrap: wrap;
       }
-      
+
       .stats-summary {
         flex-wrap: wrap;
       }
-      
+
       .summary-card {
         min-width: calc(50% - 6px);
       }
-      
+
       input.search {
         width: 100%;
       }
-      
+
       .table-container {
         height: auto;
         min-height: 400px;
       }
-      
+
       .month-toggle {
         width: 100%;
       }
-      
+
       .month-btn {
         flex: 1;
         text-align: center;
@@ -431,7 +421,7 @@
     }
   </style>
 </head>
-<body>
+<body class="mera-page">
 
 <!-- Loading popup -->
 <div id="loadingOverlay" class="loading-overlay hidden">
@@ -441,11 +431,12 @@
   </div>
 </div>
 
+<th:block th:replace="~{fragments/mera-layout :: workspaceHeader('Thống Kê Lịch Hẹn')}"></th:block>
+
+<div class="mr-workspace-content">
+
 <div class="page-header">
-  <div>
-    <div class="page-title">📈 Thống Kê Lịch Hẹn</div>
-    <div class="page-meta" id="fetchedAtInfo"></div>
-  </div>
+  <div class="page-meta" id="fetchedAtInfo"></div>
 
   <div class="page-actions">
     <input id="searchInput" class="search" type="search" placeholder="Tìm nhân viên..." />
@@ -460,7 +451,7 @@
       <button type="submit" class="primary">🔄 Làm mới</button>
     </form>
 
-    <a href="#" id="exportStatsBtn" style="text-decoration: none; padding: 8px 14px; border-radius: 6px; background: #1f8a65; color: white; border: none; cursor: pointer; font-size: 13px; font-weight: 500;">
+    <a href="#" id="exportStatsBtn" class="btn-excel">
       📥 Excel
     </a>
   </div>
@@ -492,7 +483,7 @@
 <!-- Table -->
 <div class="table-container">
   <div class="table-wrapper">
-    <table class="stats-table">
+    <table class="stats-table mr-table">
       <thead>
         <tr>
           <th style="width:50px;">STT</th>
@@ -518,6 +509,10 @@
     </table>
   </div>
 </div>
+
+</div>
+
+<th:block th:replace="~{fragments/mera-layout :: shellScript}"></th:block>
 
 <script>
 let statsRows = [];

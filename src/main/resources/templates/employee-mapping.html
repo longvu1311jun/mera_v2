@@ -5,92 +5,42 @@
     <link rel="icon" type="image/jpeg" href="/meraicon.ico">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Employee Mapping | Mera V2</title>
+    <script th:replace="~{fragments/mera-layout :: themeInit}"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/mera-ui.css">
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet">
     <style>
+        /* Map hệ biến cũ sang token mera-ui (JS/inline style vẫn tham chiếu tên biến cũ) */
         :root {
-            --primary: #006194;
-            --primary-light: #007bb9;
-            --success: #006947;
-            --success-bg: rgba(0, 105, 71, 0.08);
-            --error: #ba1a1a;
-            --bg: #f7f9fb;
-            --surface: #ffffff;
-            --surface-container: #eceef0;
-            --on-surface: #191c1e;
-            --on-surface-variant: #3f4850;
-            --outline: #707881;
-            --outline-variant: #bfc7d2;
-        }
-
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: var(--bg);
-            color: var(--on-surface);
-            min-height: 100vh;
-            padding: 32px;
+            --primary: var(--mr-accent);
+            --primary-light: var(--mr-accent-hover);
+            --success: var(--mr-success);
+            --success-bg: var(--mr-success-bg);
+            --error: var(--mr-danger);
+            --bg: var(--mr-canvas);
+            --surface: var(--mr-surface);
+            --surface-container: var(--mr-surface-2);
+            --on-surface: var(--mr-text);
+            --on-surface-variant: var(--mr-text-2);
+            --outline: var(--mr-muted);
+            --outline-variant: var(--mr-border);
         }
 
         .header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 32px;
+            margin-bottom: 20px;
             flex-wrap: wrap;
             gap: 16px;
         }
 
-        .header-left h1 { font-size: 24px; font-weight: 600; }
-        .header-left p { font-size: 14px; color: var(--on-surface-variant); margin-top: 4px; }
+        .header-left h1 { font-size: 22px; font-weight: 700; letter-spacing: -0.01em; margin: 0; }
+        .header-left p { font-size: 13px; color: var(--on-surface-variant); margin: 4px 0 0; }
 
         .header-actions { display: flex; gap: 12px; }
-
-        .btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 10px 20px;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 500;
-            cursor: pointer;
-            border: 1px solid transparent;
-            transition: all 0.2s;
-        }
-
-        .btn-primary { background: var(--primary); color: white; }
-        .btn-primary:hover { background: var(--primary-light); }
-        .btn-success { background: var(--success); color: white; }
-        .btn-success:hover { opacity: 0.9; }
-        .btn-secondary { background: var(--surface); border-color: var(--outline-variant); color: var(--on-surface); }
-        .btn-secondary:hover { background: var(--surface-container); }
-
-        .stats-row {
-            display: flex;
-            gap: 16px;
-            margin-bottom: 24px;
-            flex-wrap: wrap;
-        }
-
-        .stat-card {
-            background: var(--surface);
-            border: 1px solid var(--outline-variant);
-            border-radius: 12px;
-            padding: 16px 24px;
-            min-width: 130px;
-        }
-
-        .stat-value { font-size: 28px; font-weight: 700; color: var(--primary); }
-        .stat-label { font-size: 11px; color: var(--on-surface-variant); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.05em; }
-
-        .panel {
-            background: var(--surface);
-            border: 1px solid var(--outline-variant);
-            border-radius: 12px;
-            overflow: hidden;
-        }
 
         .panel-header {
             padding: 16px 20px;
@@ -166,11 +116,11 @@
         .loading-overlay.show { display: flex; }
 
         .loading-spinner {
-            background: white;
+            background: var(--mr-surface);
             padding: 32px 48px;
-            border-radius: 12px;
+            border-radius: var(--mr-radius-card);
             text-align: center;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+            box-shadow: var(--mr-shadow-md);
         }
 
         .spinner {
@@ -213,9 +163,9 @@
             z-index: 10;
         }
 
-        .mapping-table th.lark-col { background: #e3f2fd; color: #1565c0; }
-        .mapping-table th.pos-col { background: #e8f5e9; color: #2e7d32; }
-        .mapping-table th.action-col { background: #fff3e0; color: #ef6c00; }
+        .mapping-table th.lark-col { background: var(--mr-accent-soft); color: var(--mr-accent); }
+        .mapping-table th.pos-col { background: var(--mr-success-bg); color: var(--mr-success); }
+        .mapping-table th.action-col { background: var(--mr-warn-bg); color: var(--mr-warn); }
 
         .mapping-table td {
             padding: 12px 16px;
@@ -224,18 +174,18 @@
             vertical-align: middle;
         }
 
-        .mapping-table tr:hover td { background: var(--bg); }
-        .mapping-table tr.editing td { background: #fff8e1; }
+        .mapping-table tr:hover td { background: var(--mr-accent-soft); }
+        .mapping-table tr.editing td { background: var(--mr-warn-bg); }
 
-        .mapping-table .lark-cell { color: #1565c0; font-weight: 500; }
-        .mapping-table .pos-cell { color: #2e7d32; }
+        .mapping-table .lark-cell { color: var(--mr-accent); font-weight: 500; }
+        .mapping-table .pos-cell { color: var(--mr-success); }
 
         .mapping-table .department-cell {
-            color: #006194;
+            color: var(--mr-accent);
             font-size: 13px;
-            background: rgba(0, 97, 148, 0.06);
+            background: var(--mr-accent-soft);
             padding: 6px 10px;
-            border-radius: 6px;
+            border-radius: var(--mr-radius-control);
             display: inline-block;
         }
 
@@ -255,7 +205,7 @@
             width: 140px;
             padding: 6px 10px;
             border: 1px solid var(--outline-variant);
-            border-radius: 6px;
+            border-radius: var(--mr-radius-control);
             font-size: 13px;
             background: var(--surface);
         }
@@ -274,7 +224,7 @@
         /* Edit button per row */
         .edit-btn {
             padding: 6px 12px;
-            border-radius: 6px;
+            border-radius: var(--mr-radius-control);
             font-size: 13px;
             cursor: pointer;
             border: 1px solid var(--outline-variant);
@@ -290,9 +240,9 @@
         }
 
         .edit-btn.active {
-            background: var(--error);
+            background: #dc2626;
             color: white;
-            border-color: var(--error);
+            border-color: #dc2626;
         }
 
         /* Searchable Select Styles */
@@ -307,7 +257,7 @@
             min-width: 250px;
             padding: 8px 36px 8px 12px;
             border: 1px solid var(--outline-variant);
-            border-radius: 6px;
+            border-radius: var(--mr-radius-control);
             font-size: 14px;
             background: var(--surface);
             cursor: default;
@@ -322,7 +272,7 @@
         .searchable-select.editable input {
             cursor: pointer;
             border-color: var(--primary);
-            background: white;
+            background: var(--surface);
             overflow: auto;
             text-overflow: clip;
         }
@@ -353,13 +303,13 @@
             min-width: 100%;
             background: var(--surface);
             border: 1px solid var(--outline-variant);
-            border-radius: 6px;
+            border-radius: var(--mr-radius-control);
             margin-top: 4px;
             max-height: 250px;
             overflow-y: auto;
             z-index: 99999;
             display: none;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            box-shadow: var(--mr-shadow-md);
         }
 
         .dropdown-menu.show {
@@ -374,14 +324,14 @@
         }
 
         .dropdown-item:last-child { border-bottom: none; }
-        .dropdown-item:hover { background: var(--bg); }
-        .dropdown-item.selected { background: #e3f2fd; }
+        .dropdown-item:hover { background: var(--mr-surface-2); }
+        .dropdown-item.selected { background: var(--mr-accent-soft); }
 
         .dropdown-item .item-name { font-weight: 500; font-size: 14px; }
         .dropdown-item .item-email { font-size: 12px; color: var(--on-surface-variant); margin-top: 2px; }
 
         .dropdown-item.clear-item { color: var(--error); }
-        .dropdown-item.clear-item:hover { background: #ffebee; }
+        .dropdown-item.clear-item:hover { background: var(--mr-danger-bg); }
 
         .no-results {
             padding: 12px;
@@ -399,7 +349,7 @@
         .mapped-badge {
             display: inline-block;
             padding: 2px 8px;
-            border-radius: 99px;
+            border-radius: var(--mr-radius-pill);
             font-size: 11px;
             font-weight: 600;
             background: var(--success-bg);
@@ -410,7 +360,7 @@
         .unmapped-badge {
             display: inline-block;
             padding: 2px 8px;
-            border-radius: 99px;
+            border-radius: var(--mr-radius-pill);
             font-size: 11px;
             font-weight: 500;
             background: var(--surface-container);
@@ -433,9 +383,9 @@
         }
 
         .toast.show { transform: translateX(0); }
-        .toast.success { background: var(--success); }
-        .toast.error { background: var(--error); }
-        .toast.saving { background: var(--primary); }
+        .toast.success { background: #16a34a; }
+        .toast.error { background: #dc2626; }
+        .toast.saving { background: var(--mr-accent); }
 
         .empty-state {
             text-align: center;
@@ -455,7 +405,7 @@
         }
     </style>
 </head>
-<body>
+<body class="mera-page">
     <div class="loading-overlay" id="loadingOverlay">
         <div class="loading-spinner">
             <div class="spinner"></div>
@@ -463,38 +413,44 @@
         </div>
     </div>
 
+    <div class="mr-shell">
+    <th:block th:replace="~{fragments/mera-layout :: sidebar('employeeMapping')}"></th:block>
+    <div class="mr-shell-main">
+    <th:block th:replace="~{fragments/mera-layout :: topbar('Employee Mapping')}"></th:block>
+    <main class="mr-shell-content">
+
     <div class="header">
         <div class="header-left">
             <h1>Employee Mapping</h1>
             <p>Map nhân viên Lark với POS để đồng bộ dữ liệu</p>
         </div>
         <div class="header-actions">
-            <button class="btn btn-secondary" onclick="loadData()">
+            <button class="mr-btn mr-btn--ghost" onclick="loadData()">
                 🔄 Làm mới
             </button>
         </div>
     </div>
 
-    <div class="stats-row">
-        <div class="stat-card">
-            <div class="stat-value" id="totalLark">0</div>
-            <div class="stat-label">Nhân viên Lark</div>
+    <div class="mr-stat-grid">
+        <div class="mr-stat mr-stat--accent">
+            <div class="mr-stat-label">Nhân viên Lark</div>
+            <div class="mr-stat-value" id="totalLark">0</div>
         </div>
-        <div class="stat-card">
-            <div class="stat-value" id="totalPos">0</div>
-            <div class="stat-label">Nhân viên POS</div>
+        <div class="mr-stat mr-stat--info">
+            <div class="mr-stat-label">Nhân viên POS</div>
+            <div class="mr-stat-value" id="totalPos">0</div>
         </div>
-        <div class="stat-card">
-            <div class="stat-value" id="mappedCount">0</div>
-            <div class="stat-label">Đã map</div>
+        <div class="mr-stat mr-stat--success">
+            <div class="mr-stat-label">Đã map</div>
+            <div class="mr-stat-value" id="mappedCount">0</div>
         </div>
-        <div class="stat-card">
-            <div class="stat-value" id="unmappedCount">0</div>
-            <div class="stat-label">Chưa map</div>
+        <div class="mr-stat mr-stat--warn">
+            <div class="mr-stat-label">Chưa map</div>
+            <div class="mr-stat-value" id="unmappedCount">0</div>
         </div>
     </div>
 
-    <div class="panel">
+    <div class="mr-card mr-card--flush">
         <div class="panel-header">
             <div class="panel-title">Bảng Mapping Nhân Viên</div>
             <div style="display: flex; align-items: center; gap: 12px;">
@@ -526,8 +482,14 @@
         </div>
     </div>
 
+    </main>
+    <footer class="mr-shell-footer">MeraGroup Dashboard v2.0</footer>
+    </div>
+    </div>
+
     <div id="toast" class="toast"></div>
 
+    <th:block th:replace="~{fragments/mera-layout :: shellScript}"></th:block>
     <script>
         let larkData = [];
         let posUsers = [];

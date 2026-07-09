@@ -1,90 +1,97 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html xmlns:th="http://www.thymeleaf.org" lang="vi">
 <head>
     <meta charset="UTF-8">
     <link rel="icon" type="image/jpeg" href="/meraicon.ico">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MeraGroup - Cấu hình 360 Search</title>
+    <script th:replace="~{fragments/mera-layout :: themeInit}"></script>
+    <!-- Giữ Tailwind CDN: JS renderTable/renderId render class Tailwind động -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/mera-ui.css">
     <style>
-        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+        body { font-family: var(--mr-font); background-color: var(--mr-canvas); }
     </style>
 </head>
-<body class="text-slate-700 pb-12">
-    <header class="bg-white border-b border-slate-200 sticky top-0 z-50">
-        <div class="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
-            <div class="flex items-center gap-3">
-                <div class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white shadow-indigo-100 shadow-lg">
-                    <i class="fa-solid fa-gear text-lg"></i>
-                </div>
+<body class="mera-page">
+<div class="mr-shell">
+    <th:block th:replace="~{fragments/mera-layout :: sidebar('searchConfig')}"></th:block>
+    <div class="mr-shell-main">
+        <th:block th:replace="~{fragments/mera-layout :: topbar('Cấu Hình Tra Cứu')}"></th:block>
+        <main class="mr-shell-content">
+            <div class="mr-page-header">
                 <div>
-                    <h1 class="font-bold text-xl text-slate-900 leading-none">Search Configuration</h1>
-                    <p class="text-[11px] text-slate-400 font-medium uppercase tracking-wider mt-1">Lark Bitable Mapping Status</p>
+                    <h1 class="mr-page-title"><span>🎛️</span> Search Configuration</h1>
+                    <p class="mr-page-subtitle">Lark Bitable Mapping Status</p>
+                </div>
+                <div class="mr-toolbar" style="margin-bottom: 0;">
+                    <button onclick="loadConfigs()" class="mr-btn mr-btn--primary">
+                        <i class="fa-solid fa-rotate"></i> Làm mới
+                    </button>
+                    <a href="/search-info" class="mr-btn mr-btn--ghost">Quay lại Search</a>
                 </div>
             </div>
-            <div class="flex gap-2">
-                <button onclick="loadConfigs()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition flex items-center gap-2 shadow-md">
-                    <i class="fa-solid fa-rotate"></i> Làm mới
-                </button>
-                <a href="/search-info" class="bg-slate-100 hover:bg-slate-200 text-slate-600 px-4 py-2 rounded-lg text-sm font-semibold transition">Quay lại Search</a>
-            </div>
-        </div>
-    </header>
 
-    <main class="max-w-7xl mx-auto px-4 mt-8">
-        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-            <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse">
-                    <thead>
-                        <tr class="bg-slate-50 border-b border-slate-200">
-                            <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Nhân viên / Base Name</th>
-                            <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Base ID</th>
-                            <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Bảng Khách Hàng</th>
-                            <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Bảng Trao Đổi</th>
-                            <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Bảng Lịch Hẹn</th>
-                            <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider text-center">Trạng thái</th>
-                        </tr>
-                    </thead>
-                    <tbody id="configTableBody" class="divide-y divide-slate-100 text-sm">
-                        <!-- Loaded from JS -->
-                    </tbody>
-                </table>
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-50 border-b border-slate-200">
+                                <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Nhân viên / Base Name</th>
+                                <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Base ID</th>
+                                <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Bảng Khách Hàng</th>
+                                <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Bảng Trao Đổi</th>
+                                <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Bảng Lịch Hẹn</th>
+                                <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider text-center">Trạng thái</th>
+                            </tr>
+                        </thead>
+                        <tbody id="configTableBody" class="divide-y divide-slate-100 text-sm">
+                            <!-- Loaded from JS -->
+                        </tbody>
+                    </table>
+                </div>
             </div>
-        </div>
 
-        <div class="mt-6 grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div class="bg-emerald-50 p-4 rounded-xl border border-emerald-100 flex items-start gap-3">
-                <i class="fa-solid fa-circle-check text-emerald-500 mt-1"></i>
-                <div>
-                    <h4 class="font-bold text-emerald-900 text-sm">Đã cấu hình xong</h4>
-                    <p class="text-emerald-700 text-xs mt-1">Hệ thống đã nhận diện được đầy đủ các bảng cần thiết để tra cứu thông tin 360.</p>
+            <div class="mt-6 grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="mr-alert mr-alert--success" style="display: flex; align-items: flex-start; gap: 12px; margin-bottom: 0;">
+                    <i class="fa-solid fa-circle-check" style="margin-top: 3px;"></i>
+                    <div>
+                        <h4 style="margin: 0; font-size: 13px; font-weight: 700;">Đã cấu hình xong</h4>
+                        <p style="margin: 4px 0 0; font-size: 12px;">Hệ thống đã nhận diện được đầy đủ các bảng cần thiết để tra cứu thông tin 360.</p>
+                    </div>
+                </div>
+                <div class="mr-alert mr-alert--warn" style="display: flex; align-items: flex-start; gap: 12px; margin-bottom: 0;">
+                    <i class="fa-solid fa-triangle-exclamation" style="margin-top: 3px;"></i>
+                    <div>
+                        <h4 style="margin: 0; font-size: 13px; font-weight: 700;">Thiếu thông tin bảng</h4>
+                        <p style="margin: 4px 0 0; font-size: 12px;">Một số bảng quan trọng chưa được tìm thấy. Tên bảng trên Lark Bitable cần phải khớp chính xác (Khách Hàng, Trao Đổi, Lịch Hẹn).</p>
+                    </div>
+                </div>
+                <div class="mr-alert mr-alert--danger" style="display: flex; align-items: flex-start; gap: 12px; margin-bottom: 0;">
+                    <i class="fa-solid fa-circle-xmark" style="margin-top: 3px;"></i>
+                    <div>
+                        <h4 style="margin: 0; font-size: 13px; font-weight: 700;">Chưa có Base ID</h4>
+                        <p style="margin: 4px 0 0; font-size: 12px;">Nhân viên này chưa được gán Base trên Lark Wiki hoặc đồng bộ tên POS/Lark không khớp.</p>
+                    </div>
                 </div>
             </div>
-            <div class="bg-amber-50 p-4 rounded-xl border border-amber-100 flex items-start gap-3">
-                <i class="fa-solid fa-triangle-exclamation text-amber-500 mt-1"></i>
-                <div>
-                    <h4 class="font-bold text-amber-900 text-sm">Thiếu thông tin bảng</h4>
-                    <p class="text-amber-700 text-xs mt-1">Một số bảng quan trọng chưa được tìm thấy. Tên bảng trên Lark Bitable cần phải khớp chính xác (Khách Hàng, Trao Đổi, Lịch Hẹn).</p>
-                </div>
-            </div>
-            <div class="bg-rose-50 p-4 rounded-xl border border-rose-100 flex items-start gap-3">
-                <i class="fa-solid fa-circle-xmark text-rose-500 mt-1"></i>
-                <div>
-                    <h4 class="font-bold text-rose-900 text-sm">Chưa có Base ID</h4>
-                    <p class="text-rose-700 text-xs mt-1">Nhân viên này chưa được gán Base trên Lark Wiki hoặc đồng bộ tên POS/Lark không khớp.</p>
-                </div>
-            </div>
-        </div>
-    </main>
+        </main>
+        <footer class="mr-shell-footer">MeraGroup Dashboard v2.0</footer>
+    </div>
+</div>
 
     <div id="loadingOverlay" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm hidden items-center justify-center z-[100]">
-        <div class="bg-white p-6 rounded-2xl shadow-xl flex flex-col items-center gap-3">
-            <div class="w-10 h-10 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin"></div>
+        <div class="bg-white p-6 rounded-xl shadow-xl flex flex-col items-center gap-3">
+            <div class="w-10 h-10 border-4 border-[#eef3ff] border-t-[#1456f0] rounded-full animate-spin"></div>
             <p class="font-bold text-slate-800">Đang tải cấu hình...</p>
         </div>
     </div>
+
+<th:block th:replace="~{fragments/mera-layout :: shellScript}"></th:block>
 
     <script>
         document.addEventListener('DOMContentLoaded', loadConfigs);
@@ -115,29 +122,29 @@
                 const isKHMissing = !c.khachHangTableId;
                 const isTDMissing = !c.traoDoiTableId;
                 const isLHMissing = !c.lichHenTableId;
-                
+
                 // Trạng thái cho base hệ thống (không cần đủ 3 bảng)
-                const isSystemBase = c.systemBase === true; 
-                
+                const isSystemBase = c.systemBase === true;
+
                 let isReady = !isBaseMissing && !isKHMissing;
                 if (!isSystemBase) {
                     isReady = isReady && !isTDMissing && !isLHMissing;
                 }
 
-                const statusColor = isBaseMissing ? 'bg-rose-100 text-rose-600' : 
-                                   (!isReady ? 'bg-amber-100 text-amber-600' : 'bg-emerald-100 text-emerald-600');
-                
-                const statusText = isBaseMissing ? 'Lỗi Base' : 
+                const statusColor = isBaseMissing ? 'bg-[#fee2e2] text-[#991b1b]' :
+                                   (!isReady ? 'bg-[#fef3c7] text-[#92400e]' : 'bg-[#dcfce7] text-[#166534]');
+
+                const statusText = isBaseMissing ? 'Lỗi Base' :
                                  (!isReady ? 'Thiếu Bảng' : 'Hoàn tất');
 
                 return `
                     <tr class="hover:bg-slate-50 transition ${isSystemBase ? 'bg-slate-50/50' : ''}">
                         <td class="px-6 py-4">
                             <div class="font-bold text-slate-800">${c.posName || (isSystemBase ? c.larkName : 'N/A')}</div>
-                            <div class="text-[11px] text-slate-400 mt-0.5">${isSystemBase ? '<span class="text-indigo-500 font-bold">SYSTEM BASE</span>' : (c.larkName || 'Chưa khớp Lark')}</div>
+                            <div class="text-[11px] text-slate-400 mt-0.5">${isSystemBase ? '<span class="text-[#1456f0] font-bold">SYSTEM BASE</span>' : (c.larkName || 'Chưa khớp Lark')}</div>
                         </td>
                         <td class="px-6 py-4">
-                            <code class="text-[11px] font-mono ${isBaseMissing ? 'text-rose-400 italic' : 'text-slate-500 bg-white border border-slate-200 px-2 py-0.5 rounded shadow-sm'}">
+                            <code class="text-[11px] font-mono ${isBaseMissing ? 'text-[#dc2626] italic' : 'text-slate-500 bg-white border border-slate-200 px-2 py-0.5 rounded shadow-sm'}">
                                 ${c.baseId || 'Missing'}
                             </code>
                         </td>
@@ -161,8 +168,8 @@
         }
 
         function renderId(id) {
-            if (!id) return '<span class="flex items-center gap-1.5 text-rose-400 font-medium text-xs"><i class="fa-solid fa-circle-exclamation opacity-70"></i> N/A</span>';
-            return `<div class="bg-emerald-50 text-emerald-700 px-2 py-1 rounded border border-emerald-100 text-xs font-mono inline-block">${id}</div>`;
+            if (!id) return '<span class="flex items-center gap-1.5 text-[#dc2626] font-medium text-xs"><i class="fa-solid fa-circle-exclamation opacity-70"></i> N/A</span>';
+            return `<div class="bg-[#dcfce7] text-[#166534] px-2 py-1 rounded border border-[#86efac] text-xs font-mono inline-block">${id}</div>`;
         }
 
         function showLoading(show) {

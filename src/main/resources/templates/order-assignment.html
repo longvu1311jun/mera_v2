@@ -5,93 +5,39 @@
     <link rel="icon" type="image/jpeg" href="/meraicon.ico">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Phân Công CSKH | Mera V2</title>
+    <script th:replace="~{fragments/mera-layout :: themeInit}"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/mera-ui.css">
     <style>
+        /* Map hệ biến cũ sang token mera-ui (JS render inline style vẫn tham chiếu tên biến cũ) */
         :root {
-            --primary: #006194;
-            --primary-light: #007bb9;
-            --success: #006947;
-            --success-bg: rgba(0, 105, 71, 0.08);
-            --warning: #b45f00;
-            --warning-bg: rgba(180, 95, 0, 0.08);
-            --error: #ba1a1a;
-            --bg: #f7f9fb;
-            --surface: #ffffff;
-            --surface-container: #eceef0;
-            --on-surface: #191c1e;
-            --on-surface-variant: #3f4850;
-            --outline: #707881;
-            --outline-variant: #bfc7d2;
+            --primary: var(--mr-accent);
+            --primary-light: var(--mr-accent-hover);
+            --success: var(--mr-success);
+            --success-bg: var(--mr-success-bg);
+            --warning: var(--mr-warn);
+            --warning-bg: var(--mr-warn-bg);
+            --error: var(--mr-danger);
+            --bg: var(--mr-canvas);
+            --surface: var(--mr-surface);
+            --surface-container: var(--mr-surface-2);
+            --on-surface: var(--mr-text);
+            --on-surface-variant: var(--mr-text-2);
+            --outline: var(--mr-muted);
+            --outline-variant: var(--mr-border);
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: var(--bg);
-            color: var(--on-surface);
-            min-height: 100vh;
-            padding: 32px;
-        }
+        /* Nút warning đặc thù trang (resync) */
+        .mr-btn--warn { background: var(--mr-warn-bg); color: var(--mr-warn); border-color: #fcd34d; }
+        .mr-btn--warn:hover { background: #fde68a; }
+        [data-theme="dark"] .mr-btn--warn { border-color: #6b5416; }
+        [data-theme="dark"] .mr-btn--warn:hover { background: #4a3a12; }
 
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 32px;
-            flex-wrap: wrap;
-            gap: 16px;
-        }
-
-        .header-left h1 { font-size: 24px; font-weight: 600; }
-        .header-left p { font-size: 14px; color: var(--on-surface-variant); margin-top: 4px; }
-
-        .header-actions { display: flex; gap: 12px; }
-
-        .btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 10px 20px;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 500;
-            cursor: pointer;
-            border: 1px solid transparent;
-            transition: all 0.2s;
-        }
-
-        .btn-primary { background: var(--primary); color: white; }
-        .btn-primary:hover { background: var(--primary-light); }
-        .btn-secondary { background: var(--surface); border-color: var(--outline-variant); color: var(--on-surface); }
-        .btn-secondary:hover { background: var(--surface-container); }
-        .btn-warning { background: var(--warning); color: white; }
-        .btn-warning:hover { background: #d97706; }
-
-        .stats-row {
-            display: flex;
-            gap: 16px;
-            margin-bottom: 24px;
-            flex-wrap: wrap;
-        }
-
-        .stat-card {
-            background: var(--surface);
-            border: 1px solid var(--outline-variant);
-            border-radius: 12px;
-            padding: 16px 24px;
-            min-width: 130px;
-        }
-
-        .stat-value { font-size: 28px; font-weight: 700; color: var(--primary); }
-        .stat-label { font-size: 11px; color: var(--on-surface-variant); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.05em; }
-
-        .panel {
-            background: var(--surface);
-            border: 1px solid var(--outline-variant);
-            border-radius: 12px;
-            overflow: hidden;
-        }
+        .stats-grid { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
 
         .panel-header {
             padding: 16px 20px;
@@ -99,67 +45,42 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            background: var(--bg);
+            background: var(--mr-surface-2);
+            flex-wrap: wrap;
+            gap: 8px;
         }
 
-        .panel-title { font-size: 16px; font-weight: 600; }
+        .panel-title { font-size: 15px; font-weight: 600; }
 
-        .table-container {
-            overflow-x: auto;
-        }
-
-        .assignment-table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        .assignment-table th {
-            text-align: left;
-            padding: 14px 16px;
-            font-size: 12px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            color: var(--on-surface-variant);
-            background: var(--bg);
-            border-bottom: 1px solid var(--outline-variant);
-            position: sticky;
-            top: 0;
-            z-index: 10;
-        }
-
-        .assignment-table th.employee-col { background: #e3f2fd; color: #1565c0; min-width: 160px; }
-        .assignment-table th.checkin-col { background: #fff3e0; color: #b45f00; min-width: 120px; }
-        .assignment-table th.hire-col { background: #f3e5f5; color: #7b1fa2; min-width: 120px; }
-        .assignment-table th.count-col { background: #e8f5e9; color: #2e7d32; min-width: 140px; text-align: center; }
-        .assignment-table th.action-col { background: #eceff1; color: #455a64; min-width: 130px; text-align: center; }
+        .assignment-table th.employee-col { background: var(--mr-accent-soft); color: var(--mr-accent); min-width: 160px; }
+        .assignment-table th.checkin-col { background: var(--mr-warn-bg); color: var(--mr-warn); min-width: 120px; }
+        .assignment-table th.hire-col { background: var(--mr-info-bg); color: var(--mr-info); min-width: 120px; }
+        .assignment-table th.count-col { background: var(--mr-success-bg); color: var(--mr-success); min-width: 140px; text-align: center; }
+        .assignment-table th.action-col { background: var(--mr-surface-2); color: var(--mr-text-2); min-width: 130px; text-align: center; }
 
         .assignment-table td {
             padding: 14px 16px;
             font-size: 14px;
-            border-bottom: 1px solid var(--outline-variant);
             vertical-align: middle;
         }
 
-        .assignment-table tr:hover td { background: var(--bg); }
-
         .employee-name {
             font-weight: 600;
-            color: #1565c0;
+            color: var(--mr-accent);
         }
 
         .checkin-badge {
             display: inline-block;
-            padding: 4px 8px;
-            border-radius: 6px;
+            padding: 4px 10px;
+            border-radius: var(--mr-radius-pill);
             font-size: 12px;
             font-weight: 500;
         }
 
         .checkin-badge.priority {
-            background: #e3f2fd;
-            color: #1565c0;
-            border: 1px solid #1565c0;
+            background: var(--mr-accent-soft);
+            color: var(--mr-accent);
+            border: 1px solid var(--mr-accent);
         }
 
         .checkin-badge.on-time {
@@ -190,13 +111,13 @@
             color: var(--on-surface-variant);
         }
 
-        .group-divider.priority { background: #e3f2fd; color: #1565c0; }
-        .group-divider.on-time { background: rgba(0, 105, 71, 0.08); color: #006947; }
-        .group-divider.late { background: rgba(180, 95, 0, 0.08); color: #b45f00; }
+        .group-divider.priority { background: var(--mr-accent-soft); color: var(--mr-accent); }
+        .group-divider.on-time { background: var(--mr-success-bg); color: var(--mr-success); }
+        .group-divider.late { background: var(--mr-warn-bg); color: var(--mr-warn); }
         .group-divider.off { background: var(--bg); color: var(--outline); }
 
         .hire-date {
-            color: #7b1fa2;
+            color: var(--mr-info);
             font-weight: 500;
         }
 
@@ -265,11 +186,11 @@
         .loading-overlay.show { display: flex; }
 
         .loading-spinner {
-            background: white;
+            background: var(--mr-surface);
             padding: 32px 48px;
-            border-radius: 12px;
+            border-radius: var(--mr-radius-card);
             text-align: center;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+            box-shadow: var(--mr-shadow-md);
         }
 
         .spinner {
@@ -322,6 +243,7 @@
             cursor: pointer;
             text-decoration: underline;
             font-size: 12px;
+            font-family: inherit;
         }
 
         .refresh-info button:hover {
@@ -334,22 +256,20 @@
             margin-top: 2px;
         }
 
-        .date-filter-row {
-            background: var(--surface);
-            border: 1px solid var(--outline-variant);
-            border-radius: 12px;
-            padding: 14px 20px;
-            margin-bottom: 24px;
+        .date-filter-card {
             display: flex;
             align-items: center;
             gap: 16px;
             flex-wrap: wrap;
+            padding: 14px 20px;
+            margin-bottom: 20px;
         }
 
         .date-filter {
             display: flex;
             align-items: center;
             gap: 12px;
+            flex-wrap: wrap;
         }
 
         .date-filter label {
@@ -357,7 +277,7 @@
             color: var(--on-surface);
         }
 
-        .date-filter .input {
+        .date-filter .mr-input {
             width: 160px;
         }
 
@@ -384,13 +304,14 @@
             align-items: center;
             gap: 6px;
             padding: 7px 14px;
-            border-radius: 6px;
+            border-radius: var(--mr-radius-control);
             background: var(--primary);
             color: white;
             border: none;
             cursor: pointer;
             font-size: 13px;
             font-weight: 500;
+            font-family: inherit;
             transition: all 0.2s;
         }
 
@@ -428,7 +349,7 @@
         }
 
         .detail-table tr:hover td {
-            background: var(--bg);
+            background: var(--mr-accent-soft);
         }
 
         .detail-table .order-code-cell {
@@ -449,92 +370,103 @@
         }
     </style>
 </head>
-<body>
-    <div class="loading-overlay" id="loadingOverlay">
-        <div class="loading-spinner">
-            <div class="spinner"></div>
-            <div class="loading-text" id="loadingText">Đang tải dữ liệu...</div>
-        </div>
-    </div>
+<body class="mera-page">
+<div class="mr-shell">
+    <th:block th:replace="~{fragments/mera-layout :: sidebar('assignment')}"></th:block>
+    <div class="mr-shell-main">
+        <th:block th:replace="~{fragments/mera-layout :: topbar('Phân Công CSKH')}"></th:block>
+        <main class="mr-shell-content">
 
-    <div class="header">
-        <div class="header-left">
-            <h1>Phân Công CSKH</h1>
-            <p>Theo dõi việc phân công khách hàng cho nhân viên trong ngày</p>
-        </div>
-        <div class="header-actions">
-            <button class="btn btn-secondary" onclick="loadData()">
-                🔄 Làm mới
-            </button>
-            <button class="btn btn-warning" onclick="showResyncModal()">
-                🔁 Resync đơn hàng
-            </button>
-        </div>
-    </div>
-
-    <div class="stats-row">
-        <div class="stat-card">
-            <div class="stat-value" id="totalEmployees">0</div>
-            <div class="stat-label">Tổng nhân viên</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-value" id="priorityEmployees">0</div>
-            <div class="stat-label">Ưu tiên</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-value" id="onTimeEmployees">0</div>
-            <div class="stat-label">Đúng giờ</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-value" id="lateEmployees">0</div>
-            <div class="stat-label">Muộn</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-value" id="offEmployees">0</div>
-            <div class="stat-label">Nghỉ</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-value" id="totalAssignments">0</div>
-            <div class="stat-label">Tổng phân công</div>
-        </div>
-    </div>
-
-    <div class="date-filter-row">
-        <div class="date-filter">
-            <label for="filterDate">📅 Xem ngày:</label>
-            <input type="date" id="filterDate" class="input" onchange="onDateChange()">
-            <button class="btn btn-secondary" onclick="resetToToday()">Hôm nay</button>
-            <span class="filter-info" id="filterInfo"></span>
-        </div>
-    </div>
-
-    <div class="panel">
-        <div class="panel-header">
-            <div class="panel-title">Danh sách nhân viên điểm danh</div>
-            <div class="refresh-info">
-                <span id="lastUpdate">Cập nhật lần cuối: --:--</span>
-                <button onclick="loadData()">Làm mới</button>
+            <div class="mr-page-header">
+                <div>
+                    <h1 class="mr-page-title">Phân Công CSKH</h1>
+                    <p class="mr-page-subtitle">Theo dõi việc phân công khách hàng cho nhân viên trong ngày</p>
+                </div>
+                <div class="mr-toolbar" style="margin-bottom: 0;">
+                    <button class="mr-btn mr-btn--ghost" onclick="loadData()">
+                        🔄 Làm mới
+                    </button>
+                    <button class="mr-btn mr-btn--warn" onclick="showResyncModal()">
+                        🔁 Resync đơn hàng
+                    </button>
+                </div>
             </div>
-        </div>
-        <div class="table-container" id="tableContainer">
-            <table class="assignment-table">
-                <thead>
-                    <tr>
-                        <th class="employee-col">Tên nhân viên</th>
-                        <th class="checkin-col">Giờ điểm danh</th>
-                        <th class="hire-col">Ngày vào làm</th>
-                        <th class="count-col">Số khách đã phân công</th>
-                        <th class="action-col">Thao tác</th>
-                    </tr>
-                </thead>
-                <tbody id="tableBody"></tbody>
-            </table>
-        </div>
+
+            <div class="mr-stat-grid stats-grid">
+                <div class="mr-stat mr-stat--accent">
+                    <div class="mr-stat-label">Tổng nhân viên</div>
+                    <div class="mr-stat-value" id="totalEmployees">0</div>
+                </div>
+                <div class="mr-stat mr-stat--accent">
+                    <div class="mr-stat-label">Ưu tiên</div>
+                    <div class="mr-stat-value" id="priorityEmployees">0</div>
+                </div>
+                <div class="mr-stat mr-stat--success">
+                    <div class="mr-stat-label">Đúng giờ</div>
+                    <div class="mr-stat-value" id="onTimeEmployees">0</div>
+                </div>
+                <div class="mr-stat mr-stat--warn">
+                    <div class="mr-stat-label">Muộn</div>
+                    <div class="mr-stat-value" id="lateEmployees">0</div>
+                </div>
+                <div class="mr-stat">
+                    <div class="mr-stat-label">Nghỉ</div>
+                    <div class="mr-stat-value" id="offEmployees">0</div>
+                </div>
+                <div class="mr-stat mr-stat--accent">
+                    <div class="mr-stat-label">Tổng phân công</div>
+                    <div class="mr-stat-value" id="totalAssignments">0</div>
+                </div>
+            </div>
+
+            <div class="mr-card mr-card--flush date-filter-card">
+                <div class="date-filter">
+                    <label for="filterDate">📅 Xem ngày:</label>
+                    <input type="date" id="filterDate" class="mr-input" onchange="onDateChange()">
+                    <button class="mr-btn mr-btn--ghost" onclick="resetToToday()">Hôm nay</button>
+                    <span class="filter-info" id="filterInfo"></span>
+                </div>
+            </div>
+
+            <div class="mr-card mr-card--flush">
+                <div class="panel-header">
+                    <div class="panel-title">Danh sách nhân viên điểm danh</div>
+                    <div class="refresh-info">
+                        <span id="lastUpdate">Cập nhật lần cuối: --:--</span>
+                        <button onclick="loadData()">Làm mới</button>
+                    </div>
+                </div>
+                <div class="mr-table-scroll" id="tableContainer">
+                    <table class="mr-table assignment-table">
+                        <thead>
+                            <tr>
+                                <th class="employee-col">Tên nhân viên</th>
+                                <th class="checkin-col">Giờ điểm danh</th>
+                                <th class="hire-col">Ngày vào làm</th>
+                                <th class="count-col">Số khách đã phân công</th>
+                                <th class="action-col">Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+        </main>
+        <footer class="mr-shell-footer">MeraGroup Dashboard v2.0</footer>
     </div>
+</div>
 
-    <div id="toast" class="toast"></div>
+<div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-spinner">
+        <div class="spinner"></div>
+        <div class="loading-text" id="loadingText">Đang tải dữ liệu...</div>
+    </div>
+</div>
 
-    <!-- Detail Modal -->
+<div id="toast" class="toast"></div>
+
+<!-- Detail Modal -->
     <div id="detailModal" class="modal-overlay" style="display: none;">
         <div class="modal" style="max-width: 720px;">
             <div class="modal-header">
@@ -548,7 +480,7 @@
                 <div style="text-align: center; padding: 32px; color: var(--on-surface-variant);">Đang tải...</div>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeDetailModal()">Đóng</button>
+                <button class="mr-btn mr-btn--ghost" onclick="closeDetailModal()">Đóng</button>
             </div>
         </div>
     </div>
@@ -564,14 +496,14 @@
                 <p>Tìm và phân công các đơn hàng bị miss trong thời gian webhook ngắt kết nối.</p>
                 <div class="form-group" style="margin-top: 16px;">
                     <label>Chọn ngày:</label>
-                    <input type="date" id="resyncDate" class="input">
+                    <input type="date" id="resyncDate" class="mr-input">
                 </div>
                 <div id="unassignedInfo" style="margin-top: 16px;"></div>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeResyncModal()">Đóng</button>
-                <button class="btn btn-secondary" onclick="checkUnassigned()">Kiểm tra đơn chưa chia</button>
-                <button class="btn btn-warning" onclick="doResync()">Phân công tất cả</button>
+                <button class="mr-btn mr-btn--ghost" onclick="closeResyncModal()">Đóng</button>
+                <button class="mr-btn mr-btn--ghost" onclick="checkUnassigned()">Kiểm tra đơn chưa chia</button>
+                <button class="mr-btn mr-btn--warn" onclick="doResync()">Phân công tất cả</button>
             </div>
         </div>
     </div>
@@ -588,11 +520,11 @@
         }
 
         .modal {
-            background: white;
-            border-radius: 12px;
+            background: var(--mr-surface);
+            border-radius: var(--mr-radius-card);
             width: 90%;
             max-width: 500px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+            box-shadow: var(--mr-shadow-md);
         }
 
         .modal-header {
@@ -626,18 +558,7 @@
         .form-group { margin-bottom: 12px; }
         .form-group label { display: block; margin-bottom: 4px; font-weight: 500; }
 
-        .input {
-            width: 100%;
-            padding: 10px 12px;
-            border: 1px solid var(--outline-variant);
-            border-radius: 8px;
-            font-size: 14px;
-        }
-
-        .input:focus {
-            outline: none;
-            border-color: var(--primary);
-        }
+        .form-group .mr-input { width: 100%; }
 
         .unassigned-list {
             max-height: 300px;
@@ -657,6 +578,8 @@
         .unassigned-item .order-code { font-weight: 600; color: var(--primary); }
         .unassigned-item .customer-info { margin-top: 4px; color: var(--on-surface-variant); }
     </style>
+
+    <th:block th:replace="~{fragments/mera-layout :: shellScript}"></th:block>
 
     <script>
         let employeesData = [];

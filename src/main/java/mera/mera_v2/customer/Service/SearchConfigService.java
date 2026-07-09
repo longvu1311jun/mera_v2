@@ -175,6 +175,26 @@ public class SearchConfigService {
                         }
                     }
 
+                    // Fallback: match theo tiêu đề base Lark — cần cho trường hợp config đã tồn tại
+                    // từ trước (posName/posPhone NULL) nhưng nhân viên mới được thêm vào POS sau này.
+                    if (matchedUser == null && node.getTitle() != null && !node.getTitle().isBlank()) {
+                        String nodePhone = extractPhoneNumber(node.getTitle());
+                        if (nodePhone != null) {
+                            matchedUser = phoneToPosUser.get(nodePhone);
+                        }
+                        if (matchedUser == null) {
+                            String title = node.getTitle().toLowerCase().trim();
+                            matchedUser = nameToPosUser.get(title);
+                            if (matchedUser == null) {
+                                matchedUser = nameToPosUser.get(normalizeName(title));
+                            }
+                        }
+                        if (matchedUser != null) {
+                            log.info("BaseId={} - Match POS user '{}' tu tieu de base '{}'",
+                                    baseId, matchedUser.getName(), node.getTitle());
+                        }
+                    }
+
                     if (matchedUser != null) {
                         primary.setPosUserId(matchedUser.getId() != null ? matchedUser.getId().toString() : null);
                         primary.setPosName(matchedUser.getName());
@@ -234,10 +254,11 @@ public class SearchConfigService {
                         matchedUser = phoneToPosUser.get(nodePhone);
                     }
                     if (matchedUser == null) {
-                        String normalized = normalizeName(node.getTitle().toLowerCase().trim());
-                        matchedUser = nameToLarkNode.containsKey(node.getTitle().trim())
-                                ? nameToPosUser.get(node.getTitle().toLowerCase().trim())
-                                : null;
+                        String title = node.getTitle().toLowerCase().trim();
+                        matchedUser = nameToPosUser.get(title);
+                        if (matchedUser == null) {
+                            matchedUser = nameToPosUser.get(normalizeName(title));
+                        }
                     }
 
                     if (matchedUser != null) {

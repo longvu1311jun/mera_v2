@@ -2,52 +2,59 @@
 <html lang="vi" xmlns:th="http://www.thymeleaf.org">
 <head>
   <meta charset="UTF-8" />
+  <script th:replace="~{fragments/mera-layout :: themeInit}"></script>
     <link rel="icon" type="image/jpeg" href="/meraicon.ico">
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Sale Report | MeraGroup</title>
+  <title>Báo Cáo Sale 1 | MeraGroup</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/mera-ui.css">
   <style>
+    /* Alias hệ biến cũ sang token mera-ui (giữ tương thích inline style / chuỗi HTML do JS render) */
     :root {
-      --color-primary: #1456f0;
-      --color-primary-hover: #0d47a1;
-      --color-canvas: #f7f7f4;
-      --color-canvas-soft: #fafaf7;
-      --color-surface: #ffffff;
-      --color-ink: #26251e;
-      --color-body: #5a5852;
-      --color-muted: #807d72;
-      --color-hairline: #e6e5e0;
+      --color-primary: var(--mr-accent);
+      --color-primary-hover: var(--mr-accent-hover);
+      --color-canvas: var(--mr-canvas);
+      --color-canvas-soft: var(--mr-surface-2);
+      --color-surface: var(--mr-surface);
+      --color-ink: var(--mr-text);
+      --color-body: var(--mr-text-2);
+      --color-muted: var(--mr-muted);
+      --color-hairline: var(--mr-border);
       --color-hairline-strong: #cfcdc4;
       --color-on-primary: #ffffff;
-      --color-success: #1f8a65;
-      --color-error: #cf2d56;
-      --color-warning: #b45309;
+      --color-success: #16a34a;
+      --color-error: #dc2626;
+      --color-warning: #d97706;
     }
-    
+
     * {
       margin: 0;
       padding: 0;
       box-sizing: border-box;
     }
-    
+
     html, body {
       height: 100%;
       overflow: hidden;
     }
-    
+
     body {
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-      background: var(--color-canvas);
-      color: var(--color-ink);
       display: flex;
       flex-direction: column;
-      padding: 20px 24px;
       height: 100vh;
-      font-size: 15px;
     }
-    
+
+    /* Workspace header cố định trên cùng, phần còn lại cuộn nội bộ */
+    .mr-workspace-header {
+      flex-shrink: 0;
+    }
+
+    #contentSection {
+      padding: 16px 24px 20px;
+    }
+
     /* Header - compact */
     .page-header {
       display: flex;
@@ -57,86 +64,100 @@
       margin-bottom: 16px;
       flex-shrink: 0;
     }
-    
-    .page-title {
-      font-size: 22px;
+
+    .page-subtitle {
+      font-size: 14px;
       font-weight: 600;
-      color: var(--color-ink);
+      letter-spacing: -0.01em;
+      color: var(--mr-text);
     }
-    
+
     .page-meta {
       font-size: 12px;
-      color: var(--color-muted);
+      color: var(--mr-muted);
       margin-top: 2px;
     }
-    
+
     .page-actions {
       display: flex;
       gap: 10px;
       align-items: center;
       flex-shrink: 0;
     }
-    
+
     /* Form Elements */
     select, input.search {
-      border: 1px solid var(--color-hairline);
-      border-radius: 6px;
+      border: 1px solid var(--mr-border);
+      border-radius: var(--mr-radius-control);
       padding: 8px 12px;
       font-size: 13px;
       font-family: inherit;
-      background: var(--color-surface);
-      color: var(--color-ink);
+      background: var(--mr-surface);
+      color: var(--mr-text);
       cursor: pointer;
     }
-    
+
     select:focus, input.search:focus {
       outline: none;
-      border-color: var(--color-primary);
+      border-color: var(--mr-accent);
+      box-shadow: 0 0 0 3px rgba(20, 86, 240, 0.12);
     }
-    
+
     input.search {
       width: 220px;
     }
-    
+
     button {
-      border: 1px solid var(--color-hairline);
-      border-radius: 6px;
+      border: 1px solid var(--mr-border);
+      border-radius: var(--mr-radius-control);
       padding: 8px 14px;
       font-size: 13px;
-      font-weight: 500;
+      font-weight: 600;
       font-family: inherit;
-      background: var(--color-surface);
-      color: var(--color-ink);
+      background: var(--mr-surface);
+      color: var(--mr-text);
       cursor: pointer;
-      transition: all 0.15s ease;
+      transition: background 0.15s ease, border-color 0.15s ease;
     }
-    
+
     button:hover {
-      background: var(--color-canvas-soft);
+      background: var(--mr-surface-2);
     }
-    
+
     button.primary {
-      background: var(--color-primary);
-      color: white;
-      border: none;
+      background: var(--mr-accent);
+      color: #ffffff;
+      border: 1px solid transparent;
     }
-    
+
     button.primary:hover {
-      background: var(--color-primary-hover);
+      background: var(--mr-accent-hover);
     }
-    
-    button.success {
-      background: var(--color-success);
-      color: white;
-      border: none;
+
+    a.btn-excel {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      border-radius: var(--mr-radius-control);
+      background: #16a34a;
+      color: #ffffff;
+      font-size: 13px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: background 0.15s ease;
     }
-    
+
+    a.btn-excel:hover {
+      background: #15803d;
+    }
+
     /* Alert */
     .alert {
       padding: 12px 16px;
-      border-radius: 6px;
-      background: var(--color-surface);
-      border: 1px solid var(--color-hairline);
+      border-radius: 10px;
+      background: var(--mr-surface);
+      border: 1px solid var(--mr-border);
       margin-bottom: 16px;
       font-size: 13px;
       display: flex;
@@ -144,152 +165,134 @@
       gap: 10px;
       flex-shrink: 0;
     }
-    
+
     .alert.error {
-      background: rgba(207, 45, 86, 0.08);
-      border-color: rgba(207, 45, 86, 0.2);
-      color: var(--color-error);
+      background: var(--mr-danger-bg);
+      border-color: #fca5a5;
+      color: var(--mr-danger);
     }
-    
+
     /* Table Container - fills remaining space */
     .table-container {
       flex: 1;
       display: flex;
       flex-direction: column;
-      background: var(--color-surface);
-      border: 1px solid var(--color-hairline);
-      border-radius: 8px;
+      background: var(--mr-surface);
+      border: 1px solid var(--mr-border);
+      border-radius: var(--mr-radius-card);
       overflow: hidden;
       min-height: 0;
     }
-    
+
     /* Table wrapper for sticky header */
     .table-wrapper {
       flex: 1;
       overflow: auto;
       position: relative;
     }
-    
-    table {
-      width: 100%;
-      border-collapse: collapse;
+
+    table.mr-table {
       min-width: 800px;
     }
-    
+
     thead {
       position: sticky;
       top: 0;
       z-index: 10;
     }
-    
-    thead th {
-      background: var(--color-primary);
-      color: white;
-      text-align: left;
-      font-weight: 600;
-      padding: 10px 12px;
-      white-space: nowrap;
-      font-size: 12px;
-      letter-spacing: 0.3px;
-    }
-    
+
     thead th.sortable {
       cursor: pointer;
+      user-select: none;
     }
-    
+
     thead th.sortable:hover {
-      background: var(--color-primary-hover);
+      background: var(--mr-accent-soft);
+      color: var(--mr-accent);
     }
-    
+
     thead th .sort-indicator {
       margin-left: 6px;
       font-size: 11px;
       opacity: 0.7;
     }
-    
-    tbody td {
+
+    .mr-table tbody td {
       padding: 8px 12px;
-      border-bottom: 1px solid var(--color-hairline);
-      font-size: 13px;
       vertical-align: middle;
       white-space: nowrap;
     }
-    
-    tbody tr:nth-child(even) {
-      background: var(--color-canvas-soft);
+
+    .mr-table tbody tr:nth-child(even) {
+      background: var(--mr-surface-2);
     }
-    
-    tbody tr:hover {
-      background: rgba(20, 86, 240, 0.04);
-    }
-    
+
     /* Footer - fixed at bottom */
     tfoot {
       position: sticky;
       bottom: 0;
       z-index: 5;
     }
-    
+
     tfoot tr {
-      background: var(--color-canvas);
+      background: var(--mr-surface-2);
       font-weight: 600;
     }
-    
+
     tfoot td {
       padding: 10px 12px;
-      border-top: 2px solid var(--color-primary);
+      border-top: 2px solid var(--mr-accent);
       font-size: 12px;
-      color: var(--color-ink);
+      color: var(--mr-text);
     }
-    
+
     .center {
       text-align: center;
     }
-    
+
     /* Pills */
     .pill {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      padding: 3px 8px;
-      border-radius: 9999px;
+      padding: 2px 10px;
+      border-radius: var(--mr-radius-pill);
       font-weight: 600;
       font-size: 11px;
-      color: white;
     }
-    
-    .pill.green { background: var(--color-success); }
-    .pill.red { background: var(--color-error); }
-    
+
+    .pill.green { background: var(--mr-success-bg); color: var(--mr-success); }
+    .pill.red { background: var(--mr-danger-bg); color: var(--mr-danger); }
+
     /* No Token */
     .no-token {
       max-width: 500px;
       margin: auto;
-      background: var(--color-surface);
-      border: 1px solid var(--color-hairline);
-      border-radius: 8px;
+      background: var(--mr-surface);
+      border: 1px solid var(--mr-border);
+      border-radius: var(--mr-radius-card);
       padding: 24px;
       text-align: center;
     }
-    
+
     .no-token h2 {
       font-size: 18px;
       font-weight: 600;
       margin-bottom: 8px;
     }
-    
+
     .no-token p {
-      color: var(--color-muted);
+      color: var(--mr-muted);
       font-size: 13px;
       margin-bottom: 12px;
     }
-    
+
     .no-token a {
-      color: var(--color-primary);
+      color: var(--mr-accent);
       text-decoration: none;
       font-weight: 600;
     }
-    
+
     /* Loading */
     .loading-overlay {
       position: fixed;
@@ -297,70 +300,66 @@
       left: 0;
       right: 0;
       bottom: 0;
-      background: rgba(247, 247, 244, 0.95);
+      background: color-mix(in srgb, var(--mr-canvas) 95%, transparent);
       display: flex;
       align-items: center;
       justify-content: center;
       z-index: 9999;
     }
-    
+
     .loading-content {
-      background: white;
+      background: var(--mr-surface);
       padding: 24px 40px;
-      border-radius: 8px;
+      border-radius: var(--mr-radius-card);
       text-align: center;
-      border: 1px solid var(--color-hairline);
+      border: 1px solid var(--mr-border);
     }
-    
+
     .loading-spinner {
-      border: 3px solid var(--color-hairline);
-      border-top: 3px solid var(--color-primary);
+      border: 3px solid var(--mr-border);
+      border-top: 3px solid var(--mr-accent);
       border-radius: 50%;
       width: 32px;
       height: 32px;
       animation: spin 0.8s linear infinite;
       margin: 0 auto 12px;
     }
-    
+
     @keyframes spin {
       0% { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
     }
-    
+
     .loading-overlay.hidden {
       display: none;
     }
-    
+
     /* Responsive */
-    @media (max-width: 1024px) {
-      .main-content {
-        margin-left: 280px;
-        padding: 32px;
-      }
-    }
-    
     @media (max-width: 768px) {
       body {
-        padding: 12px;
         height: auto;
         overflow: auto;
       }
-      
+
+      #contentSection {
+        padding: 12px;
+      }
+
       .page-header {
         flex-direction: column;
         align-items: flex-start;
         gap: 12px;
       }
-      
+
       .page-actions {
         width: 100%;
         flex-wrap: wrap;
       }
-      
+
       input.search {
         width: 100%;
       }
-      
+
       .table-container {
         height: auto;
         min-height: 400px;
@@ -369,7 +368,9 @@
   </style>
 </head>
 
-<body>
+<body class="mera-page">
+
+<th:block th:replace="~{fragments/mera-layout :: workspaceHeader('Báo Cáo Sale 1')}"></th:block>
 
 <!-- Loading popup -->
 <div id="loadingOverlay" class="loading-overlay hidden">
@@ -390,7 +391,7 @@
 <div id="contentSection" style="display:none; flex: 1; display: flex; flex-direction: column; min-height: 0;">
   <div class="page-header">
     <div>
-      <div class="page-title">📈 Sale Report (Tổng hợp theo tư vấn viên)</div>
+      <div class="page-subtitle">📈 Tổng hợp theo tư vấn viên</div>
       <div class="page-meta" id="metaInfo"></div>
     </div>
 
@@ -402,15 +403,15 @@
           <option value="CurrentMonth" id="optCurrentMonth">Tháng này</option>
           <option value="LastMonth" id="optLastMonth">Tháng trước</option>
         </select>
-        <button type="submit">Lọc</button>
+        <button type="submit" class="mr-btn">Lọc</button>
       </form>
 
       <form method="post" action="/saleReport/refresh" id="refreshForm">
         <input type="hidden" name="range" id="refreshRange" />
-        <button class="primary" type="submit">🔄 Làm mới</button>
+        <button class="mr-btn mr-btn--primary" type="submit">🔄 Làm mới</button>
       </form>
 
-      <a href="#" id="exportExcelBtn" class="success" style="text-decoration: none; padding: 8px 14px; border-radius: 6px; background: #1f8a65; color: white; border: none; cursor: pointer; font-size: 13px; font-weight: 500;">
+      <a href="#" id="exportExcelBtn" class="btn-excel">
         📥 Excel
       </a>
     </div>
@@ -422,7 +423,7 @@
 
   <div class="table-container">
     <div class="table-wrapper">
-      <table>
+      <table class="mr-table">
         <thead>
         <tr>
           <th style="width:50px;">#</th>
@@ -727,6 +728,8 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 });
 </script>
+
+<th:block th:replace="~{fragments/mera-layout :: shellScript}"></th:block>
 
 </body>
 </html>

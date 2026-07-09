@@ -1,18 +1,56 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html xmlns:th="http://www.thymeleaf.org" lang="vi">
 
 <head>
     <meta charset="UTF-8">
     <link rel="icon" type="image/jpeg" href="/meraicon.ico">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tra cứu thông tin khách hàng</title>
+    <script th:replace="~{fragments/mera-layout :: themeInit}"></script>
+    <!-- Giữ Tailwind CDN: /js/search-info.js render class Tailwind động -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        /* Ánh xạ màu "brand" của Tailwind về accent mera-ui (#1456f0) — chỉ đổi màu, không đổi logic */
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#eef3ff',
+                            100: '#dce7ff',
+                            500: '#3b74f2',
+                            600: '#1456f0',
+                            700: '#0f45c4'
+                        }
+                    }
+                }
+            }
+        };
+    </script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/mera-ui.css">
     <style>
         body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f3f4f6;
+            font-family: var(--mr-font);
+            background-color: var(--mr-canvas);
+        }
+
+        /* App shell full-height: cuộn bên trong từng cột thay vì cuộn trang */
+        .mr-shell-main {
+            height: 100dvh;
+            overflow: hidden;
+        }
+
+        .mr-shell-content {
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            overflow: hidden;
+            max-width: none;
+            padding: 12px;
         }
 
         .timeline-line::before {
@@ -22,7 +60,7 @@
             bottom: 0;
             left: 15px;
             width: 2px;
-            background: #e5e7eb;
+            background: var(--mr-border);
             z-index: 0;
         }
 
@@ -53,113 +91,105 @@
             z-index: 60;
         }
         .loading-box {
-            background: white;
+            background: var(--mr-surface);
+            color: var(--mr-text);
             padding: 14px 18px;
             border-radius: 8px;
             display: flex;
             gap: 12px;
             align-items: center;
-            box-shadow: 0 6px 24px rgba(0,0,0,0.12);
+            box-shadow: var(--mr-shadow-md);
         }
         .loading-box .spinner {
             width: 18px;
             height: 18px;
             border-radius: 50%;
-            border: 3px solid #e6fffa;
-            border-top-color: #14b8a6;
+            border: 3px solid var(--mr-accent-soft);
+            border-top-color: var(--mr-accent);
             animation: spin 1s linear infinite;
         }
         @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
 
-<body class="text-slate-600 h-screen flex flex-col overflow-hidden bg-slate-50">
+<body class="mera-page text-slate-600">
     <div id="loadingOverlay" class="loading-overlay" style="display:none;">
         <div class="loading-box">
             <div class="spinner"></div>
             <div>Đang tìm, vui lòng chờ...</div>
         </div>
     </div>
-    <header class="bg-white shadow-sm border-b border-slate-200 flex-none z-50">
-        <div class="w-full px-4 h-14 flex items-center justify-between">
-            <div class="flex items-center gap-2 w-[340px]">
-                <div class="w-8 h-8 bg-brand-600 rounded-lg flex items-center justify-center text-white font-bold">
-                    <i class="fa-solid fa-hospital"></i>
-                </div>
-                <h1 class="font-bold text-lg text-slate-800 tracking-tight">MERA<span
-                        class="text-brand-600">Group</span></h1>
-            </div>
-
-            <div class="flex-1 px-4">
-                <div class="relative group max-w-3xl mx-auto">
+<div class="mr-shell">
+    <th:block th:replace="~{fragments/mera-layout :: sidebar('')}"></th:block>
+    <div class="mr-shell-main">
+        <th:block th:replace="~{fragments/mera-layout :: topbar('Demo')}"></th:block>
+        <main class="mr-shell-content">
+            <div class="flex-none pb-3 z-50">
+                <div class="relative group max-w-3xl">
                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                         <i class="fa-solid fa-magnifying-glass text-slate-400"></i>
                     </div>
 
                     <input type="text" id="phoneInput"
-                        class="block w-full pl-10 pr-24 py-2.5 border border-slate-200 rounded-full bg-slate-100 focus:bg-white focus:ring-2 focus:ring-brand-500 focus:outline-none transition text-sm"
+                        class="block w-full pl-10 pr-24 py-2.5 border border-slate-200 rounded-lg bg-slate-100 focus:bg-white focus:ring-2 focus:ring-brand-500 focus:outline-none transition text-sm"
                         placeholder="Tìm kiếm SĐT, Tên...">
 
                     <button id="searchBtn"
-                        class="absolute right-1 top-1 bottom-1 bg-brand-600 hover:bg-brand-700 text-white px-5 rounded-full text-xs font-bold transition shadow-sm flex items-center">
+                        class="absolute right-1 top-1 bottom-1 bg-brand-600 hover:bg-brand-700 text-white px-5 rounded-md text-xs font-bold transition shadow-sm flex items-center">
                         Tra cứu
                     </button>
                 </div>
             </div>
+            <div class="flex-1 w-full min-h-0 overflow-hidden">
 
-            <div class="flex items-center gap-3 w-[100px] justify-end">
-                <div class="w-8 h-8 rounded-full bg-slate-200 overflow-hidden border border-slate-300">
-                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Admin" alt="Admin">
+                <div id="emptyState" class="w-full h-full flex items-center justify-center text-slate-500">
+                    Nhập số điện thoại để tìm kiếm thông tin khách hàng
                 </div>
-            </div>
-        </div>
-    </header>
-    <main class="flex-1 w-full h-full p-3 overflow-hidden">
 
-        <div id="emptyState" class="w-full h-full flex items-center justify-center text-slate-500">
-            Nhập số điện thoại để tìm kiếm thông tin khách hàng
-        </div>
-
-        <div id="mainGrid" class="hidden grid grid-cols-1 lg:grid-cols-[350px_1fr_1fr] gap-4 h-full">
-            <!-- thông tin khách hàng -->
-            <div class="flex flex-col gap-4 overflow-y-auto no-scrollbar pb-10">
-                <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex-none"
-                    id="customerCard" style="order:2;">
-                    <div class="h-20 bg-gradient-to-r from-brand-600 to-teal-400"></div>
-                    <div class="px-5 pb-5 text-center relative" id="customerInfo">
+                <div id="mainGrid" class="hidden grid grid-cols-1 lg:grid-cols-[350px_1fr_1fr] gap-4 h-full">
+                    <!-- thông tin khách hàng -->
+                    <div class="flex flex-col gap-4 overflow-y-auto no-scrollbar pb-10">
+                        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex-none"
+                            id="customerCard" style="order:2;">
+                            <div class="h-20 bg-gradient-to-r from-brand-600 to-brand-500"></div>
+                            <div class="px-5 pb-5 text-center relative" id="customerInfo">
 
 
-                    </div>
-                </div>
-                <div id="leftProductSummary" class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 flex flex-col flex-1 min-h-[120px]">
-                    <h3 class="font-bold text-slate-700 text-sm mb-2">Tổng hợp sản phẩm đã mua</h3>
-                    <div id="leftProductSummaryContent" class="text-sm text-slate-600"></div>
-                </div>
-            </div>
-            <!-- Lịch sử mua hàng -->
-            <div id="ordersWrap"></div>
-            <!-- Ghi chú (POS) + Trao đổi (right column) -->
-            <div class="flex flex-col gap-2 h-full min-h-0">
-                <div id="posNotesWrap" class="bg-white rounded-xl shadow-sm border border-slate-200 p-3 mb-2">
-                    <div id="posNotesHeader" class="flex items-center justify-between mb-2 cursor-pointer">
-                        <div class="flex items-center gap-2">
-                            <div class="font-bold text-slate-700">Ghi chú (POS)</div>
-                            <i id="posNotesToggleIcon" class="fa-solid fa-chevron-right text-slate-400 transition-transform"></i>
+                            </div>
+                        </div>
+                        <div id="leftProductSummary" class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 flex flex-col flex-1 min-h-[120px]">
+                            <h3 class="font-bold text-slate-700 text-sm mb-2">Tổng hợp sản phẩm đã mua</h3>
+                            <div id="leftProductSummaryContent" class="text-sm text-slate-600"></div>
                         </div>
                     </div>
-                    <div id="posNotesList" class="text-sm text-slate-600 hidden">Chưa có ghi chú</div>
-                </div>
-                <!-- Trao đổi -->
-                <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-3 flex flex-col min-h-0">
-                    <div class="flex items-center justify-between mb-2">
-                        <div class="font-bold text-slate-700">Trao đổi</div>
-                        <button id="exchangeAddBtn" class="text-sm text-white bg-brand-600 px-3 py-1 rounded">Thêm mới</button>
+                    <!-- Lịch sử mua hàng -->
+                    <div id="ordersWrap"></div>
+                    <!-- Ghi chú (POS) + Trao đổi (right column) -->
+                    <div class="flex flex-col gap-2 h-full min-h-0">
+                        <div id="posNotesWrap" class="bg-white rounded-xl shadow-sm border border-slate-200 p-3 mb-2">
+                            <div id="posNotesHeader" class="flex items-center justify-between mb-2 cursor-pointer">
+                                <div class="flex items-center gap-2">
+                                    <div class="font-bold text-slate-700">Ghi chú (POS)</div>
+                                    <i id="posNotesToggleIcon" class="fa-solid fa-chevron-right text-slate-400 transition-transform"></i>
+                                </div>
+                            </div>
+                            <div id="posNotesList" class="text-sm text-slate-600 hidden">Chưa có ghi chú</div>
+                        </div>
+                        <!-- Trao đổi -->
+                        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-3 flex flex-col min-h-0">
+                            <div class="flex items-center justify-between mb-2">
+                                <div class="font-bold text-slate-700">Trao đổi</div>
+                                <button id="exchangeAddBtn" class="text-sm text-white bg-brand-600 px-3 py-1 rounded">Thêm mới</button>
+                            </div>
+                            <div id="conversationsList" class="flex-1 overflow-y-auto min-h-0"></div>
+                        </div>
                     </div>
-                    <div id="conversationsList" class="flex-1 overflow-y-auto min-h-0"></div>
                 </div>
             </div>
-        </div>
-    </main>
+        </main>
+        <footer class="mr-shell-footer">MeraGroup Dashboard v2.0</footer>
+    </div>
+</div>
     <!-- Order detail modal -->
     <div id="orderModal" class="fixed inset-0 hidden items-center justify-center z-50">
         <div class="absolute inset-0 bg-black/40" id="orderModalOverlay"></div>
@@ -203,6 +233,7 @@
             </div>
         </div>
     </div>
+<th:block th:replace="~{fragments/mera-layout :: shellScript}"></th:block>
     <script>
         // Load JS with cache-buster so users see latest changes immediately
         (function() {

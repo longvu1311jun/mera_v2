@@ -5,21 +5,26 @@
     <link rel="icon" type="image/jpeg" href="/meraicon.ico">
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Sale1 Report</title>
+  <script th:replace="~{fragments/mera-layout :: themeInit}"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/mera-ui.css">
   <style>
+    /* Map hệ biến cũ sang token mera-ui */
     :root{
-      --header:#6673ff;
-      --row-alt:#f5f3ff;
-      --text:#334155;
-      --muted:#64748b;
-      --shadow: 0 12px 30px rgba(17,24,39,.10);
-      --radius: 14px;
+      --header: var(--mr-accent);
+      --row-alt: var(--mr-surface-2);
+      --text: var(--mr-text);
+      --muted: var(--mr-muted);
+      --shadow: var(--mr-shadow-sm);
+      --radius: var(--mr-radius-card);
     }
     body{
       margin:0;
-      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
-      background:#f7f7fb;
+      font-family: var(--mr-font);
+      background: var(--mr-canvas);
       color:var(--text);
-      padding:24px;
     }
     .topbar{
       display:flex;
@@ -31,8 +36,9 @@
     }
     .title{
       font-size:20px;
-      font-weight:900;
-      color:#0f172a;
+      font-weight:700;
+      letter-spacing:-0.01em;
+      color:var(--mr-text);
       display:flex;
       gap:10px;
       align-items:center;
@@ -49,41 +55,53 @@
       flex-wrap:wrap;
     }
     select, button{
-      border:1px solid #e5e7eb;
-      border-radius:10px;
+      border:1px solid var(--mr-border);
+      border-radius: var(--mr-radius-control);
       padding:10px 12px;
+      font-family: inherit;
       font-size:14px;
-      background:#fff;
+      background: var(--mr-surface);
+      color: var(--mr-text);
       cursor:pointer;
     }
     input.search{
-      border:1px solid #e5e7eb;
-      border-radius:10px;
+      border:1px solid var(--mr-border);
+      border-radius: var(--mr-radius-control);
       padding:10px 12px;
+      font-family: inherit;
       font-size:14px;
-      background:#fff;
+      background: var(--mr-surface);
+      color: var(--mr-text);
       width:260px;
     }
+    input.search:focus, select:focus{
+      outline:none;
+      border-color: var(--mr-accent);
+      box-shadow: 0 0 0 3px rgba(20, 86, 240, 0.12);
+    }
     button.primary{
-      background: var(--header);
+      background: var(--mr-accent);
       color:#fff;
       border:none;
-      font-weight:800;
+      font-weight:600;
     }
-    button.ghost{ background:#fff; font-weight:800; }
+    button.primary:hover{ background: var(--mr-accent-hover); }
+    button.ghost{ background: var(--mr-surface); font-weight:600; }
+    button.ghost:hover{ background: var(--mr-surface-2); }
 
     .alert{
-      padding:12px 14px;
-      border-radius:12px;
-      background:#fff;
-      border:1px solid #e5e7eb;
+      padding:12px 16px;
+      border-radius:10px;
+      background: var(--mr-surface);
+      border:1px solid var(--mr-border);
       margin:12px 0;
-      font-size:14px;
+      font-size:13px;
     }
-    .alert.error{ border-color:#fecaca; background:#fff1f2; color:#991b1b; }
+    .alert.error{ border-color:#fca5a5; background: var(--mr-danger-bg); color: var(--mr-danger); }
 
     .table-card{
-      background:#fff;
+      background: var(--mr-surface);
+      border:1px solid var(--mr-border);
       border-radius: var(--radius);
       box-shadow: var(--shadow);
       overflow: hidden;
@@ -93,11 +111,13 @@
     }
     table{ width:100%; border-collapse: collapse; min-width: 1200px; }
     thead th{
-      background: var(--header);
-      color:#fff;
+      background: var(--mr-surface-2);
+      color: var(--mr-text-2);
       text-align:left;
-      font-weight:900;
-      padding: 14px 16px;
+      font-weight:600;
+      font-size:13px;
+      padding: 12px 16px;
+      border-bottom:1px solid var(--mr-border);
       position: sticky;
       top:0;
       z-index:2;
@@ -105,16 +125,17 @@
       cursor: default;
     }
     thead th.sortable{ cursor:pointer; }
+    thead th.sortable:hover{ color: var(--mr-accent); }
     thead th .sort-indicator{ margin-left:8px; font-size:12px; opacity:0.9 }
     tbody td{
       padding: 12px 16px;
-      border-top:1px solid #eef2ff;
+      border-top:1px solid var(--mr-border-soft);
       font-size:14px;
       vertical-align:middle;
       white-space:nowrap;
     }
     tbody tr:nth-child(even){ background: var(--row-alt); }
-    tbody tr:hover{ background:#edeaff; }
+    tbody tr:hover{ background: var(--mr-accent-soft); }
 
     .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size:12px; }
     .center{ text-align:center; }
@@ -123,52 +144,29 @@
       display:inline-flex;
       align-items:center;
       justify-content:center;
-      padding:6px 10px;
-      border-radius:999px;
-      font-weight:900;
+      padding:4px 10px;
+      border-radius: var(--mr-radius-pill);
+      font-weight:600;
       font-size:12px;
-      color:#fff;
     }
-    .pill.green{ background:#16a34a; }
-    .pill.orange{ background:#f97316; }
-    .pill.red{ background:#ef4444; }
+    .pill.green{ background: var(--mr-success-bg); color: var(--mr-success); }
+    .pill.orange{ background: var(--mr-warn-bg); color: var(--mr-warn); }
+    .pill.red{ background: var(--mr-danger-bg); color: var(--mr-danger); }
 
     .no-token{
       max-width: 720px;
       margin: 80px auto 0;
-      background:#fff;
-      border-radius: 16px;
+      background: var(--mr-surface);
+      border:1px solid var(--mr-border);
+      border-radius: var(--mr-radius-card);
       box-shadow: var(--shadow);
       padding: 24px;
       text-align:center;
     }
-    .no-token a{ color: var(--header); text-decoration:none; font-weight:900; }
-    /* Header styles copied from stats.html to provide consistent page header */
-    header {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      /* make header span full viewport width despite body padding */
-      /* margin:-50px;
-      padding: 1rem 24px; */
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-      height: 78px;
-      margin-top: -25px;
-      margin-left: -50px;
-      width: 2000px;
-    }
-    .container { max-width: 1400px; margin: 0 auto; padding: 0 20px; }
-    .header-content { display: flex; justify-content: space-between; align-items: center; padding-top: 10px;}
-    .logo { font-size: 1.8rem; font-weight: bold; }
-    nav ul { list-style: none; display: flex; gap: 1rem; }
-    nav a { color: white; text-decoration: none; transition: opacity 0.3s; font-weight: 500; }
-    nav a:hover { opacity: 0.8; }
-    nav a.active {
-      font-weight: bold;
-      color: #ffd700 !important;
-      text-decoration: underline;
-    }
-    .content-section { padding: 2rem 0; }
-    .section-title { font-size: 1.4rem; margin-bottom: 1rem; color: #667eea; display:flex; align-items:center; gap:0.5rem }
+    .no-token a{ color: var(--mr-accent); text-decoration:none; font-weight:600; }
+    .container { max-width: 1400px; margin: 0 auto; }
+    .content-section { padding: 0; }
+    .section-title { font-size: 1.4rem; margin-bottom: 1rem; color: var(--mr-accent); display:flex; align-items:center; gap:0.5rem }
 
     /* Loading popup */
     .loading-overlay {
@@ -184,15 +182,15 @@
       z-index: 9999;
     }
     .loading-content {
-      background: white;
+      background: var(--mr-surface);
       padding: 2rem;
-      border-radius: 12px;
+      border-radius: var(--mr-radius-card);
       text-align: center;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+      box-shadow: var(--mr-shadow-md);
     }
     .loading-spinner {
-      border: 4px solid #f3f3f3;
-      border-top: 4px solid #667eea;
+      border: 4px solid var(--mr-border);
+      border-top: 4px solid var(--mr-accent);
       border-radius: 50%;
       width: 40px;
       height: 40px;
@@ -209,21 +207,8 @@
   </style>
 </head>
 
-<body>
-<header>
-  <div class="container">
-    <div class="header-content">
-      <div class="logo">MeraGroup</div>
-      <nav>
-<!--        <ul>-->
-<!--          <li><a href="/saleReport" style="font-size: 25px">SALE 1</a></li>-->
-<!--          <li><a href="/sale1report" style="font-size: 25px" class="active">SALE 1 (Copy)</a></li>-->
-<!--          <li><a href="/stats" style="font-size: 25px">SALE 2</a></li>-->
-<!--        </ul>-->
-      </nav>
-    </div>
-  </div>
-</header>
+<body class="mera-page">
+<th:block th:replace="~{fragments/mera-layout :: workspaceHeader('Sale 1 Report')}"></th:block>
 
 <!-- Loading popup -->
 <div id="loadingOverlay" class="loading-overlay hidden">
@@ -233,6 +218,7 @@
   </div>
 </div>
 
+<div class="mr-workspace-content">
 <div id="noTokenSection" class="no-token" style="display:none;">
   <h2 style="margin:0 0 10px 0;">Chưa có token</h2>
   <div style="color:var(--muted)">Đăng nhập Lark trước rồi quay lại trang report nha.</div>
@@ -268,7 +254,7 @@
         <button class="primary" type="submit">Làm mới dữ liệu</button>
       </form>
 
-      <a href="#" id="exportExcelBtn" class="primary" style="text-decoration: none; display: inline-block; padding: 10px 20px; border-radius: 8px; background: #28a745; color: white; border: none; cursor: pointer; font-size: 14px; font-weight: 500;">
+      <a href="#" id="exportExcelBtn" class="primary" style="text-decoration: none; display: inline-block; padding: 10px 20px; border-radius: 8px; background: var(--mr-accent); color: white; border: none; cursor: pointer; font-size: 14px; font-weight: 600;">
         Xuất Excel
       </a>
     </div>
@@ -303,7 +289,7 @@
         <tbody id="tableBody">
         <!-- Data will be populated by JavaScript -->
         </tbody>
-        <tfoot id="tableFoot" style="background:#e0e7ff; font-weight:900;">
+        <tfoot id="tableFoot" style="background: var(--mr-accent-soft); font-weight:700;">
           <tr style="height:45px;">
             <td colspan="2" class="center">TỔNG</td>
             <td class="center" id="totalNhuCau">0</td>
@@ -326,6 +312,9 @@
     </div>
   </section>
 </div>
+</div>
+
+<th:block th:replace="~{fragments/mera-layout :: shellScript}"></th:block>
 
 <script>
 // Dùng chung cho sort/filter, được cập nhật sau khi load data

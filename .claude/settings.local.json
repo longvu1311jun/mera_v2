@@ -34,7 +34,17 @@
       "Bash(python -X utf8 -c ' *)",
       "Bash(grep -o \"CONSTRAINT [^,]*REFERENCES \\\\`customers\\\\`[^,\\)]*\" dump-pos_db-202607060916.sql)",
       "Bash(grep -o \"CONSTRAINT \\\\`fk_\\\\\\(addr\\\\|note\\\\|phone\\\\|ctag\\\\|order\\\\\\)_cust\\\\`[^,\\)]*\\)\\\\\\( ON DELETE [A-Z ]*\\\\\\)\\\\?\" dump-pos_db-202607060916.sql)",
-      "Bash(grep -o \"CONSTRAINT \\\\`fk_order_cust\\\\`.\\\\{0,120\\\\}\" dump-pos_db-202607060916.sql)"
+      "Bash(grep -o \"CONSTRAINT \\\\`fk_order_cust\\\\`.\\\\{0,120\\\\}\" dump-pos_db-202607060916.sql)",
+      "Bash(npm ls *)",
+      "Bash(python \"C:\\\\Users\\\\Admin\\\\AppData\\\\Roaming\\\\Claude\\\\local-agent-mode-sessions\\\\skills-plugin\\\\2405a50b-4ae6-4381-a032-7d512827ed68\\\\ae98393c-72d7-42ea-8be5-aabcf28277f3\\\\skills\\\\docx\\\\scripts\\\\office\\\\soffice.py\" --headless --convert-to pdf huong-dan-so-tha-noi-phong-sale.docx)",
+      "Bash(pdftoppm -jpeg -r 80 huong-dan-so-tha-noi-phong-sale.pdf page)",
+      "Bash(where pandoc *)",
+      "Bash(pandoc -t plain docs/huong-dan-so-tha-noi-phong-sale.docx)",
+      "Bash(grep -n 'th:' /tmp/dongbo_head.html; grep -o 'id=\"[^\"]*\"' src/main/resources/templates/dongbo.html | sort > /tmp/ids_cur.txt; diff /tmp/ids_head.txt /tmp/ids_cur.txt && echo IDS_MATCH; grep -o 'onclick=\"[^\"]*\"' src/main/resources/templates/dongbo.html | sort > /tmp/onclick_cur.txt; diff /tmp/onclick_head.txt /tmp/onclick_cur.txt && echo ONCLICK_MATCH)",
+      "Bash(echo \"exit=$?\")",
+      "Bash(python -)",
+      "Bash(PYTHONIOENCODING=utf-8 python -)",
+      "Bash(git diff *)"
     ]
   }
 }

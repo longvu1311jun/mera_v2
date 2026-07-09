@@ -5,222 +5,135 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chấm Công Ra Vào - Mera</title>
     <link rel="icon" type="image/jpeg" href="/meraicon.ico">
-    <script src="https://cdn.tailwindcss.com"></script>
+    <script th:replace="~{fragments/mera-layout :: themeInit}"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/mera-ui.css">
     <style>
-        body {
-            font-family: 'Plus Jakarta Sans', sans-serif;
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
-            min-height: 100vh;
-        }
-        .glass-card {
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 16px;
-        }
-        .stat-card {
-            background: rgba(255, 255, 255, 0.08);
-            backdrop-filter: blur(8px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
-        }
-        .table-container {
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 12px;
-            overflow: hidden;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        th {
-            background: rgba(99, 102, 241, 0.2);
-            padding: 12px 16px;
-            text-align: left;
-            font-weight: 600;
-            color: #a5b4fc;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            position: sticky;
-            top: 0;
-        }
-        td {
-            padding: 12px 16px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-        }
-        tr:hover td {
-            background: rgba(255, 255, 255, 0.05);
-        }
-        .time-badge {
-            background: rgba(99, 102, 241, 0.2);
-            padding: 4px 10px;
-            border-radius: 6px;
-            font-weight: 500;
-        }
-        .checkin { color: #34d399; }
-        .checkout { color: #fbbf24; }
-        .btn-primary {
-            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-            transition: all 0.2s ease;
-        }
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(99, 102, 241, 0.4);
-        }
-        input, select {
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            color: white;
-        }
-        input:focus, select:focus {
-            outline: none;
-            border-color: #6366f1;
-            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
-        }
-        .nav-link {
-            transition: all 0.2s ease;
-        }
-        .nav-link:hover {
-            color: #6366f1;
-            transform: translateX(4px);
-        }
-        .scrollable-table {
-            max-height: 600px;
-            overflow-y: auto;
-        }
-        .scrollable-table::-webkit-scrollbar {
-            width: 8px;
-        }
-        .scrollable-table::-webkit-scrollbar-track {
-            background: rgba(255, 255, 255, 0.05);
-        }
-        .scrollable-table::-webkit-scrollbar-thumb {
-            background: rgba(99, 102, 241, 0.5);
-            border-radius: 4px;
-        }
+        .ap-cell-sub { font-size: 12px; color: var(--mr-muted); }
     </style>
 </head>
-<body class="text-white">
-    <!-- Header -->
-    <header class="glass-card mx-6 mt-6 px-6 py-4">
-        <div class="flex items-center justify-between">
-            <div class="flex items-center gap-4">
-                <img src="/meraicon.ico" alt="Logo" class="w-10 h-10 rounded-lg" onerror="this.style.display='none'">
-                <div>
-                    <h1 class="text-xl font-bold">Chấm Công Ra Vào</h1>
-                    <p class="text-sm text-gray-400">Bảng chấm công từ Lark</p>
+<body class="mera-page">
+<div class="mr-shell">
+    <th:block th:replace="~{fragments/mera-layout :: sidebar('attendance')}"></th:block>
+    <div class="mr-shell-main">
+        <th:block th:replace="~{fragments/mera-layout :: topbar('Chấm Công')}"></th:block>
+        <main class="mr-shell-content">
+        <!-- Header -->
+        <div class="mr-page-header">
+            <div>
+                <h1 class="mr-page-title"><span>⏰</span> Chấm Công Ra Vào</h1>
+                <p class="mr-page-subtitle">Bảng chấm công từ Lark</p>
+            </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="mr-stat-grid">
+            <div class="mr-stat mr-stat--accent">
+                <div class="mr-stat-label">Tổng bản ghi</div>
+                <div class="mr-stat-value" th:text="${totalRecords}">0</div>
+            </div>
+            <div class="mr-stat mr-stat--success">
+                <div class="mr-stat-label">Số nhân viên</div>
+                <div class="mr-stat-value" th:text="${totalEmployees}">0</div>
+            </div>
+            <div class="mr-stat">
+                <div class="mr-stat-label">Khoảng thời gian</div>
+                <div class="mr-stat-value" style="font-size: 16px;" th:text="${#temporals.format(startDate, 'dd/MM/yyyy')} + ' - ' + ${#temporals.format(endDate, 'dd/MM/yyyy')}">-</div>
+            </div>
+        </div>
+
+        <!-- Filter Form -->
+        <div class="mr-card" style="margin-bottom: 20px;">
+            <form method="get" class="mr-form-row">
+                <div class="mr-field">
+                    <label>Từ ngày</label>
+                    <input type="date" name="startDate" th:value="${startDate}" class="mr-input">
+                </div>
+                <div class="mr-field">
+                    <label>Đến ngày</label>
+                    <input type="date" name="endDate" th:value="${endDate}" class="mr-input">
+                </div>
+                <div class="mr-field">
+                    <label>Mã nhân viên</label>
+                    <input type="text" name="employeeId" th:value="${employeeId}" placeholder="Tìm theo mã..." class="mr-input">
+                </div>
+                <div class="mr-field">
+                    <label>Tên nhân viên</label>
+                    <input type="text" name="employeeName" th:value="${employeeName}" placeholder="Tìm theo tên..." class="mr-input">
+                </div>
+                <div class="mr-field">
+                    <button type="submit" class="mr-btn mr-btn--primary">
+                        Tìm kiếm
+                    </button>
+                </div>
+                <div class="mr-field">
+                    <a href="/attendance-punch" class="mr-btn mr-btn--ghost">
+                        Reset
+                    </a>
+                </div>
+            </form>
+        </div>
+
+        <!-- Table -->
+        <div>
+            <div th:if="${attendanceRows.isEmpty()}" class="mr-card">
+                <div class="mr-empty">
+                    <div style="font-size: 15px; color: var(--mr-text-2);">Không có dữ liệu chấm công</div>
+                    <p style="margin: 8px 0 0;">Vui lòng chọn khoảng thời gian hoặc đồng bộ dữ liệu từ Lark</p>
+                    <a href="/dongbo" class="mr-btn mr-btn--primary" style="margin-top: 16px;">
+                        Đồng bộ ngay
+                    </a>
                 </div>
             </div>
-            <nav class="flex items-center gap-6">
-                <a href="/index" class="nav-link text-gray-300 hover:text-white">Trang chủ</a>
-                <a href="/dongbo" class="nav-link text-gray-300 hover:text-white">Đồng bộ</a>
-                <a href="/attendance-punch" class="nav-link text-indigo-400 font-semibold">Chấm công</a>
-            </nav>
-        </div>
-    </header>
 
-    <!-- Stats -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mx-6 mt-6">
-        <div class="stat-card p-4">
-            <div class="text-gray-400 text-sm">Tổng bản ghi</div>
-            <div class="text-3xl font-bold text-indigo-400" th:text="${totalRecords}">0</div>
+            <div th:if="${!attendanceRows.isEmpty()}" class="mr-card mr-card--flush">
+                <div class="mr-table-scroll">
+                    <table class="mr-table">
+                        <thead>
+                            <tr>
+                                <th>STT</th>
+                                <th>Tên Nhân Viên</th>
+                                <th>Phòng Ban</th>
+                                <th>Giờ Check In</th>
+                                <th>Giờ Check Out</th>
+                                <th>Ngày</th>
+                                <th>Chi tiết</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="row, stat : ${attendanceRows}">
+                                <td class="mr-muted" th:text="${stat.index + 1}">1</td>
+                                <td>
+                                    <div style="font-weight: 600;" th:text="${row.employeeName}">Nguyễn Văn A</div>
+                                    <div class="ap-cell-sub" th:text="${row.employeeId}">25c7e919</div>
+                                </td>
+                                <td th:text="${row.department}">Phòng IT</td>
+                                <td>
+                                    <span th:if="${row.checkIn != '-'}" class="mr-badge mr-badge--success" th:text="${row.checkIn}">08:00</span>
+                                    <span th:if="${row.checkIn == '-'}" class="mr-muted">-</span>
+                                </td>
+                                <td>
+                                    <span th:if="${row.checkOut != '-'}" class="mr-badge mr-badge--warn" th:text="${row.checkOut}">17:30</span>
+                                    <span th:if="${row.checkOut == '-'}" class="mr-muted">-</span>
+                                </td>
+                                <td th:text="${#temporals.format(row.date, 'dd/MM/yyyy')}">29/06/2026</td>
+                                <td>
+                                    <span class="ap-cell-sub" th:text="${row.punchCount} + ' lần chấm'">3 lần chấm</span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
-        <div class="stat-card p-4">
-            <div class="text-gray-400 text-sm">Số nhân viên</div>
-            <div class="text-3xl font-bold text-emerald-400" th:text="${totalEmployees}">0</div>
-        </div>
-        <div class="stat-card p-4">
-            <div class="text-gray-400 text-sm">Khoảng thời gian</div>
-            <div class="text-lg font-semibold" th:text="${#temporals.format(startDate, 'dd/MM/yyyy')} + ' - ' + ${#temporals.format(endDate, 'dd/MM/yyyy')}">-</div>
-        </div>
+        </main>
+        <footer class="mr-shell-footer">MeraGroup Dashboard v2.0</footer>
     </div>
+</div>
 
-    <!-- Filter Form -->
-    <div class="glass-card mx-6 mt-6 p-6">
-        <form method="get" class="flex flex-wrap gap-4 items-end">
-            <div>
-                <label class="block text-sm text-gray-400 mb-2">Từ ngày</label>
-                <input type="date" name="startDate" th:value="${startDate}" class="rounded-lg px-4 py-2">
-            </div>
-            <div>
-                <label class="block text-sm text-gray-400 mb-2">Đến ngày</label>
-                <input type="date" name="endDate" th:value="${endDate}" class="rounded-lg px-4 py-2">
-            </div>
-            <div>
-                <label class="block text-sm text-gray-400 mb-2">Mã nhân viên</label>
-                <input type="text" name="employeeId" th:value="${employeeId}" placeholder="Tìm theo mã..." class="rounded-lg px-4 py-2">
-            </div>
-            <div>
-                <label class="block text-sm text-gray-400 mb-2">Tên nhân viên</label>
-                <input type="text" name="employeeName" th:value="${employeeName}" placeholder="Tìm theo tên..." class="rounded-lg px-4 py-2">
-            </div>
-            <div>
-                <button type="submit" class="btn-primary px-6 py-2 rounded-lg font-semibold">
-                    Tìm kiếm
-                </button>
-            </div>
-            <div>
-                <a href="/attendance-punch" class="px-6 py-2 rounded-lg font-semibold border border-gray-500 hover:bg-gray-700 transition">
-                    Reset
-                </a>
-            </div>
-        </form>
-    </div>
-
-    <!-- Table -->
-    <div class="mx-6 mt-6 mb-6">
-        <div th:if="${attendanceRows.isEmpty()}" class="glass-card p-8 text-center">
-            <div class="text-gray-400 text-lg">Không có dữ liệu chấm công</div>
-            <p class="text-gray-500 mt-2">Vui lòng chọn khoảng thời gian hoặc đồng bộ dữ liệu từ Lark</p>
-            <a href="/dongbo" class="inline-block mt-4 btn-primary px-6 py-2 rounded-lg font-semibold">
-                Đồng bộ ngay
-            </a>
-        </div>
-
-        <div th:if="${!attendanceRows.isEmpty()}" class="table-container">
-            <div class="scrollable-table">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>STT</th>
-                            <th>Tên Nhân Viên</th>
-                            <th>Phòng Ban</th>
-                            <th>Giờ Check In</th>
-                            <th>Giờ Check Out</th>
-                            <th>Ngày</th>
-                            <th>Chi tiết</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr th:each="row, stat : ${attendanceRows}">
-                            <td class="text-gray-400" th:text="${stat.index + 1}">1</td>
-                            <td>
-                                <div class="font-semibold" th:text="${row.employeeName}">Nguyễn Văn A</div>
-                                <div class="text-xs text-gray-500" th:text="${row.employeeId}">25c7e919</div>
-                            </td>
-                            <td class="text-gray-300" th:text="${row.department}">Phòng IT</td>
-                            <td>
-                                <span th:if="${row.checkIn != '-'}" class="time-badge checkin" th:text="${row.checkIn}">08:00</span>
-                                <span th:if="${row.checkIn == '-'}" class="text-gray-500">-</span>
-                            </td>
-                            <td>
-                                <span th:if="${row.checkOut != '-'}" class="time-badge checkout" th:text="${row.checkOut}">17:30</span>
-                                <span th:if="${row.checkOut == '-'}" class="text-gray-500">-</span>
-                            </td>
-                            <td class="text-gray-300" th:text="${#temporals.format(row.date, 'dd/MM/yyyy')}">29/06/2026</td>
-                            <td>
-                                <span class="text-xs text-gray-500" th:text="${row.punchCount} + ' lần chấm'">3 lần chấm</span>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-
+    <th:block th:replace="~{fragments/mera-layout :: shellScript}"></th:block>
     <script>
         document.querySelectorAll('input[type="date"]').forEach(input => {
             input.addEventListener('change', () => {

@@ -3,199 +3,210 @@
 <head>
   <meta charset="UTF-8">
     <link rel="icon" type="image/jpeg" href="/meraicon.ico">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Lấy đơn hàng từ Pancake</title>
+  <script th:replace="~{fragments/mera-layout :: themeInit}"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/mera-ui.css">
   <style>
-    body { font-family: Arial, sans-serif; padding: 20px; max-width: 1200px; margin: 0 auto; }
-    h1 { color: #333; }
-    .form-section { background: #f5f5f5; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
-    .form-group { margin-bottom: 15px; }
-    label { display: inline-block; width: 150px; font-weight: bold; }
-    input[type="text"], select { padding: 8px; border: 1px solid #ddd; border-radius: 4px; width: 200px; }
-    button { padding: 10px 20px; background-color: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; }
-    button:hover { background-color: #45a049; }
-    .section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
-    .error { color: red; background: #ffe6e6; padding: 10px; border-radius: 4px; }
-    .success { color: green; background: #e6ffe6; padding: 10px; border-radius: 4px; }
-    pre { background: #f5f5f5; padding: 10px; border-radius: 3px; overflow-x: auto; }
-    table { border-collapse: collapse; width: 100%; margin-top: 10px; }
-    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 12px; }
-    th { background-color: #4CAF50; color: white; }
-    tr:nth-child(even) { background-color: #f9f9f9; }
-    .info-box { background: #e6f3ff; padding: 15px; border-radius: 4px; margin-bottom: 20px; }
-    .timestamp-info { background: #fff3cd; padding: 10px; border-radius: 4px; margin-bottom: 15px; }
-    .back-link { display: inline-block; margin-bottom: 20px; color: #666; text-decoration: none; }
-    .back-link:hover { color: #333; }
-    .btn-detail { padding: 5px 10px; background-color: #2196F3; color: white; text-decoration: none; border-radius: 3px; font-size: 12px; }
-    .btn-detail:hover { background-color: #1976D2; }
-    .btn-save-all { padding: 10px 20px; background-color: #FF9800; color: white; border: none; border-radius: 4px; cursor: pointer; }
-    .btn-save-all:hover { background-color: #F57C00; }
-    .btn-save-all:disabled { background-color: #ccc; cursor: not-allowed; }
-    .btn-save { padding: 5px 10px; background-color: #4CAF50; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 12px; }
-    .btn-save:hover { background-color: #45a049; }
-    .btn-save:disabled { background-color: #ccc; cursor: not-allowed; }
-    .loading { opacity: 0.5; pointer-events: none; }
-    
-    /* Responsive */
-    @media (max-width: 768px) {
-      body { padding: 12px; }
-      
-      .container, body { max-width: 100%; }
-      
-      .form-section { padding: 16px; }
-      
-      .form-group { margin-bottom: 12px; }
-      
-      .form-group label {
-        display: block;
-        width: 100%;
-        margin-bottom: 4px;
-      }
-      
-      .form-group input,
-      .form-group select { width: 100%; }
-      
-      .section { padding: 12px; overflow-x: auto; }
-      
-      table { font-size: 11px; }
-      
-      th, td { padding: 4px; }
+    /* CSS đặc thù trang Pancake orders */
+    .section { margin: 20px 0; }
+
+    .mr-btn:disabled {
+      background: var(--mr-border);
+      color: var(--mr-muted);
+      cursor: not-allowed;
     }
+
+    /* Nút nhỏ trong dòng bảng */
+    .btn-save {
+      padding: 4px 10px;
+      background: var(--mr-accent);
+      color: #ffffff;
+      border: none;
+      border-radius: var(--mr-radius-control);
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+      font-family: inherit;
+    }
+    .btn-save:hover { background: var(--mr-accent-hover); }
+    .btn-save:disabled { background: var(--mr-border); color: var(--mr-muted); cursor: not-allowed; }
+
+    .btn-detail {
+      display: inline-block;
+      padding: 4px 10px;
+      background: var(--mr-surface);
+      border: 1px solid var(--mr-border);
+      border-radius: var(--mr-radius-control);
+      color: var(--mr-accent);
+      text-decoration: none;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .btn-detail:hover { background: var(--mr-accent-soft); }
+
+    .action-bar { margin-bottom: 6px; }
+
+    .loading { opacity: 0.5; pointer-events: none; }
   </style>
 </head>
-<body>
-  <a href="/" class="back-link">← Về trang chủ</a>
-  <h1>Lấy đơn hàng từ Pancake</h1>
+<body class="mera-page">
+<div class="mr-shell">
+  <th:block th:replace="~{fragments/mera-layout :: sidebar('pancakeOrders')}"></th:block>
+  <div class="mr-shell-main">
+    <th:block th:replace="~{fragments/mera-layout :: topbar('Danh Sách Đơn POS')}"></th:block>
+    <main class="mr-shell-content">
+    <div class="mr-page-header">
+      <div>
+        <h1 class="mr-page-title">Lấy đơn hàng từ Pancake</h1>
+      </div>
+    </div>
 
-  <div class="info-box">
-    <strong>Hướng dẫn:</strong> Chọn ngày bắt đầu và ngày kết thúc từ lịch. Hệ thống sẽ tự động trừ 7 giờ và chuyển đổi sang timestamp.<br>
-    Ví dụ: Chọn 01/01/2026 sẽ chuyển thành 31/12/2025 17:00:00 UTC
+    <div class="mr-alert mr-alert--info">
+      <strong>Hướng dẫn:</strong> Chọn ngày bắt đầu và ngày kết thúc từ lịch. Hệ thống sẽ tự động trừ 7 giờ và chuyển đổi sang timestamp.<br>
+      Ví dụ: Chọn 01/01/2026 sẽ chuyển thành 31/12/2025 17:00:00 UTC
+    </div>
+
+    <form th:action="@{/pancake/orders/fetch}" method="post" class="mr-card section">
+      <div class="mr-form-row">
+        <div class="mr-field">
+          <label for="startDate">Ngày bắt đầu:</label>
+          <input type="date" id="startDate" name="startDate" class="mr-input" th:value="${startDate}" required>
+        </div>
+
+        <div class="mr-field">
+          <label for="endDate">Ngày kết thúc:</label>
+          <input type="date" id="endDate" name="endDate" class="mr-input" th:value="${endDate}" required>
+        </div>
+
+        <div class="mr-field">
+          <label for="status">Lọc theo Status:</label>
+          <select id="status" name="status" class="mr-select">
+            <option value="" th:selected="${status == ''}">Tất cả các status</option>
+            <option value="0" th:selected="${status == '0'}">0 - Mới</option>
+            <option value="1" th:selected="${status == '1'}">1 - Đã xác nhận</option>
+            <option value="11" th:selected="${status == '11'}">11 - Đã giao hàng</option>
+            <option value="3" th:selected="${status == '3'}">11 - Đã nhận</option>
+          </select>
+        </div>
+
+        <div class="mr-field">
+          <label for="updateStatus">Trường lọc:</label>
+          <select id="updateStatus" name="updateStatus" class="mr-select">
+            <option value="inserted_at" th:selected="${updateStatus == 'inserted_at'}">Ngày tạo đơn</option>
+            <option value="updated_at" th:selected="${updateStatus == 'updated_at'}">Ngày cập nhật</option>
+          </select>
+        </div>
+
+        <div class="mr-field">
+          <label for="pageSize">Số bản ghi/trang:</label>
+          <input type="text" id="pageSize" name="pageSize" class="mr-input" th:value="${pageSize}" value="100">
+        </div>
+
+        <div class="mr-field">
+          <label for="search">Tìm kiếm:</label>
+          <input type="text" id="search" name="search" class="mr-input" th:value="${search}" placeholder="Tên, SĐT, mã đơn...">
+        </div>
+
+        <button type="submit" class="mr-btn mr-btn--primary">Lấy đơn hàng</button>
+      </div>
+    </form>
+
+    <div th:if="${error}" class="mr-alert mr-alert--danger" th:text="${error}"></div>
+
+    <div th:if="${success}" class="mr-alert mr-alert--success">
+      Đã lấy được <span th:text="${orderCount}">0</span> đơn hàng (Trang 1)
+      <button class="mr-btn mr-btn--primary btn-save-all" onclick="saveAllOrders()" style="margin-left: 15px;">Lưu tất cả vào DB</button>
+      <span id="saveAllStatus" style="margin-left: 10px;"></span>
+    </div>
+
+    <div th:if="${convertedStartDate}" class="mr-alert mr-alert--warn">
+      <strong>Timestamp đã chuyển đổi:</strong><br>
+      Bắt đầu: <span th:text="${convertedStartDate}"></span><br>
+      Kết thúc: <span th:text="${convertedEndDate}"></span><br>
+      (Timestamp: <span th:text="${startTimestamp}"></span> đến <span th:text="${endTimestamp}"></span>)
+    </div>
+
+    <div th:if="${orders}" class="section">
+      <h3 class="mr-card-title">Danh sách đơn hàng - Trang 1</h3>
+
+      <!-- Search/Filter -->
+      <div class="mr-form-row" style="margin-bottom: 14px;">
+        <input type="text" id="tableSearch" class="mr-input" placeholder="Tìm kiếm..." onkeyup="filterTable()" style="width: 250px;">
+
+        <select id="statusFilter" class="mr-select" onchange="filterTable()">
+          <option value="">Tất cả Status</option>
+          <option value="0">0 - Mới</option>
+          <option value="17">17 - Chờ xác nhận</option>
+          <option value="11">11 - Chờ hàng</option>
+          <option value="12">12 - Chờ in</option>
+          <option value="13">13 - Đã in</option>
+          <option value="20">20 - Đã đặt hàng</option>
+          <option value="1">1 - Đã xác nhận</option>
+          <option value="8">8 - Đang đóng hàng</option>
+          <option value="9">9 - Chờ chuyển hàng</option>
+          <option value="2">2 - Đã gửi hàng</option>
+          <option value="3">3 - Đã nhận</option>
+          <option value="16">16 - Đã thu tiền</option>
+          <option value="4">4 - Đang hoàn</option>
+          <option value="15">15 - Hoàn một phần</option>
+          <option value="5">5 - Đã hoàn</option>
+          <option value="6">6 - Đã hủy</option>
+          <option value="7">7 - Đã xóa</option>
+        </select>
+
+        <span id="filterCount" class="mr-muted"></span>
+      </div>
+
+      <div class="mr-card mr-card--flush">
+        <div class="mr-table-scroll">
+          <table id="orderTable" class="mr-table">
+            <thead>
+              <tr>
+                <th>System ID</th>
+                <th>Mã đơn</th>
+                <th>Status</th>
+                <th>Tên khách</th>
+                <th>Điện thoại</th>
+                <th>Địa chỉ</th>
+                <th>Nguồn</th>
+                <th>Ngày tạo</th>
+                <th>Tổng tiền</th>
+                <th>Thao tác</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr th:each="order : ${orders}">
+                <td th:text="${order.systemId}"></td>
+                <td th:text="${order.id}"></td>
+                <td th:text="${order.status}"></td>
+                <td th:text="${order.shippingAddress?.fullName}"></td>
+                <td th:text="${order.shippingAddress?.phoneNumber}"></td>
+                <td th:text="${order.shippingAddress?.address}"></td>
+                <td th:text="${order.orderSourcesName}"></td>
+                <td th:text="${order.insertedAt}"></td>
+                <td class="num" th:text="${#numbers.formatDecimal(order.totalPrice, 0, 'COMMA', 0, 'POINT')}"></td>
+                <td>
+                  <div class="action-bar">
+                    <button class="btn-save" th:attr="onclick=|saveOrder(${order.systemId})|">Lưu đơn hàng này vào DB</button>
+                  </div>
+                  <a th:href="@{/pancake/orders/detail(systemId=${order.systemId})}" class="btn-detail">Chi tiết</a>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    </main>
+    <footer class="mr-shell-footer">MeraGroup Dashboard v2.0</footer>
   </div>
+</div>
 
-  <form th:action="@{/pancake/orders/fetch}" method="post" class="form-section">
-    <div class="form-group">
-      <label for="startDate">Ngày bắt đầu:</label>
-      <input type="date" id="startDate" name="startDate" th:value="${startDate}" required>
-    </div>
-
-    <div class="form-group">
-      <label for="endDate">Ngày kết thúc:</label>
-      <input type="date" id="endDate" name="endDate" th:value="${endDate}" required>
-    </div>
-
-    <div class="form-group">
-      <label for="status">Lọc theo Status:</label>
-      <select id="status" name="status">
-        <option value="" th:selected="${status == ''}">Tất cả các status</option>
-        <option value="0" th:selected="${status == '0'}">0 - Mới</option>
-        <option value="1" th:selected="${status == '1'}">1 - Đã xác nhận</option>
-        <option value="11" th:selected="${status == '11'}">11 - Đã giao hàng</option>
-        <option value="3" th:selected="${status == '3'}">11 - Đã nhận</option>
-      </select>
-    </div>
-
-    <div class="form-group">
-      <label for="updateStatus">Trường lọc:</label>
-      <select id="updateStatus" name="updateStatus">
-        <option value="inserted_at" th:selected="${updateStatus == 'inserted_at'}">Ngày tạo đơn</option>
-        <option value="updated_at" th:selected="${updateStatus == 'updated_at'}">Ngày cập nhật</option>
-      </select>
-    </div>
-
-    <div class="form-group">
-      <label for="pageSize">Số bản ghi/trang:</label>
-      <input type="text" id="pageSize" name="pageSize" th:value="${pageSize}" value="100">
-    </div>
-
-    <div class="form-group">
-      <label for="search">Tìm kiếm:</label>
-      <input type="text" id="search" name="search" th:value="${search}" placeholder="Tên, SĐT, mã đơn...">
-    </div>
-
-    <button type="submit">Lấy đơn hàng</button>
-  </form>
-
-  <div th:if="${error}" class="error" th:text="${error}"></div>
-
-  <div th:if="${success}" class="success">
-    Đã lấy được <span th:text="${orderCount}">0</span> đơn hàng (Trang 1)
-    <button class="btn-save-all" onclick="saveAllOrders()" style="margin-left: 15px;">Lưu tất cả vào DB</button>
-    <span id="saveAllStatus" style="margin-left: 10px;"></span>
-  </div>
-
-  <div th:if="${convertedStartDate}" class="timestamp-info">
-    <strong>Timestamp đã chuyển đổi:</strong><br>
-    Bắt đầu: <span th:text="${convertedStartDate}"></span><br>
-    Kết thúc: <span th:text="${convertedEndDate}"></span><br>
-    (Timestamp: <span th:text="${startTimestamp}"></span> đến <span th:text="${endTimestamp}"></span>)
-  </div>
-
-  <div th:if="${orders}" class="section">
-    <h3>Danh sách đơn hàng - Trang 1</h3>
-
-    <!-- Search/Filter -->
-    <div style="margin-bottom: 15px; display: flex; gap: 10px; align-items: center;">
-      <input type="text" id="tableSearch" placeholder="Tìm kiếm..." onkeyup="filterTable()" style="padding: 8px; width: 250px; border: 1px solid #ddd; border-radius: 4px;">
-
-      <select id="statusFilter" onchange="filterTable()" style="padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-        <option value="">Tất cả Status</option>
-        <option value="0">0 - Mới</option>
-        <option value="17">17 - Chờ xác nhận</option>
-        <option value="11">11 - Chờ hàng</option>
-        <option value="12">12 - Chờ in</option>
-        <option value="13">13 - Đã in</option>
-        <option value="20">20 - Đã đặt hàng</option>
-        <option value="1">1 - Đã xác nhận</option>
-        <option value="8">8 - Đang đóng hàng</option>
-        <option value="9">9 - Chờ chuyển hàng</option>
-        <option value="2">2 - Đã gửi hàng</option>
-        <option value="3">3 - Đã nhận</option>
-        <option value="16">16 - Đã thu tiền</option>
-        <option value="4">4 - Đang hoàn</option>
-        <option value="15">15 - Hoàn một phần</option>
-        <option value="5">5 - Đã hoàn</option>
-        <option value="6">6 - Đã hủy</option>
-        <option value="7">7 - Đã xóa</option>
-      </select>
-
-      <span id="filterCount" style="color: #666;"></span>
-    </div>
-
-    <table id="orderTable">
-      <thead>
-        <tr>
-          <th>System ID</th>
-          <th>Mã đơn</th>
-          <th>Status</th>
-          <th>Tên khách</th>
-          <th>Điện thoại</th>
-          <th>Địa chỉ</th>
-          <th>Nguồn</th>
-          <th>Ngày tạo</th>
-          <th>Tổng tiền</th>
-          <th>Thao tác</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr th:each="order : ${orders}">
-          <td th:text="${order.systemId}"></td>
-          <td th:text="${order.id}"></td>
-          <td th:text="${order.status}"></td>
-          <td th:text="${order.shippingAddress?.fullName}"></td>
-          <td th:text="${order.shippingAddress?.phoneNumber}"></td>
-          <td th:text="${order.shippingAddress?.address}"></td>
-          <td th:text="${order.orderSourcesName}"></td>
-          <td th:text="${order.insertedAt}"></td>
-          <td th:text="${#numbers.formatDecimal(order.totalPrice, 0, 'COMMA', 0, 'POINT')}"></td>
-          <td>
-            <div class="action-bar">
-              <button class="btn-save" th:attr="onclick=|saveOrder(${order.systemId})|">Lưu đơn hàng này vào DB</button>
-            </div>
-            <a th:href="@{/pancake/orders/detail(systemId=${order.systemId})}" class="btn-detail">Chi tiết</a>
-          </td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
+<th:block th:replace="~{fragments/mera-layout :: shellScript}"></th:block>
 
   <script>
     function filterTable() {

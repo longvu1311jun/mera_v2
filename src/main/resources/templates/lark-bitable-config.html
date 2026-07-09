@@ -5,132 +5,41 @@
     <link rel="icon" type="image/jpeg" href="/meraicon.ico">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cấu hình Lark Bitex | Mera V2</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700&display=swap" rel="stylesheet">
+    <script th:replace="~{fragments/mera-layout :: themeInit}"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/mera-ui.css">
     <style>
-        :root {
-            --primary: #6366f1;
-            --primary-light: #818cf8;
-            --secondary: #a855f7;
-            --accent: #f43f5e;
-            --bg: #0f172a;
-            --card-bg: #1e293b;
-            --text-main: #f8fafc;
-            --text-muted: #94a3b8;
-            --success: #22c55e;
-            --danger: #ef4444;
-            --glass: rgba(30, 41, 59, 0.7);
-        }
-
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: var(--bg);
-            background-image: 
-                radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.15) 0px, transparent 50%),
-                radial-gradient(at 100% 100%, rgba(168, 85, 247, 0.15) 0px, transparent 50%);
-            color: var(--text-main);
-            min-height: 100vh;
-            padding: 40px 20px;
-        }
-
-        .container {
-            max-width: 1000px;
-            margin: 0 auto;
-            animation: fadeIn 0.8s ease-out;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 40px;
-        }
-
-        .header h1 {
-            font-family: 'Outfit', sans-serif;
-            font-size: 2.5rem;
-            font-weight: 700;
-            background: linear-gradient(to right, #818cf8, #c084fc);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .back-btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            color: var(--text-muted);
-            text-decoration: none;
-            font-weight: 500;
-            padding: 10px 20px;
-            border-radius: 12px;
-            background: var(--glass);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            transition: all 0.3s;
-        }
-
-        .back-btn:hover {
-            color: var(--primary-light);
-            border-color: var(--primary);
-        }
-
         /* Config List */
         .config-list {
             display: flex;
             flex-direction: column;
-            gap: 20px;
-            margin-bottom: 30px;
+            gap: 16px;
+            margin-bottom: 24px;
         }
 
-        .config-item {
-            background: var(--glass);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 16px;
-            padding: 24px;
-            transition: all 0.3s;
-        }
-
-        .config-item:hover {
-            border-color: rgba(99, 102, 241, 0.3);
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-        }
-
+        /* Giữ tên class 'config-item' + 'default' vì th:classappend dùng 'default' */
         .config-item.default {
-            border-color: var(--success);
-            background: rgba(34, 197, 94, 0.05);
+            border-color: var(--mr-success);
+            background: var(--mr-success-bg);
         }
 
         .config-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
             margin-bottom: 16px;
         }
 
         .config-name {
-            font-size: 1.25rem;
+            font-size: 15px;
             font-weight: 600;
             display: flex;
             align-items: center;
-            gap: 12px;
-        }
-
-        .default-badge {
-            padding: 4px 12px;
-            border-radius: 99px;
-            font-size: 0.7rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            background: rgba(34, 197, 94, 0.1);
-            color: var(--success);
-            border: 1px solid rgba(34, 197, 94, 0.2);
+            gap: 10px;
         }
 
         .config-actions {
@@ -138,35 +47,10 @@
             gap: 8px;
         }
 
-        .btn {
-            padding: 8px 16px;
-            border-radius: 8px;
-            font-size: 0.85rem;
-            font-weight: 500;
-            cursor: pointer;
-            border: none;
-            transition: all 0.2s;
-        }
-
-        .btn-default {
-            background: var(--primary);
-            color: white;
-        }
-
-        .btn-default:hover { background: var(--primary-light); }
-
-        .btn-danger {
-            background: rgba(239, 68, 68, 0.1);
-            color: var(--danger);
-            border: 1px solid rgba(239, 68, 68, 0.2);
-        }
-
-        .btn-danger:hover { background: var(--danger); color: white; }
-
         .config-details {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 16px;
+            gap: 14px;
         }
 
         .detail-item {
@@ -176,43 +60,36 @@
         }
 
         .detail-label {
-            font-size: 0.75rem;
+            font-size: 11px;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
-            color: var(--text-muted);
+            letter-spacing: 0.4px;
+            color: var(--mr-muted);
+            font-weight: 500;
         }
 
         .detail-value {
-            font-size: 0.95rem;
+            font-size: 13px;
             word-break: break-all;
         }
 
         .detail-value.masked {
-            color: var(--text-muted);
+            color: var(--mr-muted);
         }
 
         /* Add Form */
-        .add-form {
-            background: var(--glass);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 16px;
-            padding: 24px;
-        }
-
         .form-title {
-            font-size: 1.25rem;
+            font-size: 15px;
             font-weight: 600;
-            margin-bottom: 20px;
+            margin-bottom: 16px;
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 8px;
         }
 
         .form-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 16px;
+            gap: 14px;
         }
 
         .form-group {
@@ -224,91 +101,67 @@
         .form-group.full-width { grid-column: span 2; }
 
         .form-label {
-            font-size: 0.85rem;
-            font-weight: 500;
-            color: var(--text-muted);
-        }
-
-        .form-input {
-            padding: 12px 16px;
-            border-radius: 10px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            background: rgba(255, 255, 255, 0.05);
-            color: var(--text-main);
-            font-size: 0.95rem;
-            transition: all 0.2s;
-        }
-
-        .form-input:focus {
-            outline: none;
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--mr-text-2);
         }
 
         .form-checkbox {
-            display: flex;
+            flex-direction: row;
             align-items: center;
             gap: 10px;
+            font-size: 13px;
         }
 
         .form-checkbox input {
-            width: 20px;
-            height: 20px;
-            accent-color: var(--primary);
+            width: 18px;
+            height: 18px;
+            accent-color: var(--mr-accent);
         }
 
         .form-actions {
             margin-top: 20px;
             display: flex;
             justify-content: flex-end;
-            gap: 12px;
+            gap: 10px;
         }
 
-        .btn-save {
-            background: linear-gradient(to right, var(--primary), var(--secondary));
-            color: white;
-            padding: 12px 32px;
-        }
-
-        .btn-save:hover { opacity: 0.9; transform: translateY(-2px); }
-
-        /* Toast */
+        /* Toast (id + class 'show'/'error' do JS điều khiển - giữ nguyên) */
         #toast {
             position: fixed;
             bottom: 30px;
             left: 50%;
-            transform: translateX(-50%) translateY(100px);
-            background: var(--success);
-            color: white;
-            padding: 16px 32px;
-            border-radius: 16px;
+            transform: translateX(-50%) translateY(120px);
+            background: var(--mr-success);
+            color: #ffffff;
+            padding: 12px 24px;
+            border-radius: var(--mr-radius-control);
             font-weight: 600;
-            box-shadow: 0 10px 30px rgba(34, 197, 94, 0.3);
-            transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            font-size: 13px;
+            box-shadow: var(--mr-shadow-md);
+            transition: transform 0.3s ease;
             z-index: 1000;
         }
 
         #toast.show { transform: translateX(-50%) translateY(0); }
-        #toast.error { background: var(--danger); box-shadow: 0 10px 30px rgba(239, 68, 68, 0.3); }
+        #toast.error { background: var(--mr-danger); }
 
         @media (max-width: 768px) {
             .form-grid { grid-template-columns: 1fr; }
             .form-group.full-width { grid-column: span 1; }
-            .header { flex-direction: column; gap: 20px; text-align: center; }
         }
     </style>
 </head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>📋 Cấu hình Lark Bitex</h1>
-            <a href="/" class="back-btn">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <line x1="19" y1="12" x2="5" y2="12"></line>
-                    <polyline points="12 19 5 12 12 5"></polyline>
-                </svg>
-                Quay về
-            </a>
+<body class="mera-page">
+    <div class="mr-shell">
+    <th:block th:replace="~{fragments/mera-layout :: sidebar('larkBitable')}"></th:block>
+    <div class="mr-shell-main">
+    <th:block th:replace="~{fragments/mera-layout :: topbar('Lark Bitable Config')}"></th:block>
+    <main class="mr-shell-content">
+        <div class="mr-page-header">
+            <div>
+                <h1 class="mr-page-title"><span>📋</span> Cấu hình Lark Bitex</h1>
+            </div>
         </div>
 
         <!-- Success/Error Messages -->
@@ -317,19 +170,19 @@
 
         <!-- Config List -->
         <div class="config-list" th:if="${not #lists.isEmpty(configs)}">
-            <div class="config-item" th:classappend="${config.isDefault ? 'default' : ''}" th:each="config : ${configs}">
+            <div class="mr-card config-item" th:classappend="${config.isDefault ? 'default' : ''}" th:each="config : ${configs}">
                 <div class="config-header">
                     <div class="config-name">
                         <span th:text="${config.configName}">Config Name</span>
-                        <span class="default-badge" th:if="${config.isDefault}">Mặc định</span>
+                        <span class="mr-badge mr-badge--success" th:if="${config.isDefault}">Mặc định</span>
                     </div>
                     <div class="config-actions">
                         <form th:if="${!config.isDefault}" th:action="@{/admin/lark-bitable/set-default/{id}(id=${config.id})}" method="post" style="display:inline;">
-                            <button type="submit" class="btn btn-default">Đặt mặc định</button>
+                            <button type="submit" class="mr-btn mr-btn--primary">Đặt mặc định</button>
                         </form>
                         <form th:action="@{/admin/lark-bitable/delete/{id}(id=${config.id})}" method="post" style="display:inline;"
                               onsubmit="return confirm('Xóa cấu hình này?')">
-                            <button type="submit" class="btn btn-danger">Xóa</button>
+                            <button type="submit" class="mr-btn mr-btn--danger">Xóa</button>
                         </form>
                     </div>
                 </div>
@@ -367,7 +220,7 @@
         </div>
 
         <!-- Add Form (only shown when no configs exist) -->
-        <div class="add-form" th:if="${#lists.isEmpty(configs)}">
+        <div class="mr-card add-form" th:if="${#lists.isEmpty(configs)}">
             <div class="form-title">
                 <span>➕</span> Thêm cấu hình mới
             </div>
@@ -375,35 +228,35 @@
                 <div class="form-grid">
                     <div class="form-group">
                         <label class="form-label">Tên cấu hình *</label>
-                        <input type="text" class="form-input" th:field="*{configName}" placeholder="VD: Bitex Khách hàng" required>
+                        <input type="text" class="mr-input" th:field="*{configName}" placeholder="VD: Bitex Khách hàng" required>
                     </div>
                     <div class="form-group">
                         <label class="form-label">Shop ID</label>
-                        <input type="number" class="form-input" th:field="*{shopId}" placeholder="1546758">
+                        <input type="number" class="mr-input" th:field="*{shopId}" placeholder="1546758">
                     </div>
                     <div class="form-group">
                         <label class="form-label">Base Name</label>
-                        <input type="text" class="form-input" th:field="*{baseName}" placeholder="VD: Database Khách Hàng">
+                        <input type="text" class="mr-input" th:field="*{baseName}" placeholder="VD: Database Khách Hàng">
                     </div>
                     <div class="form-group">
                         <label class="form-label">Base ID *</label>
-                        <input type="text" class="form-input" th:field="*{baseId}" placeholder="VD: XusHwhacQiVeXFkdfIVlQcu3gHb" required>
+                        <input type="text" class="mr-input" th:field="*{baseId}" placeholder="VD: XusHwhacQiVeXFkdfIVlQcu3gHb" required>
                     </div>
                     <div class="form-group">
                         <label class="form-label">Table Name</label>
-                        <input type="text" class="form-input" th:field="*{tableName}" placeholder="VD: Bảng chính">
+                        <input type="text" class="mr-input" th:field="*{tableName}" placeholder="VD: Bảng chính">
                     </div>
                     <div class="form-group">
                         <label class="form-label">Table ID *</label>
-                        <input type="text" class="form-input" th:field="*{tableId}" placeholder="VD: tbltnSA9RaLR91Qc" required>
+                        <input type="text" class="mr-input" th:field="*{tableId}" placeholder="VD: tbltnSA9RaLR91Qc" required>
                     </div>
                     <div class="form-group">
                         <label class="form-label">View ID</label>
-                        <input type="text" class="form-input" th:field="*{viewId}" placeholder="VD: vew5Ou4Kee">
+                        <input type="text" class="mr-input" th:field="*{viewId}" placeholder="VD: vew5Ou4Kee">
                     </div>
                     <div class="form-group full-width">
                         <label class="form-label">User Access Token</label>
-                        <input type="text" class="form-input" th:field="*{userAccessToken}" placeholder="Token từ Lark Developer Console">
+                        <input type="text" class="mr-input" th:field="*{userAccessToken}" placeholder="Token từ Lark Developer Console">
                     </div>
                     <div class="form-group full-width form-checkbox">
                         <input type="checkbox" th:field="*{isDefault}" id="isDefault">
@@ -411,21 +264,21 @@
                     </div>
                 </div>
                 <div class="form-actions">
-                    <button type="reset" class="btn btn-danger">Reset</button>
-                    <button type="submit" class="btn btn-save">💾 Lưu cấu hình</button>
+                    <button type="reset" class="mr-btn mr-btn--ghost">Reset</button>
+                    <button type="submit" class="mr-btn mr-btn--primary">💾 Lưu cấu hình</button>
                 </div>
             </form>
         </div>
 
         <!-- Empty State when configs exist -->
         <div th:if="${not #lists.isEmpty(configs)}" style="text-align: center; padding: 30px; margin-top: 20px;">
-            <a href="#" onclick="showAddForm()" style="color: var(--primary-light); text-decoration: none; font-weight: 500;">
+            <a href="#" onclick="showAddForm()" style="color: var(--mr-accent); text-decoration: none; font-weight: 500;">
                 ➕ Thêm cấu hình mới
             </a>
         </div>
 
         <!-- Hidden Add Form (for when configs exist - toggle display) -->
-        <div class="add-form" id="addFormContainer" style="display: none;">
+        <div class="mr-card add-form" id="addFormContainer" style="display: none;">
             <div class="form-title">
                 <span>➕</span> Thêm cấu hình mới
             </div>
@@ -433,35 +286,35 @@
                 <div class="form-grid">
                     <div class="form-group">
                         <label class="form-label">Tên cấu hình *</label>
-                        <input type="text" class="form-input" th:field="*{configName}" placeholder="VD: Bitex Khách hàng" required>
+                        <input type="text" class="mr-input" th:field="*{configName}" placeholder="VD: Bitex Khách hàng" required>
                     </div>
                     <div class="form-group">
                         <label class="form-label">Shop ID</label>
-                        <input type="number" class="form-input" th:field="*{shopId}" placeholder="1546758">
+                        <input type="number" class="mr-input" th:field="*{shopId}" placeholder="1546758">
                     </div>
                     <div class="form-group">
                         <label class="form-label">Base Name</label>
-                        <input type="text" class="form-input" th:field="*{baseName}" placeholder="VD: Database Khách Hàng">
+                        <input type="text" class="mr-input" th:field="*{baseName}" placeholder="VD: Database Khách Hàng">
                     </div>
                     <div class="form-group">
                         <label class="form-label">Base ID *</label>
-                        <input type="text" class="form-input" th:field="*{baseId}" placeholder="VD: XusHwhacQiVeXFkdfIVlQcu3gHb" required>
+                        <input type="text" class="mr-input" th:field="*{baseId}" placeholder="VD: XusHwhacQiVeXFkdfIVlQcu3gHb" required>
                     </div>
                     <div class="form-group">
                         <label class="form-label">Table Name</label>
-                        <input type="text" class="form-input" th:field="*{tableName}" placeholder="VD: Bảng chính">
+                        <input type="text" class="mr-input" th:field="*{tableName}" placeholder="VD: Bảng chính">
                     </div>
                     <div class="form-group">
                         <label class="form-label">Table ID *</label>
-                        <input type="text" class="form-input" th:field="*{tableId}" placeholder="VD: tbltnSA9RaLR91Qc" required>
+                        <input type="text" class="mr-input" th:field="*{tableId}" placeholder="VD: tbltnSA9RaLR91Qc" required>
                     </div>
                     <div class="form-group">
                         <label class="form-label">View ID</label>
-                        <input type="text" class="form-input" th:field="*{viewId}" placeholder="VD: vew5Ou4Kee">
+                        <input type="text" class="mr-input" th:field="*{viewId}" placeholder="VD: vew5Ou4Kee">
                     </div>
                     <div class="form-group full-width">
                         <label class="form-label">User Access Token</label>
-                        <input type="text" class="form-input" th:field="*{userAccessToken}" placeholder="Token từ Lark Developer Console">
+                        <input type="text" class="mr-input" th:field="*{userAccessToken}" placeholder="Token từ Lark Developer Console">
                     </div>
                     <div class="form-group full-width form-checkbox">
                         <input type="checkbox" th:field="*{isDefault}" id="isDefault2">
@@ -469,12 +322,16 @@
                     </div>
                 </div>
                 <div class="form-actions">
-                    <button type="button" class="btn btn-danger" onclick="hideAddForm()">Hủy</button>
-                    <button type="submit" class="btn btn-save">💾 Lưu cấu hình</button>
+                    <button type="button" class="mr-btn mr-btn--ghost" onclick="hideAddForm()">Hủy</button>
+                    <button type="submit" class="mr-btn mr-btn--primary">💾 Lưu cấu hình</button>
                 </div>
             </form>
         </div>
+    </main>
+    <footer class="mr-shell-footer">MeraGroup Dashboard v2.0</footer>
     </div>
+    </div>
+    <th:block th:replace="~{fragments/mera-layout :: shellScript}"></th:block>
 
     <script>
         // Toggle add form visibility

@@ -5,24 +5,27 @@
     <link rel="icon" type="image/jpeg" href="/meraicon.ico">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cấu hình Webhook | Mera Group</title>
+    <script th:replace="~{fragments/mera-layout :: themeInit}"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/mera-ui.css">
     <style>
+        /* Alias hệ biến cũ sang token mera-ui (giữ tương thích inline style / chuỗi JS) */
         :root {
-            --color-primary: #1456f0;
-            --color-primary-hover: #0d47a1;
-            --color-canvas: #f7f7f4;
-            --color-canvas-soft: #fafaf7;
-            --color-surface: #ffffff;
-            --color-ink: #26251e;
-            --color-body: #5a5852;
-            --color-muted: #807d72;
-            --color-hairline: #e6e5e0;
+            --color-primary: var(--mr-accent);
+            --color-primary-hover: var(--mr-accent-hover);
+            --color-canvas: var(--mr-canvas);
+            --color-canvas-soft: var(--mr-surface-2);
+            --color-surface: var(--mr-surface);
+            --color-ink: var(--mr-text);
+            --color-body: var(--mr-text-2);
+            --color-muted: var(--mr-muted);
+            --color-hairline: var(--mr-border);
             --color-hairline-strong: #cfcdc4;
             --color-on-primary: #ffffff;
-            --color-success: #1f8a65;
-            --color-error: #cf2d56;
+            --color-success: #16a34a;
+            --color-error: #dc2626;
         }
 
         * {
@@ -31,37 +34,25 @@
             box-sizing: border-box;
         }
 
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background-color: var(--color-canvas);
-            background-image: radial-gradient(at 0% 0%, rgba(20, 86, 240, 0.03) 0%, transparent 50%),
-                            radial-gradient(at 100% 100%, rgba(31, 138, 101, 0.03) 0%, transparent 50%);
-            color: var(--color-ink);
-            min-height: 100vh;
-            padding: 48px;
-        }
-
         .container {
             max-width: 800px;
-            margin: 0 auto;
         }
 
         .header {
-            text-align: center;
-            margin-bottom: 48px;
+            margin-bottom: 24px;
         }
 
         .header h1 {
-            font-size: 32px;
-            font-weight: 600;
-            color: var(--color-ink);
-            letter-spacing: -0.5px;
-            margin-bottom: 12px;
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--mr-text);
+            letter-spacing: -0.01em;
+            margin-bottom: 6px;
         }
 
         .header p {
-            color: var(--color-muted);
-            font-size: 16px;
+            color: var(--mr-muted);
+            font-size: 15px;
         }
 
         .config-grid {
@@ -70,11 +61,8 @@
         }
 
         .config-card {
-            background: var(--color-surface);
-            border: 1px solid var(--color-hairline);
-            border-radius: 12px;
             padding: 32px;
-            transition: all 0.2s ease;
+            transition: border-color 0.2s ease;
             position: relative;
             overflow: hidden;
         }
@@ -86,7 +74,7 @@
             left: 0;
             width: 4px;
             height: 100%;
-            background: var(--color-primary);
+            background: var(--mr-accent);
             opacity: 0;
             transition: opacity 0.2s;
         }
@@ -107,7 +95,7 @@
         }
 
         .card-title {
-            font-size: 18px;
+            font-size: 17px;
             font-weight: 600;
             display: flex;
             align-items: center;
@@ -117,8 +105,8 @@
         .card-icon {
             width: 48px;
             height: 48px;
-            border-radius: 12px;
-            background: rgba(20, 86, 240, 0.08);
+            border-radius: var(--mr-radius-control);
+            background: var(--mr-accent-soft);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -126,29 +114,30 @@
         }
 
         .status-badge {
-            padding: 6px 14px;
-            border-radius: 9999px;
+            padding: 4px 12px;
+            border-radius: var(--mr-radius-pill);
             font-size: 11px;
             font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 0.5px;
+            border: 1px solid transparent;
             transition: all 0.2s;
         }
 
         .status-badge.enabled {
-            background: rgba(31, 138, 101, 0.08);
-            color: var(--color-success);
-            border: 1px solid rgba(31, 138, 101, 0.15);
+            background: var(--mr-success-bg);
+            color: var(--mr-success);
+            border-color: #86efac;
         }
 
         .status-badge.disabled {
-            background: rgba(207, 45, 86, 0.08);
-            color: var(--color-error);
-            border: 1px solid rgba(207, 45, 86, 0.15);
+            background: var(--mr-danger-bg);
+            color: var(--mr-danger);
+            border-color: #fca5a5;
         }
 
         .card-desc {
-            color: var(--color-body);
+            color: var(--mr-text-2);
             line-height: 1.6;
             font-size: 14px;
             margin-bottom: 24px;
@@ -159,7 +148,7 @@
             align-items: center;
             gap: 16px;
             padding-top: 20px;
-            border-top: 1px solid var(--color-hairline);
+            border-top: 1px solid var(--mr-border);
         }
 
         /* Toggle Switch */
@@ -185,7 +174,7 @@
             bottom: 0;
             background-color: var(--color-hairline-strong);
             transition: 0.3s;
-            border-radius: 28px;
+            border-radius: var(--mr-radius-pill);
         }
 
         .slider:before {
@@ -195,14 +184,14 @@
             width: 20px;
             left: 4px;
             bottom: 4px;
-            background-color: white;
+            background-color: var(--mr-surface);
             transition: 0.3s;
             border-radius: 50%;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: var(--mr-shadow-sm);
         }
 
         input:checked + .slider {
-            background: var(--color-primary);
+            background: var(--mr-accent);
         }
 
         input:checked + .slider:before {
@@ -212,34 +201,12 @@
         .toggle-label {
             font-size: 14px;
             font-weight: 500;
-            color: var(--color-muted);
+            color: var(--mr-muted);
             transition: color 0.2s;
         }
 
         input:checked ~ .toggle-label {
-            color: var(--color-success);
-        }
-
-        .back-btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            margin-top: 40px;
-            color: var(--color-muted);
-            text-decoration: none;
-            font-weight: 500;
-            font-size: 14px;
-            transition: all 0.2s;
-            padding: 10px 16px;
-            border-radius: 8px;
-            border: 1px solid var(--color-hairline);
-            background: var(--color-surface);
-        }
-
-        .back-btn:hover {
-            color: var(--color-primary);
-            border-color: var(--color-primary);
-            background: rgba(20, 86, 240, 0.04);
+            color: #16a34a;
         }
 
         /* Toast */
@@ -248,13 +215,13 @@
             bottom: 32px;
             left: 50%;
             transform: translateX(-50%) translateY(100px);
-            background: var(--color-success);
-            color: white;
+            background: #16a34a;
+            color: #ffffff;
             padding: 14px 28px;
-            border-radius: 8px;
+            border-radius: var(--mr-radius-control);
             font-weight: 500;
             font-size: 14px;
-            box-shadow: 0 4px 16px rgba(31, 138, 101, 0.3);
+            box-shadow: var(--mr-shadow-md);
             transition: transform 0.3s ease;
             z-index: 1000;
         }
@@ -264,42 +231,23 @@
         }
 
         /* Responsive */
-    @media (max-width: 1024px) {
-      .main-content {
-        margin-left: 280px;
-        padding: 32px;
-      }
-    }
-    
     @media (max-width: 768px) {
-      body {
-        padding: 12px;
-        height: auto;
-        overflow: auto;
-      }
-      
-      .page-header {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 12px;
-      }
-      
-      .page-actions {
-        width: 100%;
-        flex-wrap: wrap;
-      }
-      
       .config-grid {
         grid-template-columns: 1fr;
       }
-      
+
       .config-card {
         padding: 20px;
       }
     }
   </style>
 </head>
-<body>
+<body class="mera-page">
+<div class="mr-shell">
+    <th:block th:replace="~{fragments/mera-layout :: sidebar('config')}"></th:block>
+    <div class="mr-shell-main">
+        <th:block th:replace="~{fragments/mera-layout :: topbar('Cấu Hình Webhook')}"></th:block>
+        <main class="mr-shell-content">
     <div class="container">
         <div class="header">
             <h1>Webhook Config</h1>
@@ -308,7 +256,7 @@
 
         <div class="config-grid">
             <!-- Status 1 -->
-            <div class="config-card">
+            <div class="mr-card config-card">
                 <div class="card-header">
                     <div class="card-title">
                         <div class="card-icon">📦</div>
@@ -331,7 +279,7 @@
             </div>
 
             <!-- Status 6 -->
-            <div class="config-card">
+            <div class="mr-card config-card">
                 <div class="card-header">
                     <div class="card-title">
                         <div class="card-icon">♻️</div>
@@ -353,11 +301,11 @@
                 </div>
             </div>
         </div>
-
-        <a href="/" class="back-btn">
-            ← Quay về trang chủ
-        </a>
     </div>
+        </main>
+        <footer class="mr-shell-footer">MeraGroup Dashboard v2.0</footer>
+    </div>
+</div>
 
     <div id="toast">✓ Cập nhật cấu hình thành công!</div>
 
@@ -402,5 +350,6 @@
             }
         }
     </script>
+    <th:block th:replace="~{fragments/mera-layout :: shellScript}"></th:block>
 </body>
 </html>

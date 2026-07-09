@@ -5,302 +5,95 @@
     <link rel="icon" type="image/jpeg" href="/meraicon.ico">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mapping CSKH - Base | Mera V2</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700&display=swap" rel="stylesheet">
+    <script th:replace="~{fragments/mera-layout :: themeInit}"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/mera-ui.css">
     <style>
-        :root {
-            --primary: #6366f1;
-            --primary-light: #818cf8;
-            --secondary: #a855f7;
-            --accent: #f43f5e;
-            --bg: #0f172a;
-            --card-bg: #1e293b;
-            --text-main: #f8fafc;
-            --text-muted: #94a3b8;
-            --success: #22c55e;
-            --danger: #ef4444;
-            --warning: #f59e0b;
-            --glass: rgba(30, 41, 59, 0.7);
-        }
-
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: var(--bg);
-            background-image: 
-                radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.15) 0px, transparent 50%),
-                radial-gradient(at 100% 100%, rgba(168, 85, 247, 0.15) 0px, transparent 50%);
-            color: var(--text-main);
-            min-height: 100vh;
-            padding: 40px 20px;
-        }
-
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            animation: fadeIn 0.8s ease-out;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 40px;
-        }
-
-        .header h1 {
-            font-family: 'Outfit', sans-serif;
-            font-size: 2.5rem;
-            font-weight: 700;
-            background: linear-gradient(to right, #818cf8, #c084fc);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .header-actions {
-            display: flex;
-            gap: 12px;
-        }
-
-        .btn {
-            padding: 10px 20px;
-            border-radius: 12px;
-            font-size: 0.9rem;
-            font-weight: 600;
-            cursor: pointer;
-            border: none;
-            transition: all 0.3s;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .btn-reload {
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
-            color: white;
-            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
-        }
-
-        .btn-reload:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
-        }
-
-        .btn-reload:disabled {
-            opacity: 0.7;
+        .mr-btn:disabled {
+            opacity: 0.6;
             cursor: not-allowed;
             transform: none;
         }
 
-        .btn-refresh {
-            background: var(--card-bg);
-            color: var(--text-main);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .btn-refresh:hover {
-            border-color: var(--primary);
-            color: var(--primary-light);
-        }
-
-        .back-btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            color: var(--text-muted);
-            text-decoration: none;
-            font-weight: 500;
-            padding: 10px 20px;
-            border-radius: 12px;
-            background: var(--glass);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            transition: all 0.3s;
-        }
-
-        .back-btn:hover {
-            color: var(--primary-light);
-            border-color: var(--primary);
-        }
-
-        /* Stats */
-        .stats {
-            display: flex;
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-
-        .stat-card {
-            background: var(--glass);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 16px;
-            padding: 20px 30px;
-            flex: 1;
-        }
-
-        .stat-value {
-            font-size: 2rem;
-            font-weight: 700;
-            color: var(--primary-light);
-        }
-
-        .stat-label {
-            font-size: 0.85rem;
-            color: var(--text-muted);
-            margin-top: 4px;
-        }
-
-        /* Table */
-        .table-container {
-            background: var(--glass);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 16px;
-            overflow: hidden;
-        }
-
+        /* Header nhỏ trong card bảng */
         .table-header {
-            padding: 20px 24px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .table-title {
-            font-size: 1.2rem;
+            padding: 14px 20px;
+            border-bottom: 1px solid var(--mr-border);
+            font-size: 15px;
             font-weight: 600;
         }
 
-        .table-wrapper {
-            overflow-x: auto;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        th {
-            background: rgba(0, 0, 0, 0.2);
-            padding: 14px 16px;
-            text-align: left;
-            font-size: 0.75rem;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            color: var(--text-muted);
-            font-weight: 600;
-            white-space: nowrap;
-        }
-
-        td {
-            padding: 16px;
-            border-top: 1px solid rgba(255, 255, 255, 0.05);
-            font-size: 0.9rem;
-        }
-
-        tr:hover td {
-            background: rgba(99, 102, 241, 0.05);
-        }
-
-        .pos-name {
-            font-weight: 600;
-            color: var(--text-main);
-        }
-
-        .pos-phone {
-            color: var(--text-muted);
-            font-size: 0.85rem;
-        }
-
-        .base-name {
-            font-weight: 500;
-            color: var(--primary-light);
-        }
-
-        .base-id {
-            font-family: monospace;
-            font-size: 0.8rem;
-            color: var(--text-muted);
-        }
+        /* Ô hiển thị dữ liệu trong bảng (giữ tên class vì th:classappend dùng 'missing') */
+        .pos-name { font-weight: 600; color: var(--mr-text); }
+        .pos-phone { color: var(--mr-muted); font-size: 12px; }
+        .base-name { font-weight: 500; color: var(--mr-accent); }
+        .base-id { font-family: var(--mr-mono); font-size: 12px; color: var(--mr-muted); }
 
         .table-id {
-            font-family: monospace;
-            font-size: 0.8rem;
-            background: rgba(99, 102, 241, 0.1);
-            padding: 4px 8px;
+            font-family: var(--mr-mono);
+            font-size: 12px;
+            background: var(--mr-accent-soft);
+            padding: 3px 8px;
             border-radius: 6px;
-            color: var(--primary-light);
+            color: var(--mr-accent);
         }
 
         .table-id.missing {
-            background: rgba(239, 68, 68, 0.1);
-            color: var(--danger);
-        }
-
-        .dept-badge {
-            display: inline-block;
-            padding: 4px 10px;
-            border-radius: 99px;
-            font-size: 0.7rem;
-            font-weight: 600;
-            background: rgba(168, 85, 247, 0.1);
-            color: var(--secondary);
-            border: 1px solid rgba(168, 85, 247, 0.2);
+            background: var(--mr-danger-bg);
+            color: var(--mr-danger);
         }
 
         /* Empty state */
-        .empty-state {
-            text-align: center;
-            padding: 60px 20px;
-            color: var(--text-muted);
-        }
-
         .empty-state svg {
-            width: 80px;
-            height: 80px;
-            margin-bottom: 20px;
-            opacity: 0.5;
+            width: 64px;
+            height: 64px;
+            margin-bottom: 16px;
+            opacity: 0.4;
         }
 
         .empty-state p {
-            font-size: 1.1rem;
-            margin-bottom: 20px;
+            font-size: 14px;
+            margin-bottom: 16px;
         }
 
-        /* Toast */
+        /* Toast (id + class 'show'/'error'/'warning' do JS điều khiển - giữ nguyên) */
         #toast {
             position: fixed;
             bottom: 30px;
             left: 50%;
-            transform: translateX(-50%) translateY(100px);
-            background: var(--success);
-            color: white;
-            padding: 16px 32px;
-            border-radius: 16px;
+            transform: translateX(-50%) translateY(120px);
+            background: var(--mr-success);
+            color: #ffffff;
+            padding: 12px 24px;
+            border-radius: var(--mr-radius-control);
             font-weight: 600;
-            box-shadow: 0 10px 30px rgba(34, 197, 94, 0.3);
-            transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            font-size: 13px;
+            box-shadow: var(--mr-shadow-md);
+            transition: transform 0.3s ease;
             z-index: 1000;
         }
 
         #toast.show { transform: translateX(-50%) translateY(0); }
-        #toast.error { background: var(--danger); box-shadow: 0 10px 30px rgba(239, 68, 68, 0.3); }
-        #toast.warning { background: var(--warning); }
+        #toast.error { background: var(--mr-danger); }
+        #toast.warning { background: var(--mr-warn); }
 
-        /* Loading overlay */
+        /* Loading overlay (id + class 'show' do JS điều khiển - giữ nguyên) */
         .loading-overlay {
             position: fixed;
             top: 0;
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(15, 23, 42, 0.8);
+            background: rgba(247, 247, 244, 0.82);
+        }
+
+        [data-theme="dark"] .loading-overlay {
+            background: rgba(22, 24, 29, 0.82);
+        }
+
+        .loading-overlay {
             display: flex;
             align-items: center;
             justify-content: center;
@@ -317,31 +110,26 @@
 
         .loading-content {
             text-align: center;
-            color: var(--text-main);
+            color: var(--mr-text);
+            font-size: 14px;
         }
 
         .spinner {
-            width: 50px;
-            height: 50px;
-            border: 4px solid rgba(99, 102, 241, 0.2);
-            border-top-color: var(--primary);
+            width: 44px;
+            height: 44px;
+            border: 4px solid var(--mr-accent-soft);
+            border-top-color: var(--mr-accent);
             border-radius: 50%;
             animation: spin 1s linear infinite;
-            margin: 0 auto 20px;
+            margin: 0 auto 16px;
         }
 
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
-
-        @media (max-width: 1024px) {
-            .header { flex-direction: column; gap: 20px; text-align: center; }
-            .stats { flex-wrap: wrap; }
-            .stat-card { flex: 1 1 200px; }
-        }
     </style>
 </head>
-<body>
+<body class="mera-page">
     <div class="loading-overlay" id="loadingOverlay">
         <div class="loading-content">
             <div class="spinner"></div>
@@ -349,44 +137,17 @@
         </div>
     </div>
 
-    <div class="container">
-        <div class="header">
-            <h1>📊 Mapping CSKH - Base</h1>
-            <a href="/" class="back-btn">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <line x1="19" y1="12" x2="5" y2="12"></line>
-                    <polyline points="12 19 5 12 12 5"></polyline>
-                </svg>
-                Quay về
-            </a>
-        </div>
-
-        <!-- Success/Error Messages -->
-        <div th:if="${success}" id="toast" class="show" th:text="${success}"></div>
-        <div th:if="${error}" id="toast" class="show error" th:text="${error}"></div>
-
-        <!-- Stats -->
-        <div class="stats">
-            <div class="stat-card">
-                <div class="stat-value" th:text="${#lists.size(mappings)}">0</div>
-                <div class="stat-label">Tổng mappings</div>
+    <div class="mr-shell">
+    <th:block th:replace="~{fragments/mera-layout :: sidebar('cskhMapping')}"></th:block>
+    <div class="mr-shell-main">
+    <th:block th:replace="~{fragments/mera-layout :: topbar('CSKH Mapping')}"></th:block>
+    <main class="mr-shell-content">
+        <div class="mr-page-header">
+            <div>
+                <h1 class="mr-page-title"><span>📊</span> Mapping CSKH - Base</h1>
             </div>
-            <div class="stat-card">
-                <div class="stat-value" th:text="${#lists.size(mappings)}">0</div>
-                <div class="stat-label">Đã map table</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value">
-                    <span th:text="${#lists.size(mappings.?[khachHangTableId != null])}">0</span>
-                </div>
-                <div class="stat-label">Có table KH</div>
-            </div>
-        </div>
-
-        <!-- Actions -->
-        <div class="header-actions" style="margin-bottom: 20px;">
-            <button class="btn btn-reload" id="reloadBtn" onclick="reloadMappings()">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <button class="mr-btn mr-btn--primary" id="reloadBtn" onclick="reloadMappings()">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M23 4v6h-6"></path>
                     <path d="M1 20v-6h6"></path>
                     <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
@@ -395,13 +156,33 @@
             </button>
         </div>
 
-        <!-- Table -->
-        <div class="table-container">
-            <div class="table-header">
-                <div class="table-title">Danh sách Mapping</div>
+        <!-- Success/Error Messages -->
+        <div th:if="${success}" id="toast" class="show" th:text="${success}"></div>
+        <div th:if="${error}" id="toast" class="show error" th:text="${error}"></div>
+
+        <!-- Stats -->
+        <div class="mr-stat-grid">
+            <div class="mr-stat mr-stat--accent">
+                <div class="mr-stat-label">Tổng mappings</div>
+                <div class="mr-stat-value" th:text="${#lists.size(mappings)}">0</div>
             </div>
-            <div class="table-wrapper">
-                <table>
+            <div class="mr-stat">
+                <div class="mr-stat-label">Đã map table</div>
+                <div class="mr-stat-value" th:text="${#lists.size(mappings)}">0</div>
+            </div>
+            <div class="mr-stat mr-stat--success">
+                <div class="mr-stat-label">Có table KH</div>
+                <div class="mr-stat-value">
+                    <span th:text="${#lists.size(mappings.?[khachHangTableId != null])}">0</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Table -->
+        <div class="mr-card mr-card--flush">
+            <div class="table-header">Danh sách Mapping</div>
+            <div class="mr-table-scroll">
+                <table class="mr-table">
                     <thead>
                         <tr>
                             <th>STT</th>
@@ -427,7 +208,7 @@
                                     <div class="pos-phone" th:text="${m.posPhone != null ? m.posPhone : '-'}">0369895624</div>
                                 </td>
                                 <td>
-                                    <span class="dept-badge" th:text="${m.departmentName != null ? m.departmentName : '-'}">SALE 2 NT</span>
+                                    <span class="mr-badge mr-badge--accent" th:text="${m.departmentName != null ? m.departmentName : '-'}">SALE 2 NT</span>
                                 </td>
                                 <td>
                                     <div class="base-name" th:text="${m.larkBaseName != null ? m.larkBaseName : '-'}">Nguyễn Văn A - 0369895624</div>
@@ -452,13 +233,13 @@
                         <th:block th:if="${#lists.isEmpty(mappings)}">
                             <tr>
                                 <td colspan="10">
-                                    <div class="empty-state">
+                                    <div class="mr-empty empty-state">
                                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                                             <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                                         </svg>
                                         <p>Chưa có mapping nào.</p>
-                                        <button class="btn btn-reload" onclick="reloadMappings()">
-                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <button class="mr-btn mr-btn--primary" onclick="reloadMappings()">
+                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                                 <path d="M23 4v6h-6"></path>
                                                 <path d="M1 20v-6h6"></path>
                                                 <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
@@ -473,7 +254,11 @@
                 </table>
             </div>
         </div>
+    </main>
+    <footer class="mr-shell-footer">MeraGroup Dashboard v2.0</footer>
     </div>
+    </div>
+    <th:block th:replace="~{fragments/mera-layout :: shellScript}"></th:block>
 
     <script>
         function showLoading() {
@@ -489,7 +274,7 @@
         function reloadMappings() {
             showLoading();
             document.getElementById('loadingOverlay').querySelector('p').textContent = 'Đang load và mapping dữ liệu từ POS + Lark Wiki...';
-            
+
             // Submit the form to reload mappings
             fetch('/admin/cskh-mapping/reload', {
                 method: 'POST',

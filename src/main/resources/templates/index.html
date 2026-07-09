@@ -5,178 +5,107 @@
     <link rel="icon" type="image/jpeg" href="/meraicon.ico">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - MeraGroup</title>
-    <link href="/css/theme.css" rel="stylesheet">
+    <script th:replace="~{fragments/mera-layout :: themeInit}"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/mera-ui.css">
     <style>
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            background: #f7f7f4;
-            color: #26251e;
-            overflow-x: hidden;
-        }
-        .sidebar {
-            width: 280px;
-            background: #ffffff;
-            border-right: 1px solid #e6e5e0;
-            position: fixed;
-            height: 100vh;
-            overflow-y: auto;
+        /* CSS đặc thù dashboard */
+        .dash-header {
             display: flex;
-            flex-direction: column;
-            z-index: 50;
-        }
-        .sidebar-logo-icon {
-            width: 40px;
-            height: 40px;
-            background: #1456f0;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-            font-size: 18px;
-            color: white;
-        }
-        .nav-item {
-            display: flex;
-            align-items: center;
+            justify-content: space-between;
+            align-items: flex-end;
+            flex-wrap: wrap;
             gap: 12px;
-            padding: 12px 16px;
-            border-radius: 8px;
-            color: #5a5852;
+            margin-bottom: 20px;
+        }
+        .dash-header h1 { font-size: 24px; font-weight: 700; letter-spacing: -0.02em; margin: 0 0 4px; }
+        .dash-header p { font-size: 13px; color: var(--mr-muted); margin: 0; }
+        .dash-actions { display: flex; align-items: center; gap: 10px; }
+
+        .stat-trend-up { font-size: 12px; font-weight: 600; color: #1f8a65; }
+        .stat-trend-down { font-size: 12px; font-weight: 600; color: #cf2d56; }
+        [data-theme="dark"] .stat-trend-up { color: #6ee7a0; }
+        [data-theme="dark"] .stat-trend-down { color: #fca5a5; }
+
+        .activity-row { display: flex; align-items: center; gap: 14px; }
+        .activity-ico {
+            width: 38px; height: 38px;
+            border-radius: var(--mr-radius-control);
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 600; flex-shrink: 0;
+        }
+        .activity-ico--success { background: var(--mr-success-bg); color: var(--mr-success); }
+        .activity-ico--accent { background: var(--mr-accent-soft); color: var(--mr-accent); }
+        .activity-title { font-size: 14px; font-weight: 500; margin: 0; }
+        .activity-meta { font-size: 11px; color: var(--mr-muted); margin: 2px 0 0; }
+
+        .link-card {
+            display: flex; flex-direction: column; gap: 12px;
             text-decoration: none;
-            font-size: 14px;
+            transition: border-color 0.15s ease, transform 0.15s ease;
+        }
+        .link-card:hover { border-color: var(--mr-accent); transform: translateY(-1px); }
+        .link-card-ico {
+            width: 44px; height: 44px;
+            border-radius: var(--mr-radius-control);
+            background: var(--mr-accent-soft);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 22px;
+        }
+        .link-card h4 { font-size: 15px; font-weight: 600; color: var(--mr-text); margin: 0; }
+        .link-card p { font-size: 12px; color: var(--mr-muted); margin: 4px 0 0; }
+
+        .quick-link {
+            display: block;
+            padding: 10px 14px;
+            background: var(--mr-surface-2);
+            border: 1px solid var(--mr-border);
+            border-radius: var(--mr-radius-control);
+            font-size: 13px;
             font-weight: 500;
-            transition: all 0.2s ease;
-            margin-bottom: 2px;
-            border: 1px solid transparent;
-        }
-        .nav-item:hover {
-            background: #fafaf7;
-            color: #26251e;
-            border-color: #e6e5e0;
-        }
-        .nav-item.active {
-            background: #1456f0;
-            color: white;
-            border-color: #1456f0;
-        }
-        .nav-item.active:hover {
-            background: #0d47a1;
-            border-color: #0d47a1;
-        }
-        .nav-section-title {
-            font-size: 10px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.88px;
-            color: #807d72;
-            padding: 0 12px;
+            color: var(--mr-text-2);
+            text-decoration: none;
+            transition: background 0.15s ease, color 0.15s ease;
             margin-bottom: 8px;
-            margin-top: 16px;
         }
-        .glass-card {
-            background: #ffffff;
-            border: 1px solid #e6e5e0;
-            border-radius: 12px;
-            transition: all 0.2s ease;
-        }
-        .glass-card:hover {
-            border-color: #cfcdc4;
-        }
-        .btn-primary {
-            background: #1456f0;
-            color: white;
-            border: none;
-            padding: 10px 18px;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            text-decoration: none;
-        }
-        .btn-primary:hover {
-            background: #0d47a1;
-        }
-        .btn-secondary {
-            background: #ffffff;
-            color: #26251e;
-            border: 1px solid #cfcdc4;
-            padding: 10px 18px;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            text-decoration: none;
-        }
-        .btn-secondary:hover {
-            background: #e6e5e0;
-        }
-        .btn-danger {
-            background: rgba(207, 45, 86, 0.08);
-            color: #cf2d56;
-            border: 1px solid rgba(207, 45, 86, 0.2);
-            padding: 10px 18px;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            text-decoration: none;
-        }
-        .btn-danger:hover {
-            background: rgba(207, 45, 86, 0.15);
-        }
-        .feature-group { margin-bottom: 2rem; }
+        .quick-link:last-child { margin-bottom: 0; }
+        .quick-link:hover { background: var(--mr-accent-soft); color: var(--mr-accent); }
+
+        /* Feature map */
+        .feature-group { margin-bottom: 24px; }
+        .feature-group:last-child { margin-bottom: 0; }
         .feature-group-title {
             font-size: 11px;
             font-weight: 600;
             text-transform: uppercase;
-            letter-spacing: 0.88px;
-            color: #807d72;
-            margin-bottom: 0.75rem;
-            padding-left: 4px;
-            border-left: 3px solid #1456f0;
+            letter-spacing: 0.8px;
+            color: var(--mr-muted);
+            margin-bottom: 10px;
+            border-left: 3px solid var(--mr-accent);
             padding-left: 10px;
         }
         .feature-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
             gap: 12px;
         }
         .feature-card {
-            background: #ffffff;
-            border: 1px solid #e6e5e0;
-            border-radius: 12px;
-            padding: 16px 18px;
-            transition: all 0.2s ease;
-            cursor: default;
+            background: var(--mr-surface);
+            border: 1px solid var(--mr-border);
+            border-radius: var(--mr-radius-card);
+            padding: 14px 16px;
             position: relative;
             overflow: hidden;
+            transition: border-color 0.15s ease;
         }
-        .feature-card:hover {
-            border-color: #cfcdc4;
-        }
-        .feature-card a.card-link {
-            position: absolute;
-            inset: 0;
-            z-index: 0;
-            border-radius: 12px;
-        }
+        .feature-card:hover { border-color: var(--mr-accent); }
+        .feature-card a.card-link { position: absolute; inset: 0; z-index: 0; border-radius: var(--mr-radius-card); }
         .feature-card .card-content { position: relative; z-index: 1; }
+        .feature-card-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
+        .feature-card-head .name { font-weight: 600; font-size: 14px; }
+        .feature-card-desc { font-size: 11px; color: var(--mr-muted); margin: 8px 0 0; }
         .route-badge {
             display: inline-flex;
             align-items: center;
@@ -184,31 +113,33 @@
             font-size: 10px;
             font-weight: 600;
             padding: 3px 8px;
-            border-radius: 9999px;
+            border-radius: var(--mr-radius-pill);
             font-family: 'JetBrains Mono', monospace;
             letter-spacing: 0.03em;
         }
         .badge-get { background: rgba(31, 138, 101, 0.08); color: #1f8a65; border: 1px solid rgba(31, 138, 101, 0.15); }
         .badge-post { background: rgba(180, 83, 9, 0.08); color: #b45309; border: 1px solid rgba(180, 83, 9, 0.15); }
-        .badge-page { background: rgba(20, 86, 240, 0.08); color: #1456f0; border: 1px solid rgba(20, 86, 240, 0.15); }
-        .badge-api { background: rgba(192, 168, 221, 0.2); color: #8b5fa8; border: 1px solid rgba(192, 168, 221, 0.3); }
+        .badge-page { background: var(--mr-accent-soft); color: var(--mr-accent); border: 1px solid rgba(20, 86, 240, 0.15); }
+        .badge-api { background: var(--mr-info-bg); color: var(--mr-info); border: 1px solid rgba(192, 168, 221, 0.3); }
+        [data-theme="dark"] .badge-get { background: rgba(110, 231, 160, 0.1); color: #6ee7a0; border-color: rgba(110, 231, 160, 0.2); }
+        [data-theme="dark"] .badge-post { background: rgba(252, 211, 77, 0.1); color: #fcd34d; border-color: rgba(252, 211, 77, 0.2); }
         .path-text {
             font-family: 'JetBrains Mono', monospace;
             font-size: 12px;
-            color: #5a5852;
+            color: var(--mr-text-2);
             word-break: break-all;
             margin-top: 4px;
         }
         .copy-btn {
             position: absolute;
             top: 10px; right: 10px;
-            background: rgba(20, 86, 240, 0.08);
+            background: var(--mr-accent-soft);
             border: 1px solid rgba(20, 86, 240, 0.15);
-            border-radius: 6px;
+            border-radius: var(--mr-radius-control);
             padding: 3px 8px;
             font-size: 10px;
             font-weight: 500;
-            color: #1456f0;
+            color: var(--mr-accent);
             cursor: pointer;
             opacity: 0;
             transition: opacity 0.2s;
@@ -216,725 +147,122 @@
         }
         .feature-card:hover .copy-btn { opacity: 1; }
         .copy-btn:hover { background: rgba(20, 86, 240, 0.15); }
-        .stats-value {
-            font-size: 32px;
-            font-weight: 600;
-            color: #26251e;
-            letter-spacing: -0.5px;
+
+        .login-hero {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            padding: 72px 24px; text-align: center;
         }
-        .text-muted {
-            color: #807d72;
-        }
-        .section-title {
-            font-size: 20px;
-            font-weight: 600;
-            color: #26251e;
-        }
-        .user-avatar {
-            width: 40px;
-            height: 40px;
-            background: #26251e;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-            font-size: 14px;
-            color: #f7f7f4;
-        }
-        .user-info {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 12px;
-            background: #e6e5e0;
-            border-radius: 8px;
-            margin-bottom: 12px;
-        }
-        .user-name {
-            font-size: 14px;
-            font-weight: 600;
-            color: #26251e;
-        }
-        .user-meta {
-            font-size: 11px;
-            color: #807d72;
-        }
-        .quick-link {
-            display: block;
-            padding: 12px 16px;
-            background: #fafaf7;
-            border: 1px solid #e6e5e0;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 500;
-            color: #5a5852;
-            text-decoration: none;
-            transition: all 0.2s ease;
-            margin-bottom: 8px;
-        }
-        .quick-link:hover {
-            background: #e6e5e0;
-            color: #26251e;
-            border-color: #cfcdc4;
-        }
-        .badge-pill {
-            display: inline-flex;
-            align-items: center;
-            font-size: 11px;
-            font-weight: 600;
-            padding: 4px 10px;
-            border-radius: 9999px;
-            background: #e6e5e0;
-            color: #26251e;
-        }
-        @media (max-width: 1024px) {
-            .main-content {
-                margin-left: 0 !important;
-                padding: 24px !important;
-            }
-            
-            footer {
-                left: 0 !important;
-            }
-            
-            .stats-grid {
-                grid-template-columns: repeat(2, 1fr) !important;
-            }
-            
-            .grid-3 {
-                grid-template-columns: 1fr !important;
-            }
-        }
-        
-        @media (max-width: 768px) {
-            .sidebar {
-                transform: translateX(-100%);
-                width: 280px;
-                position: fixed;
-                top: 0;
-                left: 0;
-                height: 100vh;
-                z-index: 100;
-                transition: transform 0.3s ease;
-            }
-            .sidebar.open {
-                transform: translateX(0);
-            }
-            .sidebar-overlay {
-                display: none;
-                position: fixed;
-                top: 0;
-                left: 0;
-                right: 0;
-                bottom: 0;
-                background: rgba(0,0,0,0.5);
-                z-index: 99;
-            }
-            .sidebar-overlay.show {
-                display: block;
-            }
-            .mobile-menu-btn {
-                display: flex !important;
-            }
-            .main-content {
-                margin-left: 0 !important;
-                padding: 16px !important;
-            }
-            
-            .stats-grid {
-                grid-template-columns: 1fr !important;
-            }
-            
-            .feature-grid {
-                grid-template-columns: 1fr !important;
-            }
-            
-            /* Reduce font sizes on mobile */
-            .main-header h1 {
-                font-size: 20px !important;
-                padding-left: 50px;
-            }
-            .section-title {
-                font-size: 16px !important;
-            }
-            .stats-value {
-                font-size: 24px !important;
-            }
-            .glass-card {
-                padding: 16px !important;
-            }
-            .feature-card {
-                padding: 12px !important;
-            }
-            .feature-card h4, .quick-link {
-                font-size: 13px !important;
-            }
-            footer {
-                left: 0 !important;
-                padding: 12px 16px !important;
-                font-size: 10px !important;
-            }
-            .grid-3 {
-                padding-left: 0 !important;
-            }
+        .login-hero-ico {
+            width: 104px; height: 104px;
+            background: var(--mr-accent-soft);
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            margin-bottom: 28px; font-size: 42px;
         }
     </style>
 </head>
-<body class="min-h-screen flex">
+<body class="mera-page">
+<div class="mr-shell">
 
-    <!-- Sidebar Overlay for mobile -->
-    <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+    <th:block th:replace="~{fragments/mera-layout :: sidebar('dashboard')}"></th:block>
 
-    <!-- Mobile Menu Button -->
-    <button class="mobile-menu-btn" onclick="toggleSidebar()" style="display: none; position: fixed; top: 12px; left: 12px; z-index: 101; background: white; border: 1px solid #e6e5e0; border-radius: 8px; padding: 10px; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="3" y1="6" x2="21" y2="6"></line>
-            <line x1="3" y1="12" x2="21" y2="12"></line>
-            <line x1="3" y1="18" x2="21" y2="18"></line>
-        </svg>
-    </button>
+    <div class="mr-shell-main">
+        <th:block th:replace="~{fragments/mera-layout :: topbar('Dashboard')}"></th:block>
 
-    <!-- Sidebar -->
-    <aside class="sidebar">
-        <div class="sidebar-header" style="padding: 24px 20px; border-bottom: 1px solid #e6e5e0;">
-            <div class="sidebar-logo" style="display: flex; align-items: center; gap: 12px; text-decoration: none;">
-                <div class="sidebar-logo-icon">M</div>
-                <span style="font-size: 20px; font-weight: 700; color: #26251e;">Mera<span style="color: #1456f0;">Group</span></span>
-            </div>
-        </div>
+        <main class="mr-shell-content">
 
-        <nav style="flex: 1; padding: 16px 12px; overflow-y: auto;">
-            <div class="nav-section-title">Menu Chính</div>
-            
-            <a href="/" class="nav-item active">
-                <span>🏠</span> Dashboard
-            </a>
-            
-            <a href="/saleReport" class="nav-item">
-                <span>📊</span> Sale Report 1
-            </a>
-            
-            <a href="/stats" class="nav-item">
-                <span>📈</span> Stats Lịch Hẹn
-            </a>
-
-            <div class="nav-section-title">Tra cứu & POS</div>
-            
-            <a href="/dongbo" class="nav-item">
-                <span>🔄</span> Đồng Bộ
-            </a>
-
-            <a href="/attendance-punch" class="nav-item">
-                <span>⏰</span> Chấm Công
-            </a>
-
-            <a href="/assignment-monitoring" class="nav-item">
-                <span>📋</span> Phân Công CSKH
-            </a>
-
-            <a href="/assignment-config" class="nav-item">
-                <span>⚙️</span> Cấu Hình Phân Công
-            </a>
-            
-            <a href="/search-info" class="nav-item">
-                <span>🔎</span> Tìm Khách Hàng
-            </a>
-            
-            <a href="/searchInfo" class="nav-item">
-                <span>🕵️</span> Tra Cứu Của SALE
-            </a>
-
-            <a href="/pancake-orders" class="nav-item">
-                <span>📦</span> Danh Sách Đơn POS
-            </a>
-
-            <a href="/khach-hang-canh-bao" class="nav-item">
-                <span>⚠️</span> Số Thả Nổi
-            </a>
-
-            <div class="nav-section-title">Hệ Thống</div>
-            
-            <a href="/config" class="nav-item">
-                <span>⚙️</span> Cấu Hình Webhook
-            </a>
-            
-            <a href="/lark/token" class="nav-item">
-                <span>🔑</span> Token & Base
-            </a>
-
-            <a href="/admin/pos-users-baselark" class="nav-item">
-                <span>🔗</span> Mapping BaseLark
-            </a>
-
-            <a href="/employee-mapping" class="nav-item">
-                <span>👥</span> Employee Mapping
-            </a>
-
-            <a href="/logs" class="nav-item">
-                <span>📝</span> Logs Realtime
-            </a>
-
-            <a href="/test-api.html" class="nav-item">
-                <span>🧪</span> Công cụ Sync
-            </a>
-        </nav>
-
-        <div style="padding: 16px; border-top: 1px solid #e6e5e0;" th:if="${isAuthenticated}">
-            <div class="user-info">
-                <div class="user-avatar">AD</div>
+            <!-- Header -->
+            <header class="dash-header">
                 <div>
-                    <p class="user-name" th:text="${userName ?: 'Admin User'}">Admin User</p>
-                    <p class="user-meta" th:text="'Hết hạn: ' + ${#strings.substring(tokenExpiresAt, 11, 16)}">Hết hạn: --:--</p>
+                    <h1 th:text="${isAuthenticated ? 'Chào mừng quay trở lại!' : 'Hệ Thống MeraGroup'}"></h1>
+                    <p th:text="${isAuthenticated ? 'Bức tranh tổng thể về hiệu suất bán hàng của bạn.' : 'Vui lòng đăng nhập để truy cập các tính năng.'}"></p>
                 </div>
-            </div>
-            <a href="/lark/logout" id="sidebar-logout-btn"
-               onclick="return confirm('Bạn có chắc muốn đăng xuất không?')"
-               class="btn-danger" style="width: 100%; justify-content: center;">
-                <span>🚪</span> Đăng Xuất
-            </a>
-        </div>
-    </aside>
+                <div class="dash-actions" th:if="${!isAuthenticated}">
+                    <a th:href="${authUrl}" class="mr-btn mr-btn--primary">
+                        <span>🚀</span> Đăng nhập với Lark
+                    </a>
+                </div>
+                <div class="dash-actions" th:if="${isAuthenticated}">
+                    <a href="/config" class="mr-btn mr-btn--ghost">Tải Báo Cáo</a>
+                    <a href="/lark/logout" id="header-logout-btn"
+                       onclick="return confirm('Bạn có chắc muốn đăng xuất không?')"
+                       class="mr-btn mr-btn--danger">
+                        <span>🚪</span> Đăng Xuất
+                    </a>
+                </div>
+            </header>
 
-    <!-- Main Content -->
-    <main class="main-content" style="margin-left: 280px; padding: 48px; min-height: 100vh;">
-        
-        <!-- Header -->
-        <header class="main-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 48px; padding-bottom: 32px; border-bottom: 1px solid #e6e5e0;">
-            <div>
-                <h1 style="font-size: 28px; font-weight: 600; color: #26251e; letter-spacing: -0.5px; margin-bottom: 4px;" th:text="${isAuthenticated ? 'Chào mừng quay trở lại!' : 'Hệ Thống MeraGroup'}"></h1>
-                <p class="text-muted" style="font-size: 14px;" th:text="${isAuthenticated ? 'Bức tranh tổng thể về hiệu suất bán hàng của bạn.' : 'Vui lòng đăng nhập để truy cập các tính năng.'}"></p>
-            </div>
-            
-            <div style="display: flex; align-items: center; gap: 16px;" th:if="${!isAuthenticated}">
-                <a th:href="${authUrl}" class="btn-primary" style="padding: 12px 24px; height: 44px;">
-                    <span>🚀</span> Đăng nhập với Lark
+            <!-- Unauthenticated View -->
+            <div th:if="${!isAuthenticated}" class="mr-card login-hero">
+                <div class="login-hero-ico"><span>🔒</span></div>
+                <h2 style="font-size: 22px; font-weight: 600; margin: 0 0 12px;">Bạn chưa đăng nhập</h2>
+                <p class="mr-muted" style="max-width: 400px; margin: 0 0 28px; font-size: 14px;">
+                    Hệ thống báo cáo và quản lý tệp khách hàng yêu cầu quyền truy cập từ tài khoản Lark nội bộ.
+                </p>
+                <a th:href="${authUrl}" class="mr-btn mr-btn--primary" style="padding: 12px 28px; font-size: 15px;">
+                    Đăng nhập với Lark
                 </a>
             </div>
-            
-            <div style="display: flex; align-items: center; gap: 16px;" th:if="${isAuthenticated}">
-                <a href="/config" class="btn-secondary">
-                    Tải Báo Cáo
-                </a>
-                <a href="/lark/logout" id="header-logout-btn"
-                   onclick="return confirm('Bạn có chắc muốn đăng xuất không?')"
-                   class="btn-danger">
-                    <span>🚪</span> Đăng Xuất
-                </a>
-            </div>
-        </header>
 
-        <!-- Unauthenticated View -->
-        <div th:if="${!isAuthenticated}" style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 80px 0; text-align: center;">
-            <div style="width: 120px; height: 120px; background: rgba(20, 86, 240, 0.08); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 32px;">
-                <span style="font-size: 48px;">🔒</span>
-            </div>
-            <h2 style="font-size: 24px; font-weight: 600; margin-bottom: 16px;">Bạn chưa đăng nhập</h2>
-            <p class="text-muted" style="max-width: 400px; margin-bottom: 32px; font-size: 14px;">
-                Hệ thống báo cáo và quản lý tệp khách hàng yêu cầu quyền truy cập từ tài khoản Lark nội bộ.
-            </p>
-            <a th:href="${authUrl}" class="btn-primary" style="padding: 14px 32px; height: 48px; font-size: 16px;">
-                Đăng nhập với Lark
-            </a>
-        </div>
+            <!-- Authenticated Dashboard: Bento Grid -->
+            <div th:if="${isAuthenticated}">
+                <div class="mr-bento" style="margin-bottom: 24px;">
 
-        <!-- Authenticated Dashboard -->
-        <div th:if="${isAuthenticated}">
-            
-            <!-- Hero / Overview Stats -->
-            <div class="stats-grid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 48px;">
-                <div class="glass-card" style="padding: 24px;">
-                    <p class="text-muted" style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.88px; margin-bottom: 8px;">Trạng thái Token</p>
-                    <div style="display: flex; align-items: flex-end; justify-content: space-between;">
-                        <span class="stats-value" style="color: #1f8a65;">Hoạt động</span>
+                    <!-- Stats -->
+                    <div class="mr-stat mr-stat--success mr-bento-3">
+                        <div class="mr-stat-label">Trạng thái Token</div>
+                        <div class="mr-stat-value" style="font-size: 22px;">Hoạt động</div>
+                        <p class="mr-meta-line" th:text="${tokenExpiresAt}">-</p>
                     </div>
-                    <p class="text-muted" style="font-size: 12px; margin-top: 8px;" th:text="${tokenExpiresAt}">-</p>
-                </div>
-                <div class="glass-card" style="padding: 24px; border-left: 3px solid #1456f0;">
-                    <p class="text-muted" style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.88px; margin-bottom: 8px;">Modules Sẵn Sàng</p>
-                    <div style="display: flex; align-items: flex-end; justify-content: space-between;">
-                        <span class="stats-value">12</span>
-                        <span style="font-size: 12px; font-weight: 600; color: #1f8a65;">↑ 100%</span>
-                    </div>
-                </div>
-                <div class="glass-card" style="padding: 24px;">
-                    <p class="text-muted" style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.88px; margin-bottom: 8px;">Đơn hàng mới (Today)</p>
-                    <div style="display: flex; align-items: flex-end; justify-content: space-between;">
-                        <span class="stats-value">156</span>
-                        <span style="font-size: 12px; font-weight: 600; color: #1f8a65;">↑ 12%</span>
-                    </div>
-                </div>
-                <div class="glass-card" style="padding: 24px;">
-                    <p class="text-muted" style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.88px; margin-bottom: 8px;">Tỉ lệ chốt</p>
-                    <div style="display: flex; align-items: flex-end; justify-content: space-between;">
-                        <span class="stats-value">24.5%</span>
-                        <span style="font-size: 12px; font-weight: 600; color: #cf2d56;">↓ 2%</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- ========== FEATURE MAP SECTION ========== -->
-            <div style="margin-bottom: 48px;">
-                <div class="section-header" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px;">
-                    <div>
-                        <h2 class="section-title">🗺️ Chức Năng & Đường Dẫn Hệ Thống</h2>
-                        <p class="text-muted" style="font-size: 13px; margin-top: 4px;">Toàn bộ các tính năng và API endpoints trong dự án MeraGroup v2</p>
-                    </div>
-                    <span class="badge-pill">v2.0</span>
-                </div>
-
-                <!-- GROUP 1: MENU CHÍNH -->
-                <div class="feature-group">
-                    <div class="feature-group-title">📌 Menu Chính — Trang Giao Diện</div>
-                    <div class="feature-grid">
-                        <div class="feature-card">
-                            <a href="/" class="card-link"></a>
-                            <button class="copy-btn" onclick="copyPath(event,'/')">copy</button>
-                            <div class="card-content">
-                                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-                                    <span style="font-size: 20px;">🏠</span>
-                                    <span style="font-weight: 600; font-size: 14px;">Dashboard / Trang Chủ</span>
-                                    <span class="route-badge badge-page">PAGE</span>
-                                </div>
-                                <div class="path-text">GET /</div>
-                                <p style="font-size: 11px; color: #807d72; margin-top: 8px;">Trang chính. Nếu chưa đăng nhập → login Lark OAuth. Nếu đã đăng nhập → dashboard tổng quan.</p>
-                            </div>
-                        </div>
-
-                        <div class="feature-card">
-                            <a href="/saleReport" class="card-link"></a>
-                            <button class="copy-btn" onclick="copyPath(event,'/saleReport')">copy</button>
-                            <div class="card-content">
-                                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-                                    <span style="font-size: 20px;">📊</span>
-                                    <span style="font-weight: 600; font-size: 14px;">Báo Cáo Sale 1</span>
-                                    <span class="route-badge badge-page">PAGE</span>
-                                </div>
-                                <div class="path-text">GET /saleReport</div>
-                                <p style="font-size: 11px; color: #807d72; margin-top: 8px;">Thống kê tin nhắn, đơn chốt, tỉ lệ hủy của từng tư vấn viên. Hỗ trợ export Excel.</p>
-                            </div>
-                        </div>
-
-                        <div class="feature-card">
-                            <a href="/stats" class="card-link"></a>
-                            <button class="copy-btn" onclick="copyPath(event,'/stats')">copy</button>
-                            <div class="card-content">
-                                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-                                    <span style="font-size: 20px;">📈</span>
-                                    <span style="font-weight: 600; font-size: 14px;">Thống Kê Lịch Hẹn</span>
-                                    <span class="route-badge badge-page">PAGE</span>
-                                </div>
-                                <div class="path-text">GET /stats</div>
-                                <p style="font-size: 11px; color: #807d72; margin-top: 8px;">KPI lịch hẹn CSKH: tổng khách, tổng lịch, hoàn thành, muộn/quá hạn.</p>
-                            </div>
-                        </div>
-
-                        <div class="feature-card">
-                            <a href="/logs" class="card-link"></a>
-                            <button class="copy-btn" onclick="copyPath(event,'/logs')">copy</button>
-                            <div class="card-content">
-                                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-                                    <span style="font-size: 20px;">📝</span>
-                                    <span style="font-weight: 600; font-size: 14px;">Logs Realtime</span>
-                                    <span class="route-badge badge-page">PAGE</span>
-                                </div>
-                                <div class="path-text">GET /logs</div>
-                                <p style="font-size: 11px; color: #807d72; margin-top: 8px;">Xem log hệ thống realtime — webhook events, sync jobs, token refresh.</p>
-                            </div>
-                        </div>
-
-                        <div class="feature-card">
-                            <a href="/report" class="card-link"></a>
-                            <button class="copy-btn" onclick="copyPath(event,'/report')">copy</button>
-                            <div class="card-content">
-                                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-                                    <span style="font-size: 20px;">📋</span>
-                                    <span style="font-weight: 600; font-size: 14px;">Report (Legacy)</span>
-                                    <span class="route-badge badge-page">PAGE</span>
-                                </div>
-                                <div class="path-text">GET /report</div>
-                                <p style="font-size: 11px; color: #807d72; margin-top: 8px;">Báo cáo cũ lấy từ Lark Bitable — tóm tắt Sales Summary theo bảng.</p>
-                            </div>
+                    <div class="mr-stat mr-stat--accent mr-bento-3">
+                        <div class="mr-stat-label">Modules Sẵn Sàng</div>
+                        <div style="display: flex; align-items: flex-end; justify-content: space-between;">
+                            <span class="mr-stat-value">12</span>
+                            <span class="stat-trend-up">↑ 100%</span>
                         </div>
                     </div>
-                </div>
-
-                <!-- GROUP 2: TRA CỨU & POS -->
-                <div class="feature-group">
-                    <div class="feature-group-title">🔎 Tra Cứu & POS</div>
-                    <div class="feature-grid">
-                        <div class="feature-card">
-                            <a href="/search-info" class="card-link"></a>
-                            <button class="copy-btn" onclick="copyPath(event,'/search-info')">copy</button>
-                            <div class="card-content">
-                                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-                                    <span style="font-size: 20px;">🔎</span>
-                                    <span style="font-weight: 600; font-size: 14px;">Tìm Khách Hàng 360°</span>
-                                    <span class="route-badge badge-page">PAGE</span>
-                                </div>
-                                <div class="path-text">GET /search-info</div>
-                                <p style="font-size: 11px; color: #807d72; margin-top: 8px;">Tra cứu khách hàng theo SĐT từ Pancake POS + Lark Bitable.</p>
-                            </div>
-                        </div>
-
-                        <div class="feature-card">
-                            <a href="/searchInfo" class="card-link"></a>
-                            <button class="copy-btn" onclick="copyPath(event,'/searchInfo')">copy</button>
-                            <div class="card-content">
-                                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-                                    <span style="font-size: 20px;">🕵️</span>
-                                    <span style="font-weight: 600; font-size: 14px;">Tra Cứu Của SALE</span>
-                                    <span class="route-badge badge-page">PAGE</span>
-                                </div>
-                                <div class="path-text">GET /searchInfo</div>
-                                <p style="font-size: 11px; color: #807d72; margin-top: 8px;">Giao diện tra cứu dành riêng cho Sale — tìm thông tin khách từ Bitable.</p>
-                            </div>
-                        </div>
-
-                        <div class="feature-card">
-                            <a href="/pancake-orders" class="card-link"></a>
-                            <button class="copy-btn" onclick="copyPath(event,'/pancake-orders')">copy</button>
-                            <div class="card-content">
-                                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-                                    <span style="font-size: 20px;">📦</span>
-                                    <span style="font-weight: 600; font-size: 14px;">Danh Sách Đơn POS</span>
-                                    <span class="route-badge badge-page">PAGE</span>
-                                </div>
-                                <div class="path-text">GET /pancake-orders</div>
-                                <p style="font-size: 11px; color: #807d72; margin-top: 8px;">Xem danh sách đơn hàng từ Pancake POS đã đồng bộ vào DB nội bộ.</p>
-                            </div>
-                        </div>
-
-                        <div class="feature-card">
-                            <a href="/dongbo" class="card-link"></a>
-                            <button class="copy-btn" onclick="copyPath(event,'/dongbo')">copy</button>
-                            <div class="card-content">
-                                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-                                    <span style="font-size: 20px;">🔄</span>
-                                    <span style="font-weight: 600; font-size: 14px;">Đồng Bộ Dữ Liệu</span>
-                                    <span class="route-badge badge-page">PAGE</span>
-                                </div>
-                                <div class="path-text">GET /dongbo</div>
-                                <p style="font-size: 11px; color: #807d72; margin-top: 8px;">Trang quản lý đồng bộ: đơn hàng, sản phẩm, khách hàng, nhân viên từ POS/Lark.</p>
-                            </div>
+                    <div class="mr-stat mr-bento-3">
+                        <div class="mr-stat-label">Đơn hàng mới (Today)</div>
+                        <div style="display: flex; align-items: flex-end; justify-content: space-between;">
+                            <span class="mr-stat-value">156</span>
+                            <span class="stat-trend-up">↑ 12%</span>
                         </div>
                     </div>
-                </div>
-
-                <!-- GROUP 3: HỆ THỐNG & CẤU HÌNH -->
-                <div class="feature-group">
-                    <div class="feature-group-title">⚙️ Hệ Thống & Cấu Hình</div>
-                    <div class="feature-grid">
-                        <div class="feature-card">
-                            <a href="/config" class="card-link"></a>
-                            <button class="copy-btn" onclick="copyPath(event,'/config')">copy</button>
-                            <div class="card-content">
-                                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-                                    <span style="font-size: 20px;">⚙️</span>
-                                    <span style="font-weight: 600; font-size: 14px;">Cấu Hình Webhook</span>
-                                    <span class="route-badge badge-page">PAGE</span>
-                                </div>
-                                <div class="path-text">GET /config</div>
-                                <p style="font-size: 11px; color: #807d72; margin-top: 8px;">Quản lý webhook status 1 & 6, xem danh sách Base/Table CSKH, token Lark.</p>
-                            </div>
-                        </div>
-
-                        <div class="feature-card">
-                            <a href="/lark/token" class="card-link"></a>
-                            <button class="copy-btn" onclick="copyPath(event,'/lark/token')">copy</button>
-                            <div class="card-content">
-                                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-                                    <span style="font-size: 20px;">🔑</span>
-                                    <span style="font-weight: 600; font-size: 14px;">Token & Base Info</span>
-                                    <span class="route-badge badge-page">PAGE</span>
-                                </div>
-                                <div class="path-text">GET /lark/token</div>
-                                <p style="font-size: 11px; color: #807d72; margin-top: 8px;">Xem user access token, refresh token, app token, danh sách Bitable tables đã kết nối.</p>
-                            </div>
-                        </div>
-
-                        <div class="feature-card">
-                            <a href="/admin" class="card-link"></a>
-                            <button class="copy-btn" onclick="copyPath(event,'/admin')">copy</button>
-                            <div class="card-content">
-                                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-                                    <span style="font-size: 20px;">🛡️</span>
-                                    <span style="font-weight: 600; font-size: 14px;">Admin Dashboard</span>
-                                    <span class="route-badge badge-page">PAGE</span>
-                                </div>
-                                <div class="path-text">GET /admin</div>
-                                <p style="font-size: 11px; color: #807d72; margin-top: 8px;">Trang quản trị — tương tự trang chủ nhưng dành cho admin, kiểm tra token.</p>
-                            </div>
+                    <div class="mr-stat mr-bento-3">
+                        <div class="mr-stat-label">Tỉ lệ chốt</div>
+                        <div style="display: flex; align-items: flex-end; justify-content: space-between;">
+                            <span class="mr-stat-value">24.5%</span>
+                            <span class="stat-trend-down">↓ 2%</span>
                         </div>
                     </div>
-                </div>
 
-                <!-- GROUP 4: API ENDPOINTS -->
-                <div class="feature-group">
-                    <div class="feature-group-title">🔌 API Endpoints (JSON)</div>
-                    <div class="feature-grid">
-                        <div class="feature-card">
-                            <button class="copy-btn" onclick="copyPath(event,'/api/search-info?phone=0900000000')">copy</button>
-                            <div class="card-content">
-                                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-                                    <span style="font-size: 20px;">📡</span>
-                                    <span style="font-weight: 600; font-size: 14px;">Search Info 360°</span>
-                                    <span class="route-badge badge-api">API</span>
-                                    <span class="route-badge badge-get">GET</span>
-                                </div>
-                                <div class="path-text">GET /api/search-info?phone=...</div>
-                                <p style="font-size: 11px; color: #807d72; margin-top: 8px;">Tìm kiếm thông tin 360° khách hàng qua SĐT: Pancake POS + Lark Bitable.</p>
-                            </div>
+                    <!-- Hoạt động hệ thống -->
+                    <div class="mr-card mr-bento-8">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px;">
+                            <h3 class="mr-card-title" style="margin: 0;">💡 Hoạt động hệ thống</h3>
+                            <a href="/logs" class="mr-back-link">Xem tất cả logs</a>
                         </div>
-
-                        <div class="feature-card">
-                            <button class="copy-btn" onclick="copyPath(event,'/api/saleReport/data?range=CurrentMonth')">copy</button>
-                            <div class="card-content">
-                                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-                                    <span style="font-size: 20px;">📊</span>
-                                    <span style="font-weight: 600; font-size: 14px;">Sale Report Data</span>
-                                    <span class="route-badge badge-api">API</span>
-                                    <span class="route-badge badge-get">GET</span>
-                                </div>
-                                <div class="path-text">GET /api/saleReport/data?range=</div>
-                                <p style="font-size: 11px; color: #807d72; margin-top: 8px;">Trả JSON thống kê sale (CurrentMonth / LastMonth). Có cache session + disk.</p>
-                            </div>
-                        </div>
-
-                        <div class="feature-card">
-                            <button class="copy-btn" onclick="copyPath(event,'/api/stats/data?customerMonth=CurrentMonth')">copy</button>
-                            <div class="card-content">
-                                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-                                    <span style="font-size: 20px;">📈</span>
-                                    <span style="font-weight: 600; font-size: 14px;">Stats Data</span>
-                                    <span class="route-badge badge-api">API</span>
-                                    <span class="route-badge badge-get">GET</span>
-                                </div>
-                                <div class="path-text">GET /api/stats/data?customerMonth=</div>
-                                <p style="font-size: 11px; color: #807d72; margin-top: 8px;">Dữ liệu thống kê lịch hẹn nhân viên: totalKhach, totalLich, totalHoanThanh.</p>
-                            </div>
-                        </div>
-
-                        <div class="feature-card">
-                            <button class="copy-btn" onclick="copyPath(event,'/api/orders/sync')">copy</button>
-                            <div class="card-content">
-                                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-                                    <span style="font-size: 20px;">🔄</span>
-                                    <span style="font-weight: 600; font-size: 14px;">Sync POS Orders</span>
-                                    <span class="route-badge badge-api">API</span>
-                                    <span class="route-badge badge-post">POST</span>
-                                </div>
-                                <div class="path-text">POST /api/orders/sync</div>
-                                <p style="font-size: 11px; color: #807d72; margin-top: 8px;">Đồng bộ đơn hàng từ Pancake POS vào DB. Body: startDate, endDate, status, pageSize.</p>
-                            </div>
-                        </div>
-
-                        <div class="feature-card">
-                            <button class="copy-btn" onclick="copyPath(event,'/api/orders/preview')">copy</button>
-                            <div class="card-content">
-                                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-                                    <span style="font-size: 20px;">👁️</span>
-                                    <span style="font-weight: 600; font-size: 14px;">Preview POS Orders</span>
-                                    <span class="route-badge badge-api">API</span>
-                                    <span class="route-badge badge-post">POST</span>
-                                </div>
-                                <div class="path-text">POST /api/orders/preview</div>
-                                <p style="font-size: 11px; color: #807d72; margin-top: 8px;">Xem trước danh sách đơn từ Pancake API mà không lưu vào DB.</p>
-                            </div>
-                        </div>
-
-                        <div class="feature-card">
-                            <button class="copy-btn" onclick="copyPath(event,'/api/orders/sync/health')">copy</button>
-                            <div class="card-content">
-                                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-                                    <span style="font-size: 20px;">❤️</span>
-                                    <span style="font-weight: 600; font-size: 14px;">Health Check</span>
-                                    <span class="route-badge badge-api">API</span>
-                                    <span class="route-badge badge-get">GET</span>
-                                </div>
-                                <div class="path-text">GET /api/orders/sync/health</div>
-                                <p style="font-size: 11px; color: #807d72; margin-top: 8px;">Kiểm tra OrderSyncController và các service bean có hoạt động không.</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <!-- ========== END FEATURE MAP ========== -->
-
-            <script>
-            function copyPath(event, path) {
-                event.preventDefault();
-                event.stopPropagation();
-                const fullPath = window.location.origin + path;
-                navigator.clipboard.writeText(fullPath).then(() => {
-                    const btn = event.target;
-                    const orig = btn.textContent;
-                    btn.textContent = '✓ ok';
-                    btn.style.background = 'rgba(31, 138, 101, 0.15)';
-                    btn.style.color = '#1f8a65';
-                    setTimeout(() => {
-                        btn.textContent = orig;
-                        btn.style.background = '';
-                        btn.style.color = '';
-                    }, 1500);
-                });
-            }
-            </script>
-
-            <!-- Dashboard Grid -->
-            <div class="grid-3" style="display: grid; grid-template-columns: 2fr 1fr; gap: 24px;">
-                
-                <!-- Sale Insights -->
-                <div style="display: flex; flex-direction: column; gap: 24px;">
-                    <div class="glass-card" style="padding: 32px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-                            <h3 style="font-size: 18px; font-weight: 600;">💡 Hoạt động hệ thống</h3>
-                            <a href="/logs" style="font-size: 13px; font-weight: 500; color: #1456f0; text-decoration: none;">Xem tất cả logs</a>
-                        </div>
-                        
-                        <div style="display: flex; flex-direction: column; gap: 16px;">
-                            <div style="display: flex; align-items: center; gap: 16px;">
-                                <div style="width: 40px; height: 40px; border-radius: 8px; background: rgba(31, 138, 101, 0.1); display: flex; align-items: center; justify-content: center; color: #1f8a65; font-weight: 600;">✓</div>
+                        <div style="display: flex; flex-direction: column; gap: 14px;">
+                            <div class="activity-row">
+                                <div class="activity-ico activity-ico--success">✓</div>
                                 <div>
-                                    <p style="font-size: 14px; font-weight: 500;">Đồng bộ Pancake POS thành công</p>
-                                    <p style="font-size: 11px; color: #807d72;">Vừa xong • 12 đơn hàng mới đã được cập nhật</p>
+                                    <p class="activity-title">Đồng bộ Pancake POS thành công</p>
+                                    <p class="activity-meta">Vừa xong • 12 đơn hàng mới đã được cập nhật</p>
                                 </div>
                             </div>
-                            <div style="display: flex; align-items: center; gap: 16px;">
-                                <div style="width: 40px; height: 40px; border-radius: 8px; background: rgba(20, 86, 240, 0.1); display: flex; align-items: center; justify-content: center; color: #1456f0; font-weight: 600;">⚙</div>
+                            <div class="activity-row">
+                                <div class="activity-ico activity-ico--accent">⚙</div>
                                 <div>
-                                    <p style="font-size: 14px; font-weight: 500;">Tự động refresh token Lark</p>
-                                    <p style="font-size: 11px; color: #807d72;">10 phút trước • Token đã được gia hạn thêm 2 tiếng</p>
+                                    <p class="activity-title">Tự động refresh token Lark</p>
+                                    <p class="activity-meta">10 phút trước • Token đã được gia hạn thêm 2 tiếng</p>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Quick Navigation Cards -->
-                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;">
-                        <a href="/saleReport" class="glass-card" style="padding: 24px; text-decoration: none; display: flex; flex-direction: column; gap: 12px;">
-                            <div style="width: 48px; height: 48px; border-radius: 8px; background: rgba(20, 86, 240, 0.1); display: flex; align-items: center; justify-content: center; font-size: 24px;">📊</div>
-                            <div>
-                                <h4 style="font-size: 16px; font-weight: 600; color: #26251e;">Báo Cáo Sale 1</h4>
-                                <p style="font-size: 12px; color: #807d72; margin-top: 4px;">Tổng hợp mess, đơn chốt và tỉ lệ hủy theo từng tư vấn viên.</p>
-                            </div>
-                        </a>
-                        <a href="/stats" class="glass-card" style="padding: 24px; text-decoration: none; display: flex; flex-direction: column; gap: 12px;">
-                            <div style="width: 48px; height: 48px; border-radius: 8px; background: rgba(31, 138, 101, 0.1); display: flex; align-items: center; justify-content: center; font-size: 24px;">📈</div>
-                            <div>
-                                <h4 style="font-size: 16px; font-weight: 600; color: #26251e;">Thống Kê Lịch Hẹn</h4>
-                                <p style="font-size: 12px; color: #807d72; margin-top: 4px;">Theo dõi KPI lịch hẹn của CSKH, trạng thái muộn/quá hạn.</p>
-                            </div>
-                        </a>
-                    </div>
-                </div>
-
-                <!-- Right Sidebar Inside Content -->
-                <div style="display: flex; flex-direction: column; gap: 16px;">
-                    <div class="glass-card" style="padding: 24px;">
-                        <h3 style="font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
-                            <span>🚀</span> Lối tắt nhanh
-                        </h3>
+                    <!-- Lối tắt nhanh -->
+                    <div class="mr-card mr-bento-4">
+                        <h3 class="mr-card-title">🚀 Lối tắt nhanh</h3>
                         <a href="/dongbo" class="quick-link">🔄 Đồng bộ dữ liệu</a>
                         <a href="/searchCustomer" class="quick-link">🔍 Tìm kiếm số điện thoại</a>
                         <a href="/pancake-orders" class="quick-link">🛒 Kiểm tra đơn Pancake</a>
@@ -942,29 +270,349 @@
                         <a href="/test-api.html" class="quick-link">🧪 Force Sync Tool</a>
                     </div>
 
-                    <div class="glass-card" style="padding: 24px;">
-                        <h3 style="font-weight: 600; margin-bottom: 12px;">Hỗ trợ nội bộ</h3>
-                        <p style="font-size: 12px; color: #807d72; margin-bottom: 16px;">Nếu gặp lỗi về token hoặc kết nối Bitable, vui lòng liên hệ Admin qua kênh Lark.</p>
-                        <button style="width: 100%; padding: 10px 16px; background: #e6e5e0; border: none; border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer;">Nhắn cho Admin</button>
+                    <!-- Điều hướng nhanh -->
+                    <a href="/saleReport" class="mr-card link-card mr-bento-4">
+                        <div class="link-card-ico">📊</div>
+                        <div>
+                            <h4>Báo Cáo Sale 1</h4>
+                            <p>Tổng hợp mess, đơn chốt và tỉ lệ hủy theo từng tư vấn viên.</p>
+                        </div>
+                    </a>
+                    <a href="/stats" class="mr-card link-card mr-bento-4">
+                        <div class="link-card-ico" style="background: var(--mr-success-bg);">📈</div>
+                        <div>
+                            <h4>Thống Kê Lịch Hẹn</h4>
+                            <p>Theo dõi KPI lịch hẹn của CSKH, trạng thái muộn/quá hạn.</p>
+                        </div>
+                    </a>
+
+                    <!-- Hỗ trợ nội bộ -->
+                    <div class="mr-card mr-bento-4">
+                        <h3 class="mr-card-title">Hỗ trợ nội bộ</h3>
+                        <p style="font-size: 12px; color: var(--mr-muted); margin: 0 0 14px;">
+                            Nếu gặp lỗi về token hoặc kết nối Bitable, vui lòng liên hệ Admin qua kênh Lark.
+                        </p>
+                        <button class="mr-btn mr-btn--ghost" style="width: 100%;">Nhắn cho Admin</button>
                     </div>
                 </div>
+
+                <!-- ========== FEATURE MAP SECTION ========== -->
+                <div class="mr-card">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 8px;">
+                        <div>
+                            <h2 style="font-size: 17px; font-weight: 600; margin: 0;">🗺️ Chức Năng &amp; Đường Dẫn Hệ Thống</h2>
+                            <p style="font-size: 13px; color: var(--mr-muted); margin: 4px 0 0;">Toàn bộ các tính năng và API endpoints trong dự án MeraGroup v2</p>
+                        </div>
+                        <span class="mr-badge mr-badge--neutral">v2.0</span>
+                    </div>
+
+                    <!-- GROUP 1: MENU CHÍNH -->
+                    <div class="feature-group">
+                        <div class="feature-group-title">📌 Menu Chính - Trang Giao Diện</div>
+                        <div class="feature-grid">
+                            <div class="feature-card">
+                                <a href="/" class="card-link"></a>
+                                <button class="copy-btn" onclick="copyPath(event,'/')">copy</button>
+                                <div class="card-content">
+                                    <div class="feature-card-head">
+                                        <span style="font-size: 20px;">🏠</span>
+                                        <span class="name">Dashboard / Trang Chủ</span>
+                                        <span class="route-badge badge-page">PAGE</span>
+                                    </div>
+                                    <div class="path-text">GET /</div>
+                                    <p class="feature-card-desc">Trang chính. Nếu chưa đăng nhập → login Lark OAuth. Nếu đã đăng nhập → dashboard tổng quan.</p>
+                                </div>
+                            </div>
+
+                            <div class="feature-card">
+                                <a href="/saleReport" class="card-link"></a>
+                                <button class="copy-btn" onclick="copyPath(event,'/saleReport')">copy</button>
+                                <div class="card-content">
+                                    <div class="feature-card-head">
+                                        <span style="font-size: 20px;">📊</span>
+                                        <span class="name">Báo Cáo Sale 1</span>
+                                        <span class="route-badge badge-page">PAGE</span>
+                                    </div>
+                                    <div class="path-text">GET /saleReport</div>
+                                    <p class="feature-card-desc">Thống kê tin nhắn, đơn chốt, tỉ lệ hủy của từng tư vấn viên. Hỗ trợ export Excel.</p>
+                                </div>
+                            </div>
+
+                            <div class="feature-card">
+                                <a href="/stats" class="card-link"></a>
+                                <button class="copy-btn" onclick="copyPath(event,'/stats')">copy</button>
+                                <div class="card-content">
+                                    <div class="feature-card-head">
+                                        <span style="font-size: 20px;">📈</span>
+                                        <span class="name">Thống Kê Lịch Hẹn</span>
+                                        <span class="route-badge badge-page">PAGE</span>
+                                    </div>
+                                    <div class="path-text">GET /stats</div>
+                                    <p class="feature-card-desc">KPI lịch hẹn CSKH: tổng khách, tổng lịch, hoàn thành, muộn/quá hạn.</p>
+                                </div>
+                            </div>
+
+                            <div class="feature-card">
+                                <a href="/logs" class="card-link"></a>
+                                <button class="copy-btn" onclick="copyPath(event,'/logs')">copy</button>
+                                <div class="card-content">
+                                    <div class="feature-card-head">
+                                        <span style="font-size: 20px;">📝</span>
+                                        <span class="name">Logs Realtime</span>
+                                        <span class="route-badge badge-page">PAGE</span>
+                                    </div>
+                                    <div class="path-text">GET /logs</div>
+                                    <p class="feature-card-desc">Xem log hệ thống realtime - webhook events, sync jobs, token refresh.</p>
+                                </div>
+                            </div>
+
+                            <div class="feature-card">
+                                <a href="/report" class="card-link"></a>
+                                <button class="copy-btn" onclick="copyPath(event,'/report')">copy</button>
+                                <div class="card-content">
+                                    <div class="feature-card-head">
+                                        <span style="font-size: 20px;">📋</span>
+                                        <span class="name">Report (Legacy)</span>
+                                        <span class="route-badge badge-page">PAGE</span>
+                                    </div>
+                                    <div class="path-text">GET /report</div>
+                                    <p class="feature-card-desc">Báo cáo cũ lấy từ Lark Bitable - tóm tắt Sales Summary theo bảng.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- GROUP 2: TRA CỨU & POS -->
+                    <div class="feature-group">
+                        <div class="feature-group-title">🔎 Tra Cứu &amp; POS</div>
+                        <div class="feature-grid">
+                            <div class="feature-card">
+                                <a href="/search-info" class="card-link"></a>
+                                <button class="copy-btn" onclick="copyPath(event,'/search-info')">copy</button>
+                                <div class="card-content">
+                                    <div class="feature-card-head">
+                                        <span style="font-size: 20px;">🔎</span>
+                                        <span class="name">Tìm Khách Hàng 360°</span>
+                                        <span class="route-badge badge-page">PAGE</span>
+                                    </div>
+                                    <div class="path-text">GET /search-info</div>
+                                    <p class="feature-card-desc">Tra cứu khách hàng theo SĐT từ Pancake POS + Lark Bitable.</p>
+                                </div>
+                            </div>
+
+                            <div class="feature-card">
+                                <a href="/searchInfo" class="card-link"></a>
+                                <button class="copy-btn" onclick="copyPath(event,'/searchInfo')">copy</button>
+                                <div class="card-content">
+                                    <div class="feature-card-head">
+                                        <span style="font-size: 20px;">🕵️</span>
+                                        <span class="name">Tra Cứu Của SALE</span>
+                                        <span class="route-badge badge-page">PAGE</span>
+                                    </div>
+                                    <div class="path-text">GET /searchInfo</div>
+                                    <p class="feature-card-desc">Giao diện tra cứu dành riêng cho Sale - tìm thông tin khách từ Bitable.</p>
+                                </div>
+                            </div>
+
+                            <div class="feature-card">
+                                <a href="/pancake-orders" class="card-link"></a>
+                                <button class="copy-btn" onclick="copyPath(event,'/pancake-orders')">copy</button>
+                                <div class="card-content">
+                                    <div class="feature-card-head">
+                                        <span style="font-size: 20px;">📦</span>
+                                        <span class="name">Danh Sách Đơn POS</span>
+                                        <span class="route-badge badge-page">PAGE</span>
+                                    </div>
+                                    <div class="path-text">GET /pancake-orders</div>
+                                    <p class="feature-card-desc">Xem danh sách đơn hàng từ Pancake POS đã đồng bộ vào DB nội bộ.</p>
+                                </div>
+                            </div>
+
+                            <div class="feature-card">
+                                <a href="/dongbo" class="card-link"></a>
+                                <button class="copy-btn" onclick="copyPath(event,'/dongbo')">copy</button>
+                                <div class="card-content">
+                                    <div class="feature-card-head">
+                                        <span style="font-size: 20px;">🔄</span>
+                                        <span class="name">Đồng Bộ Dữ Liệu</span>
+                                        <span class="route-badge badge-page">PAGE</span>
+                                    </div>
+                                    <div class="path-text">GET /dongbo</div>
+                                    <p class="feature-card-desc">Trang quản lý đồng bộ: đơn hàng, sản phẩm, khách hàng, nhân viên từ POS/Lark.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- GROUP 3: HỆ THỐNG & CẤU HÌNH -->
+                    <div class="feature-group">
+                        <div class="feature-group-title">⚙️ Hệ Thống &amp; Cấu Hình</div>
+                        <div class="feature-grid">
+                            <div class="feature-card">
+                                <a href="/config" class="card-link"></a>
+                                <button class="copy-btn" onclick="copyPath(event,'/config')">copy</button>
+                                <div class="card-content">
+                                    <div class="feature-card-head">
+                                        <span style="font-size: 20px;">⚙️</span>
+                                        <span class="name">Cấu Hình Webhook</span>
+                                        <span class="route-badge badge-page">PAGE</span>
+                                    </div>
+                                    <div class="path-text">GET /config</div>
+                                    <p class="feature-card-desc">Quản lý webhook status 1 &amp; 6, xem danh sách Base/Table CSKH, token Lark.</p>
+                                </div>
+                            </div>
+
+                            <div class="feature-card">
+                                <a href="/lark/token" class="card-link"></a>
+                                <button class="copy-btn" onclick="copyPath(event,'/lark/token')">copy</button>
+                                <div class="card-content">
+                                    <div class="feature-card-head">
+                                        <span style="font-size: 20px;">🔑</span>
+                                        <span class="name">Token &amp; Base Info</span>
+                                        <span class="route-badge badge-page">PAGE</span>
+                                    </div>
+                                    <div class="path-text">GET /lark/token</div>
+                                    <p class="feature-card-desc">Xem user access token, refresh token, app token, danh sách Bitable tables đã kết nối.</p>
+                                </div>
+                            </div>
+
+                            <div class="feature-card">
+                                <a href="/admin" class="card-link"></a>
+                                <button class="copy-btn" onclick="copyPath(event,'/admin')">copy</button>
+                                <div class="card-content">
+                                    <div class="feature-card-head">
+                                        <span style="font-size: 20px;">🛡️</span>
+                                        <span class="name">Admin Dashboard</span>
+                                        <span class="route-badge badge-page">PAGE</span>
+                                    </div>
+                                    <div class="path-text">GET /admin</div>
+                                    <p class="feature-card-desc">Trang quản trị - tương tự trang chủ nhưng dành cho admin, kiểm tra token.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- GROUP 4: API ENDPOINTS -->
+                    <div class="feature-group">
+                        <div class="feature-group-title">🔌 API Endpoints (JSON)</div>
+                        <div class="feature-grid">
+                            <div class="feature-card">
+                                <button class="copy-btn" onclick="copyPath(event,'/api/search-info?phone=0900000000')">copy</button>
+                                <div class="card-content">
+                                    <div class="feature-card-head">
+                                        <span style="font-size: 20px;">📡</span>
+                                        <span class="name">Search Info 360°</span>
+                                        <span class="route-badge badge-api">API</span>
+                                        <span class="route-badge badge-get">GET</span>
+                                    </div>
+                                    <div class="path-text">GET /api/search-info?phone=...</div>
+                                    <p class="feature-card-desc">Tìm kiếm thông tin 360° khách hàng qua SĐT: Pancake POS + Lark Bitable.</p>
+                                </div>
+                            </div>
+
+                            <div class="feature-card">
+                                <button class="copy-btn" onclick="copyPath(event,'/api/saleReport/data?range=CurrentMonth')">copy</button>
+                                <div class="card-content">
+                                    <div class="feature-card-head">
+                                        <span style="font-size: 20px;">📊</span>
+                                        <span class="name">Sale Report Data</span>
+                                        <span class="route-badge badge-api">API</span>
+                                        <span class="route-badge badge-get">GET</span>
+                                    </div>
+                                    <div class="path-text">GET /api/saleReport/data?range=</div>
+                                    <p class="feature-card-desc">Trả JSON thống kê sale (CurrentMonth / LastMonth). Có cache session + disk.</p>
+                                </div>
+                            </div>
+
+                            <div class="feature-card">
+                                <button class="copy-btn" onclick="copyPath(event,'/api/stats/data?customerMonth=CurrentMonth')">copy</button>
+                                <div class="card-content">
+                                    <div class="feature-card-head">
+                                        <span style="font-size: 20px;">📈</span>
+                                        <span class="name">Stats Data</span>
+                                        <span class="route-badge badge-api">API</span>
+                                        <span class="route-badge badge-get">GET</span>
+                                    </div>
+                                    <div class="path-text">GET /api/stats/data?customerMonth=</div>
+                                    <p class="feature-card-desc">Dữ liệu thống kê lịch hẹn nhân viên: totalKhach, totalLich, totalHoanThanh.</p>
+                                </div>
+                            </div>
+
+                            <div class="feature-card">
+                                <button class="copy-btn" onclick="copyPath(event,'/api/orders/sync')">copy</button>
+                                <div class="card-content">
+                                    <div class="feature-card-head">
+                                        <span style="font-size: 20px;">🔄</span>
+                                        <span class="name">Sync POS Orders</span>
+                                        <span class="route-badge badge-api">API</span>
+                                        <span class="route-badge badge-post">POST</span>
+                                    </div>
+                                    <div class="path-text">POST /api/orders/sync</div>
+                                    <p class="feature-card-desc">Đồng bộ đơn hàng từ Pancake POS vào DB. Body: startDate, endDate, status, pageSize.</p>
+                                </div>
+                            </div>
+
+                            <div class="feature-card">
+                                <button class="copy-btn" onclick="copyPath(event,'/api/orders/preview')">copy</button>
+                                <div class="card-content">
+                                    <div class="feature-card-head">
+                                        <span style="font-size: 20px;">👁️</span>
+                                        <span class="name">Preview POS Orders</span>
+                                        <span class="route-badge badge-api">API</span>
+                                        <span class="route-badge badge-post">POST</span>
+                                    </div>
+                                    <div class="path-text">POST /api/orders/preview</div>
+                                    <p class="feature-card-desc">Xem trước danh sách đơn từ Pancake API mà không lưu vào DB.</p>
+                                </div>
+                            </div>
+
+                            <div class="feature-card">
+                                <button class="copy-btn" onclick="copyPath(event,'/api/orders/sync/health')">copy</button>
+                                <div class="card-content">
+                                    <div class="feature-card-head">
+                                        <span style="font-size: 20px;">❤️</span>
+                                        <span class="name">Health Check</span>
+                                        <span class="route-badge badge-api">API</span>
+                                        <span class="route-badge badge-get">GET</span>
+                                    </div>
+                                    <div class="path-text">GET /api/orders/sync/health</div>
+                                    <p class="feature-card-desc">Kiểm tra OrderSyncController và các service bean có hoạt động không.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- ========== END FEATURE MAP ========== -->
             </div>
-        </div>
 
-    </main>
+        </main>
 
-    <footer style="position: fixed; bottom: 0; left: 280px; right: 0; padding: 16px 48px; background: #f7f7f4; border-top: 1px solid #e6e5e0; text-align: center; font-size: 12px; color: #807d72;">
-        MeraGroup Dashboard v2.0
-    </footer>
+        <footer class="mr-shell-footer">
+            MeraGroup Dashboard v2.0
+        </footer>
+    </div>
+</div>
 
-    <script>
-        function toggleSidebar() {
-            const sidebar = document.querySelector('.sidebar');
-            const overlay = document.getElementById('sidebarOverlay');
-            sidebar.classList.toggle('open');
-            overlay.classList.toggle('show');
-        }
-    </script>
+<th:block th:replace="~{fragments/mera-layout :: shellScript}"></th:block>
+<script>
+    function copyPath(event, path) {
+        event.preventDefault();
+        event.stopPropagation();
+        const fullPath = window.location.origin + path;
+        navigator.clipboard.writeText(fullPath).then(() => {
+            const btn = event.target;
+            const orig = btn.textContent;
+            btn.textContent = '✓ ok';
+            btn.style.background = 'rgba(31, 138, 101, 0.15)';
+            btn.style.color = '#1f8a65';
+            setTimeout(() => {
+                btn.textContent = orig;
+                btn.style.background = '';
+                btn.style.color = '';
+            }, 1500);
+        });
+    }
+</script>
 
 </body>
 </html>

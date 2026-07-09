@@ -5,32 +5,20 @@
     <link rel="icon" type="image/jpeg" href="/meraicon.ico">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Đồng Bộ Dữ Liệu - MeraGroup</title>
+    <script th:replace="~{fragments/mera-layout :: themeInit}"></script>
+    <!-- Giữ Tailwind CDN: JS của trang render động các class Tailwind (hidden, flex, space-y, text-*-400...) -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/mera-ui.css">
     <style>
-        body {
-            font-family: 'Plus Jakarta Sans', sans-serif;
-            background: #0d0d18;
-            color: #e9e6f7;
-        }
-        .glass-card {
-            background: rgba(30, 30, 45, 0.6);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            border-radius: 20px;
-            transition: all 0.3s ease;
-        }
-        .glass-card:hover {
-            border-color: rgba(99, 102, 241, 0.4);
-            transform: translateY(-5px);
-            box-shadow: 0 10px 30px rgba(99, 102, 241, 0.1);
-        }
         .sync-card {
-            background: rgba(30, 30, 45, 0.5);
-            border: 1px solid rgba(255,255,255,0.08);
-            border-radius: 16px;
+            background: var(--mr-surface);
+            border: 1px solid var(--mr-border);
+            border-radius: var(--mr-radius-card);
             padding: 24px;
-            transition: all 0.3s ease;
+            transition: border-color 0.15s ease, box-shadow 0.15s ease;
             position: relative;
             overflow: hidden;
         }
@@ -41,7 +29,7 @@
             left: 0;
             right: 0;
             height: 3px;
-            border-radius: 16px 16px 0 0;
+            border-radius: var(--mr-radius-card) var(--mr-radius-card) 0 0;
         }
         .sync-card.orders::before { background: linear-gradient(90deg, #4f90d9, #6366f1); }
         .sync-card.products::before { background: linear-gradient(90deg, #10b981, #059669); }
@@ -52,57 +40,20 @@
         .sync-card.history::before { background: linear-gradient(90deg, #ec4899, #db2777); }
 
         .sync-card:hover {
-            border-color: rgba(99,102,241,0.3);
-            transform: translateY(-3px);
-            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+            border-color: #c9d7fb;
+            box-shadow: var(--mr-shadow-md);
         }
-        .btn-sync {
-            background: linear-gradient(135deg, #6366F1 0%, #8b5cf6 100%);
-            transition: all 0.2s ease;
-            padding: 10px 20px;
-            border-radius: 10px;
-            font-weight: 600;
-            color: white;
-            border: none;
-            cursor: pointer;
-        }
-        .btn-sync:hover:not(:disabled) {
-            transform: scale(1.02);
-            box-shadow: 0 0 20px rgba(99, 102, 241, 0.4);
-        }
-        .btn-sync:disabled {
+        [data-theme="dark"] .sync-card:hover { border-color: #2b3c66; }
+
+        .mr-btn:disabled {
             opacity: 0.6;
             cursor: not-allowed;
-        }
-        .btn-preview {
-            background: rgba(255,255,255,0.1);
-            transition: all 0.2s ease;
-            padding: 10px 20px;
-            border-radius: 10px;
-            font-weight: 600;
-            color: #a3a6ff;
-            border: 1px solid rgba(99,102,241,0.3);
-            cursor: pointer;
-        }
-        .btn-preview:hover:not(:disabled) {
-            background: rgba(99,102,241,0.2);
-        }
-        .result-box {
-            background: #1a1a2e;
-            border-radius: 12px;
-            padding: 16px;
-            font-family: 'Consolas', monospace;
-            font-size: 12px;
-            max-height: 300px;
-            overflow-y: auto;
-            white-space: pre-wrap;
-            margin-top: 16px;
         }
         .loading::after {
             content: '';
             display: inline-block;
             animation: spin 1s linear infinite;
-            border: 2px solid #fff;
+            border: 2px solid currentColor;
             border-top-color: transparent;
             border-radius: 50%;
             width: 14px;
@@ -111,104 +62,83 @@
             margin-left: 8px;
         }
         @keyframes spin { to { transform: rotate(360deg); } }
-        .status-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
-        }
-        .status-pending { background: rgba(251,191,36,0.2); color: #fbbf24; }
-        .status-success { background: rgba(34,197,94,0.2); color: #4ade80; }
-        .status-error { background: rgba(239,68,68,0.2); color: #f87171; }
         .error-box {
-            background: rgba(239,68,68,0.1);
-            border: 1px solid rgba(239,68,68,0.3);
-            border-radius: 8px;
+            background: var(--mr-danger-bg);
+            border: 1px solid #fca5a5;
+            border-radius: var(--mr-radius-control);
             padding: 12px 16px;
-            color: #f87171;
+            color: var(--mr-danger);
             font-size: 13px;
             margin-top: 12px;
             display: none;
         }
+        [data-theme="dark"] .error-box { border-color: #6e2727; }
         .error-box.visible { display: block; }
-        input[type="date"], select {
-            padding: 8px 12px;
-            border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 8px;
-            background: rgba(255,255,255,0.05);
-            color: #e9e6f7;
-            font-size: 14px;
-        }
-        input[type="date"]:focus, select:focus {
-            outline: none;
-            border-color: #6366f1;
-        }
         .stat-item {
             display: flex;
             justify-content: space-between;
             padding: 6px 0;
-            border-bottom: 1px solid rgba(255,255,255,0.05);
+            border-bottom: 1px solid var(--mr-border-soft);
         }
         .stat-item:last-child { border-bottom: none; }
-        .stat-label { color: #888; font-size: 13px; }
-        .stat-value { font-weight: 600; color: #e9e6f7; }
-        
+        .stat-label { color: var(--mr-muted); font-size: 13px; }
+        .stat-value { font-weight: 600; color: var(--mr-text); }
+
+        /* Ghi đè màu cho các class Tailwind được JS render động (giữ nguyên JS) */
+        .mera-page .text-gray-400 { color: var(--mr-muted); }
+        .mera-page .text-gray-500 { color: var(--mr-muted); }
+        .mera-page .text-green-400 { color: #16a34a; }
+        .mera-page .text-blue-400 { color: var(--mr-accent); }
+        .mera-page .text-yellow-400 { color: #b45309; }
+        .mera-page .text-orange-400 { color: #c2410c; }
+        .mera-page .text-purple-400 { color: #7c3aed; }
+        .mera-page .text-pink-400 { color: #db2777; }
+        .mera-page .text-red-400 { color: #dc2626; }
+        .mera-page .text-cyan-400 { color: #0e7490; }
+        [data-theme="dark"] .mera-page .text-green-400 { color: #4ade80; }
+        [data-theme="dark"] .mera-page .text-blue-400 { color: #60a5fa; }
+        [data-theme="dark"] .mera-page .text-yellow-400 { color: #facc15; }
+        [data-theme="dark"] .mera-page .text-orange-400 { color: #fb923c; }
+        [data-theme="dark"] .mera-page .text-purple-400 { color: #c084fc; }
+        [data-theme="dark"] .mera-page .text-pink-400 { color: #f472b6; }
+        [data-theme="dark"] .mera-page .text-red-400 { color: #f87171; }
+        [data-theme="dark"] .mera-page .text-cyan-400 { color: #22d3ee; }
+        .mera-page #activity-log > div { background: var(--mr-surface-2); border: 1px solid var(--mr-border-soft); }
+
+        /* Ghi đè nền Tailwind hardcode sáng -> token để dark mode hoạt động */
+        .mera-page .bg-gray-50 { background-color: var(--mr-surface-2); }
+        .mera-page .border-gray-200 { border-color: var(--mr-border); }
+        .mera-page .bg-gray-300 { background-color: var(--mr-border); }
+
         /* Responsive */
-        @media (max-width: 1024px) {
-          header.px-8 {
-            padding-left: 16px;
-            padding-right: 16px;
-          }
-        }
-        
         @media (max-width: 768px) {
-          main.p-8 {
-            padding: 16px !important;
-          }
-          
-          .grid {
+          .mr-shell-content .grid {
             grid-template-columns: 1fr !important;
-          }
-          
-          .header-content {
-            flex-direction: column;
-            gap: 12px;
-            align-items: flex-start;
           }
         }
     </style>
 </head>
-<body class="min-h-screen">
+<body class="mera-page">
+<div class="mr-shell">
 
-    <!-- Header -->
-    <header class="bg-[#13131F] border-b border-[#242434] px-8 py-4">
-        <div class="flex items-center justify-between">
-            <div class="flex items-center gap-4">
-                <a href="/" class="text-gray-400 hover:text-white transition">🏠 Dashboard</a>
-                <span class="text-gray-600">/</span>
-                <span class="text-white font-semibold">Đồng Bộ Dữ Liệu</span>
-            </div>
-            <div class="flex items-center gap-4">
-                <span class="text-sm text-gray-400">MeraGroup v2.0</span>
-            </div>
-        </div>
-    </header>
+    <th:block th:replace="~{fragments/mera-layout :: sidebar('dongbo')}"></th:block>
 
-    <!-- Main Content -->
-    <main class="p-8 max-w-7xl mx-auto">
-        
-        <!-- Page Title -->
-        <div class="mb-8">
-            <h1 class="text-3xl font-extrabold mb-2">🔄 Đồng Bộ Dữ Liệu</h1>
-            <p class="text-gray-400">Đồng bộ dữ liệu từ Pancake POS vào database theo thời gian tùy chọn</p>
-        </div>
+    <div class="mr-shell-main">
+        <th:block th:replace="~{fragments/mera-layout :: topbar('Đồng Bộ Dữ Liệu')}"></th:block>
+
+        <main class="mr-shell-content">
+
+            <!-- Page Title -->
+            <div class="mr-page-header">
+                <div>
+                    <h1 class="mr-page-title"><span>🔄</span> Đồng Bộ Dữ Liệu</h1>
+                    <p class="mr-page-subtitle">Đồng bộ dữ liệu từ Pancake POS vào database theo thời gian tùy chọn</p>
+                </div>
+            </div>
 
         <!-- Sync Options Grid -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-            
+
             <!-- Orders Sync -->
             <div class="sync-card orders">
                 <div class="flex items-center gap-3 mb-4">
@@ -218,29 +148,29 @@
                         <p class="text-xs text-gray-400">Pancake Orders</p>
                     </div>
                 </div>
-                
+
                 <div class="space-y-3 mb-4">
-                    <div>
-                        <label class="text-xs text-gray-400 mb-1 block">updateStatus</label>
-                        <select id="orders-updateStatus" class="w-full">
+                    <div class="mr-field">
+                        <label>updateStatus</label>
+                        <select id="orders-updateStatus" class="mr-select w-full">
                             <option value="inserted_at">inserted_at</option>
                             <option value="updated_at">updated_at</option>
                         </select>
                     </div>
                     <div class="grid grid-cols-2 gap-2">
-                        <div>
-                            <label class="text-xs text-gray-400 mb-1 block">Start Date</label>
-                            <input type="date" id="orders-startDate" class="w-full" value="2026-05-01">
+                        <div class="mr-field">
+                            <label>Start Date</label>
+                            <input type="date" id="orders-startDate" class="mr-input w-full" value="2026-05-01">
                         </div>
-                        <div>
-                            <label class="text-xs text-gray-400 mb-1 block">End Date</label>
-                            <input type="date" id="orders-endDate" class="w-full" value="2026-05-05">
+                        <div class="mr-field">
+                            <label>End Date</label>
+                            <input type="date" id="orders-endDate" class="mr-input w-full" value="2026-05-05">
                         </div>
                     </div>
                     <div class="grid grid-cols-2 gap-2">
-                        <div>
-                            <label class="text-xs text-gray-400 mb-1 block">Status</label>
-                            <select id="orders-status" class="w-full">
+                        <div class="mr-field">
+                            <label>Status</label>
+                            <select id="orders-status" class="mr-select w-full">
                                 <option value="">Tất cả</option>
                                 <option value="0">0 - Mới tạo</option>
                                 <option value="1">1 - Chờ xác nhận</option>
@@ -252,24 +182,24 @@
                                 <option value="7">7 - Giao thất bại</option>
                             </select>
                         </div>
-                        <div>
-                            <label class="text-xs text-gray-400 mb-1 block">Page Size</label>
-                            <input type="number" id="orders-pageSize" class="w-full" value="200" min="1" max="500">
+                        <div class="mr-field">
+                            <label>Page Size</label>
+                            <input type="number" id="orders-pageSize" class="mr-input w-full" value="200" min="1" max="500">
                         </div>
                     </div>
                 </div>
 
                 <div class="flex gap-2">
-                    <button class="btn-preview flex-1" onclick="previewOrders()">👁️ Preview</button>
-                    <button class="btn-sync flex-1" id="btn-orders-sync" onclick="syncOrders()">🔄 Sync</button>
+                    <button class="mr-btn mr-btn--ghost flex-1" onclick="previewOrders()">👁️ Preview</button>
+                    <button class="mr-btn mr-btn--primary flex-1" id="btn-orders-sync" onclick="syncOrders()">🔄 Sync</button>
                 </div>
 
                 <div class="error-box" id="orders-error"></div>
-                
+
                 <div id="orders-result" class="hidden">
                     <div class="mt-4 p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
                         <div class="flex items-center gap-2 mb-2">
-                            <span class="status-badge status-success">✓ Thành công</span>
+                            <span class="mr-badge mr-badge--success">✓ Thành công</span>
                         </div>
                         <div class="space-y-1 text-sm" id="orders-stats"></div>
                     </div>
@@ -285,31 +215,31 @@
                         <p class="text-xs text-gray-400">Pancake Products</p>
                     </div>
                 </div>
-                
+
                 <div class="space-y-3 mb-4">
                     <div class="grid grid-cols-2 gap-2">
-                        <div>
-                            <label class="text-xs text-gray-400 mb-1 block">Start Date</label>
-                            <input type="date" id="products-startDate" class="w-full" value="2026-05-01">
+                        <div class="mr-field">
+                            <label>Start Date</label>
+                            <input type="date" id="products-startDate" class="mr-input w-full" value="2026-05-01">
                         </div>
-                        <div>
-                            <label class="text-xs text-gray-400 mb-1 block">End Date</label>
-                            <input type="date" id="products-endDate" class="w-full" value="2026-05-05">
+                        <div class="mr-field">
+                            <label>End Date</label>
+                            <input type="date" id="products-endDate" class="mr-input w-full" value="2026-05-05">
                         </div>
                     </div>
                 </div>
 
                 <div class="flex gap-2">
-                    <button class="btn-preview flex-1" onclick="previewProducts()">👁️ Preview</button>
-                    <button class="btn-sync flex-1" id="btn-products-sync" onclick="syncProducts()">🔄 Sync</button>
+                    <button class="mr-btn mr-btn--ghost flex-1" onclick="previewProducts()">👁️ Preview</button>
+                    <button class="mr-btn mr-btn--primary flex-1" id="btn-products-sync" onclick="syncProducts()">🔄 Sync</button>
                 </div>
 
                 <div class="error-box" id="products-error"></div>
-                
+
                 <div id="products-result" class="hidden">
                     <div class="mt-4 p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
                         <div class="flex items-center gap-2 mb-2">
-                            <span class="status-badge status-success">✓ Thành công</span>
+                            <span class="mr-badge mr-badge--success">✓ Thành công</span>
                         </div>
                         <div class="space-y-1 text-sm" id="products-stats"></div>
                     </div>
@@ -325,31 +255,31 @@
                         <p class="text-xs text-gray-400">Pancake Customers</p>
                     </div>
                 </div>
-                
+
                 <div class="space-y-3 mb-4">
                     <div class="grid grid-cols-2 gap-2">
-                        <div>
-                            <label class="text-xs text-gray-400 mb-1 block">Start Date</label>
-                            <input type="date" id="customers-startDate" class="w-full" value="2026-05-01">
+                        <div class="mr-field">
+                            <label>Start Date</label>
+                            <input type="date" id="customers-startDate" class="mr-input w-full" value="2026-05-01">
                         </div>
-                        <div>
-                            <label class="text-xs text-gray-400 mb-1 block">End Date</label>
-                            <input type="date" id="customers-endDate" class="w-full" value="2026-05-05">
+                        <div class="mr-field">
+                            <label>End Date</label>
+                            <input type="date" id="customers-endDate" class="mr-input w-full" value="2026-05-05">
                         </div>
                     </div>
                 </div>
 
                 <div class="flex gap-2">
-                    <button class="btn-preview flex-1" onclick="previewCustomers()">👁️ Preview</button>
-                    <button class="btn-sync flex-1" id="btn-customers-sync" onclick="syncCustomers()">🔄 Sync</button>
+                    <button class="mr-btn mr-btn--ghost flex-1" onclick="previewCustomers()">👁️ Preview</button>
+                    <button class="mr-btn mr-btn--primary flex-1" id="btn-customers-sync" onclick="syncCustomers()">🔄 Sync</button>
                 </div>
 
                 <div class="error-box" id="customers-error"></div>
-                
+
                 <div id="customers-result" class="hidden">
                     <div class="mt-4 p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
                         <div class="flex items-center gap-2 mb-2">
-                            <span class="status-badge status-success">✓ Thành công</span>
+                            <span class="mr-badge mr-badge--success">✓ Thành công</span>
                         </div>
                         <div class="space-y-1 text-sm" id="customers-stats"></div>
                     </div>
@@ -365,21 +295,21 @@
                         <p class="text-xs text-gray-400">POS Pancake Users</p>
                     </div>
                 </div>
-                
+
                 <div class="space-y-3 mb-4">
                     <p class="text-sm text-gray-400 mb-2">Đồng bộ danh sách nhân viên từ POS Pancake: pos_users, pos_shop_users, phòng ban, nhóm sale.</p>
                 </div>
 
                 <div class="flex gap-2">
-                    <button class="btn-sync flex-1" id="btn-employees-sync" onclick="syncEmployees()">🔄 Sync Nhân Viên</button>
+                    <button class="mr-btn mr-btn--primary flex-1" id="btn-employees-sync" onclick="syncEmployees()">🔄 Sync Nhân Viên</button>
                 </div>
 
                 <div class="error-box" id="employees-error"></div>
-                
+
                 <div id="employees-result" class="hidden">
                     <div class="mt-4 p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
                         <div class="flex items-center gap-2 mb-2">
-                            <span class="status-badge status-success">✓ Thành công</span>
+                            <span class="mr-badge mr-badge--success">✓ Thành công</span>
                         </div>
                         <div class="space-y-1 text-sm" id="employees-stats"></div>
                     </div>
@@ -401,7 +331,7 @@
                 </div>
 
                 <div class="flex gap-2">
-                    <button class="btn-sync flex-1" id="btn-lark-dept-sync" onclick="syncLarkDepartments()">🔄 Sync Phòng Ban</button>
+                    <button class="mr-btn mr-btn--primary flex-1" id="btn-lark-dept-sync" onclick="syncLarkDepartments()">🔄 Sync Phòng Ban</button>
                 </div>
 
                 <div class="error-box" id="lark-dept-error"></div>
@@ -409,7 +339,7 @@
                 <div id="lark-dept-result" class="hidden">
                     <div class="mt-4 p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
                         <div class="flex items-center gap-2 mb-2">
-                            <span class="status-badge status-success">✓ Thành công</span>
+                            <span class="mr-badge mr-badge--success">✓ Thành công</span>
                         </div>
                         <div class="space-y-1 text-sm" id="lark-dept-stats"></div>
                     </div>
@@ -431,8 +361,8 @@
                 </div>
 
                 <div class="flex gap-2">
-                    <button class="btn-preview flex-1" onclick="syncLarkFull()">🔄 Sync Full</button>
-                    <button class="btn-sync flex-1" id="btn-lark-emp-sync" onclick="syncLarkEmployees()">🔄 Sync Nhân Viên</button>
+                    <button class="mr-btn mr-btn--ghost flex-1" onclick="syncLarkFull()">🔄 Sync Full</button>
+                    <button class="mr-btn mr-btn--primary flex-1" id="btn-lark-emp-sync" onclick="syncLarkEmployees()">🔄 Sync Nhân Viên</button>
                 </div>
 
                 <div class="error-box" id="lark-emp-error"></div>
@@ -440,7 +370,7 @@
                 <div id="lark-emp-result" class="hidden">
                     <div class="mt-4 p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
                         <div class="flex items-center gap-2 mb-2">
-                            <span class="status-badge status-success">✓ Thành công</span>
+                            <span class="mr-badge mr-badge--success">✓ Thành công</span>
                         </div>
                         <div class="space-y-1 text-sm" id="lark-emp-stats"></div>
                     </div>
@@ -458,33 +388,33 @@
                 </div>
 
                 <!-- Toggle Scheduler -->
-                <div class="flex items-center justify-between mb-4 p-3 bg-gray-800/40 rounded-lg border border-gray-700">
+                <div class="flex items-center justify-between mb-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
                     <div>
                         <div class="text-sm font-semibold">Tự động đồng bộ</div>
                         <div class="text-xs text-gray-400" id="attendance-toggle-status">Đang tải...</div>
                     </div>
                     <label class="relative inline-flex items-center cursor-pointer">
                         <input type="checkbox" id="toggle-attendance" class="sr-only peer" onchange="toggleFeature('attendance', this.checked)">
-                        <div class="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-500"></div>
+                        <div class="w-11 h-6 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#1456f0]"></div>
                     </label>
                 </div>
 
                 <div class="space-y-3 mb-4">
                     <p class="text-sm text-gray-400 mb-2">Đồng bộ dữ liệu chấm công từ Lark Suite.</p>
                     <div class="grid grid-cols-2 gap-2">
-                        <div>
-                            <label class="text-xs text-gray-400 mb-1 block">Start Date</label>
-                            <input type="date" id="attendance-startDate" class="w-full" value="2026-06-01">
+                        <div class="mr-field">
+                            <label>Start Date</label>
+                            <input type="date" id="attendance-startDate" class="mr-input w-full" value="2026-06-01">
                         </div>
-                        <div>
-                            <label class="text-xs text-gray-400 mb-1 block">End Date</label>
-                            <input type="date" id="attendance-endDate" class="w-full" value="2026-06-29">
+                        <div class="mr-field">
+                            <label>End Date</label>
+                            <input type="date" id="attendance-endDate" class="mr-input w-full" value="2026-06-29">
                         </div>
                     </div>
                 </div>
 
                 <div class="flex gap-2">
-                    <button class="btn-sync flex-1" id="btn-attendance-sync" onclick="syncLarkAttendance()">🔄 Sync Điểm Danh</button>
+                    <button class="mr-btn mr-btn--primary flex-1" id="btn-attendance-sync" onclick="syncLarkAttendance()">🔄 Sync Điểm Danh</button>
                 </div>
 
                 <div class="error-box" id="attendance-error"></div>
@@ -492,7 +422,7 @@
                 <div id="attendance-result" class="hidden">
                     <div class="mt-4 p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
                         <div class="flex items-center gap-2 mb-2">
-                            <span class="status-badge status-success">✓ Thành công</span>
+                            <span class="mr-badge mr-badge--success">✓ Thành công</span>
                         </div>
                         <div class="space-y-1 text-sm" id="attendance-stats"></div>
                     </div>
@@ -511,14 +441,14 @@
 
                 <p class="text-sm text-gray-400 mb-4">Tự động phân chia đơn hàng cho nhân viên CSKH theo ca điểm danh.</p>
 
-                <div class="flex items-center justify-between p-3 bg-gray-800/40 rounded-lg border border-gray-700">
+                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
                     <div>
                         <div class="text-sm font-semibold">Cho phép phân chia</div>
                         <div class="text-xs text-gray-400" id="assignment-toggle-status">Đang tải...</div>
                     </div>
                     <label class="relative inline-flex items-center cursor-pointer">
                         <input type="checkbox" id="toggle-assignment" class="sr-only peer" onchange="toggleFeature('assignment', this.checked)">
-                        <div class="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-pink-500"></div>
+                        <div class="w-11 h-6 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#1456f0]"></div>
                     </label>
                 </div>
             </div>
@@ -532,26 +462,26 @@
                         <p class="text-xs text-gray-400">Lark Bitable</p>
                     </div>
                 </div>
-                
+
                 <div class="space-y-3 mb-4">
                     <p class="text-sm text-gray-400 mb-2">Đồng bộ lịch sử trao đổi khách hàng từ Lark Bitable.</p>
-                    <div>
-                        <label class="text-xs text-gray-400 mb-1 block">Số Điện Thoại</label>
-                        <input type="text" id="history-phone" class="w-full" placeholder="0901234567">
+                    <div class="mr-field">
+                        <label>Số Điện Thoại</label>
+                        <input type="text" id="history-phone" class="mr-input w-full" placeholder="0901234567">
                     </div>
                 </div>
 
                 <div class="flex gap-2">
-                    <button class="btn-preview flex-1" onclick="previewHistory()">👁️ Preview</button>
-                    <button class="btn-sync flex-1" id="btn-history-sync" onclick="syncHistory()">🔄 Sync</button>
+                    <button class="mr-btn mr-btn--ghost flex-1" onclick="previewHistory()">👁️ Preview</button>
+                    <button class="mr-btn mr-btn--primary flex-1" id="btn-history-sync" onclick="syncHistory()">🔄 Sync</button>
                 </div>
 
                 <div class="error-box" id="history-error"></div>
-                
+
                 <div id="history-result" class="hidden">
                     <div class="mt-4 p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
                         <div class="flex items-center gap-2 mb-2">
-                            <span class="status-badge status-success">✓ Thành công</span>
+                            <span class="mr-badge mr-badge--success">✓ Thành công</span>
                         </div>
                         <div class="space-y-1 text-sm" id="history-stats"></div>
                     </div>
@@ -567,7 +497,7 @@
                         <p class="text-xs text-gray-400">Shortcuts</p>
                     </div>
                 </div>
-                
+
                 <div class="space-y-3">
                     <button onclick="syncTuChoiCham()" class="w-full p-3 rounded-xl bg-orange-500/10 hover:bg-orange-500/20 border border-orange-500/30 text-left transition">
                         <span class="text-orange-400 font-semibold">🚫 Từ Chối Chăm</span>
@@ -582,7 +512,7 @@
                 <div class="error-box" id="quick-error"></div>
                 <div id="quick-result" class="hidden">
                     <div class="mt-4 p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
-                        <span class="status-badge status-success">✓ Hoàn tất</span>
+                        <span class="mr-badge mr-badge--success">✓ Hoàn tất</span>
                     </div>
                 </div>
             </div>
@@ -590,14 +520,20 @@
         </div>
 
         <!-- Recent Activity -->
-        <div class="glass-card p-6">
-            <h2 class="text-xl font-bold mb-4">📋 Hoạt Động Gần Đây</h2>
+        <div class="mr-card">
+            <h2 class="mr-card-title">📋 Hoạt Động Gần Đây</h2>
             <div id="activity-log" class="space-y-3">
                 <p class="text-gray-500 text-sm">Chưa có hoạt động nào. Bắt đầu đồng bộ để xem lịch sử.</p>
             </div>
         </div>
 
-    </main>
+        </main>
+
+        <footer class="mr-shell-footer">MeraGroup Dashboard v2.0</footer>
+    </div>
+</div>
+
+<th:block th:replace="~{fragments/mera-layout :: shellScript}"></th:block>
 
     <script>
         let activityLog = [];
@@ -1059,7 +995,7 @@
         function syncTuChoiCham() {
             hideError('quick-error');
             document.getElementById('quick-result').classList.add('hidden');
-            
+
             fetch('/api/sync_tu_choi_cham', { method: 'GET' })
             .then(r => r.json())
             .then(data => {
@@ -1076,7 +1012,7 @@
         function syncDangCham() {
             hideError('quick-error');
             document.getElementById('quick-result').classList.add('hidden');
-            
+
             fetch('/api/sync_dang_cham', { method: 'GET' })
             .then(r => r.json())
             .then(data => {

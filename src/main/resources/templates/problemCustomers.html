@@ -4,221 +4,96 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Số Thả Nổi - Mera</title>
+    <script th:replace="~{fragments/mera-layout :: themeInit}"></script>
     <link rel="icon" type="image/jpeg" href="/meraicon.ico">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/mera-ui.css">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: 'Inter', sans-serif;
-            background: #f7f7f4;
-            color: #26251e;
-            min-height: 100vh;
-            padding: 24px;
+        /* Style riêng của trang - phần chưa có trong mera-ui.css */
+        .filter-form { margin-bottom: 20px; }
+        .filter-form .mr-input { width: 130px; }
+        .note-hot { font-weight: 700; color: var(--mr-warn); }
+        .mr-table .mr-badge { margin-right: 4px; }
+        .customer-id { font-size: 11px; color: var(--mr-muted); word-break: break-all; }
+        .reason-text { font-size: 12px; color: var(--mr-text-2); }
+        @media (max-width: 768px) {
+            .filter-form .mr-input { width: 100%; }
         }
-        .container { max-width: 1400px; margin: 0 auto; }
-        .page-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            flex-wrap: wrap;
-            gap: 12px;
-            margin-bottom: 20px;
-        }
-        .page-title { font-size: 24px; font-weight: 700; display: flex; align-items: center; gap: 10px; }
-        .page-subtitle { font-size: 13px; color: #807d72; margin-top: 4px; }
-        .back-link {
-            font-size: 13px;
-            color: #1456f0;
-            text-decoration: none;
-            font-weight: 500;
-        }
-        .back-link:hover { text-decoration: underline; }
-
-        .summary-cards {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 14px;
-            margin-bottom: 20px;
-        }
-        .summary-card {
-            background: white;
-            border: 1px solid #e6e5e0;
-            border-radius: 12px;
-            padding: 16px 20px;
-        }
-        .summary-card .label { font-size: 12px; color: #807d72; font-weight: 500; text-transform: uppercase; letter-spacing: 0.4px; }
-        .summary-card .value { font-size: 28px; font-weight: 700; margin-top: 6px; }
-        .summary-card.total .value { color: #1456f0; }
-        .summary-card.group-a .value { color: #d97706; }
-        .summary-card.group-b .value { color: #dc2626; }
-        .summary-card.group-c .value { color: #7c3aed; }
-
-        .filter-form {
-            background: white;
-            border: 1px solid #e6e5e0;
-            border-radius: 12px;
-            padding: 16px 20px;
-            display: flex;
-            align-items: flex-end;
-            flex-wrap: wrap;
-            gap: 14px;
-            margin-bottom: 20px;
-        }
-        .filter-group { display: flex; flex-direction: column; gap: 6px; }
-        .filter-group label { font-size: 12px; font-weight: 600; color: #55534a; }
-        .filter-group input {
-            width: 130px;
-            padding: 8px 10px;
-            border: 1px solid #d9d8d2;
-            border-radius: 8px;
-            font-family: inherit;
-            font-size: 14px;
-        }
-        .filter-group input:focus {
-            outline: none;
-            border-color: #1456f0;
-            box-shadow: 0 0 0 3px rgba(20, 86, 240, 0.12);
-        }
-        .btn-filter {
-            background: #1456f0;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            padding: 9px 20px;
-            font-family: inherit;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-        }
-        .btn-filter:hover { background: #0f45c4; }
-
-        .alert {
-            border-radius: 10px;
-            padding: 12px 16px;
-            font-size: 13px;
-            margin-bottom: 16px;
-        }
-        .alert-warning { background: #fef3c7; border: 1px solid #fcd34d; color: #92400e; }
-        .alert-error { background: #fee2e2; border: 1px solid #fca5a5; color: #991b1b; }
-
-        .table-card {
-            background: white;
-            border: 1px solid #e6e5e0;
-            border-radius: 12px;
-            overflow: hidden;
-        }
-        .table-scroll { overflow-x: auto; max-height: 70vh; overflow-y: auto; }
-        table { width: 100%; border-collapse: collapse; font-size: 13px; }
-        thead th {
-            background: #fafaf8;
-            padding: 10px 12px;
-            text-align: left;
-            font-weight: 600;
-            color: #55534a;
-            border-bottom: 1px solid #e6e5e0;
-            white-space: nowrap;
-            position: sticky;
-            top: 0;
-            z-index: 1;
-        }
-        tbody td {
-            padding: 10px 12px;
-            border-bottom: 1px solid #f0efe9;
-            vertical-align: top;
-        }
-        tbody tr:hover td { background: #f7f9ff; }
-        .num { text-align: right; font-variant-numeric: tabular-nums; }
-        .note-hot { font-weight: 700; color: #d97706; }
-        .badge {
-            display: inline-block;
-            padding: 2px 8px;
-            border-radius: 999px;
-            font-size: 11px;
-            font-weight: 600;
-            margin-right: 4px;
-            white-space: nowrap;
-        }
-        .badge-a { background: #fef3c7; color: #92400e; }
-        .badge-b { background: #fee2e2; color: #991b1b; }
-        .badge-c { background: #ede9fe; color: #5b21b6; }
-        .badge-yes { background: #dcfce7; color: #166534; }
-        .badge-no { background: #f3f4f6; color: #6b7280; }
-        .customer-id { font-size: 11px; color: #807d72; word-break: break-all; }
-        .reason-text { font-size: 12px; color: #55534a; }
-        .empty-state { padding: 48px; text-align: center; color: #807d72; font-size: 14px; }
-        .meta-line { font-size: 12px; color: #807d72; margin-top: 10px; }
     </style>
 </head>
-<body>
-<div class="container">
-    <div class="page-header">
+<body class="mera-page">
+<div class="mr-shell">
+    <th:block th:replace="~{fragments/mera-layout :: sidebar('problemCustomers')}"></th:block>
+    <div class="mr-shell-main">
+        <th:block th:replace="~{fragments/mera-layout :: topbar('Số Thả Nổi')}"></th:block>
+        <main class="mr-shell-content">
+    <div class="mr-page-header">
         <div>
-            <div class="page-title"><span>⚠️</span> Số Thả Nổi</div>
-            <div class="page-subtitle">
+            <div class="mr-page-title"><span>⚠️</span> Số Thả Nổi</div>
+            <div class="mr-page-subtitle">
                 Nhóm A: chăm nhiều ghi chú nhưng chưa có đơn đang xử lý / đã nhận.
                 Nhóm B: quá hạn giờ từ ngày tạo mà chưa có đơn đang xử lý / đã nhận.
                 Nhóm C: đơn đã nhận gần nhất đã quá lâu và hiện không có đơn đang xử lý.
                 Đơn được khớp theo mã KH hoặc theo SĐT.
             </div>
         </div>
-        <a href="/" class="back-link">← Về Dashboard</a>
     </div>
 
-    <div class="summary-cards">
-        <div class="summary-card total">
-            <div class="label">Tổng KH cảnh báo</div>
-            <div class="value" th:text="${total}">0</div>
+    <div class="mr-stat-grid">
+        <div class="mr-stat mr-stat--accent">
+            <div class="mr-stat-label">Tổng KH cảnh báo</div>
+            <div class="mr-stat-value" th:text="${total}">0</div>
         </div>
-        <div class="summary-card group-a">
-            <div class="label">Nhóm A — chăm nhiều chưa chốt</div>
-            <div class="value" th:text="${groupACount}">0</div>
+        <div class="mr-stat mr-stat--warn">
+            <div class="mr-stat-label">Nhóm A - chăm nhiều chưa chốt</div>
+            <div class="mr-stat-value" th:text="${groupACount}">0</div>
         </div>
-        <div class="summary-card group-b">
-            <div class="label">Nhóm B — quá hạn chưa lên đơn</div>
-            <div class="value" th:text="${groupBCount}">0</div>
+        <div class="mr-stat mr-stat--danger">
+            <div class="mr-stat-label">Nhóm B - quá hạn chưa lên đơn</div>
+            <div class="mr-stat-value" th:text="${groupBCount}">0</div>
         </div>
-        <div class="summary-card group-c">
-            <div class="label">Nhóm C — lâu chưa mua lại</div>
-            <div class="value" th:text="${groupCCount}">0</div>
+        <div class="mr-stat mr-stat--info">
+            <div class="mr-stat-label">Nhóm C - lâu chưa mua lại</div>
+            <div class="mr-stat-value" th:text="${groupCCount}">0</div>
         </div>
     </div>
 
-    <form class="filter-form" method="get" action="/khach-hang-canh-bao">
-        <div class="filter-group">
+    <form class="mr-card mr-form-row filter-form" method="get" action="/khach-hang-canh-bao">
+        <div class="mr-field">
             <label for="minNotes">Số ghi chú tối thiểu (Nhóm A)</label>
-            <input type="number" id="minNotes" name="minNotes" min="1" th:value="${minNotes}">
+            <input class="mr-input" type="number" id="minNotes" name="minNotes" min="1" th:value="${minNotes}">
         </div>
-        <div class="filter-group">
+        <div class="mr-field">
             <label for="hours">Số giờ chưa lên đơn (Nhóm B)</label>
-            <input type="number" id="hours" name="hours" min="1" th:value="${hours}">
+            <input class="mr-input" type="number" id="hours" name="hours" min="1" th:value="${hours}">
         </div>
-        <div class="filter-group">
+        <div class="mr-field">
             <label for="maxDays">Cửa sổ tối đa (ngày, Nhóm B)</label>
-            <input type="number" id="maxDays" name="maxDays" min="1" th:value="${maxDays}">
+            <input class="mr-input" type="number" id="maxDays" name="maxDays" min="1" th:value="${maxDays}">
         </div>
-        <div class="filter-group">
+        <div class="mr-field">
             <label for="months">Số tháng chưa mua lại (Nhóm C)</label>
-            <input type="number" id="months" name="months" min="1" th:value="${months}">
+            <input class="mr-input" type="number" id="months" name="months" min="1" th:value="${months}">
         </div>
-        <div class="filter-group">
+        <div class="mr-field">
             <label for="limit">Giới hạn dòng</label>
-            <input type="number" id="limit" name="limit" min="1" max="5000" th:value="${limit}">
+            <input class="mr-input" type="number" id="limit" name="limit" min="1" max="5000" th:value="${limit}">
         </div>
-        <button type="submit" class="btn-filter">Lọc</button>
+        <button type="submit" class="mr-btn mr-btn--primary">Lọc</button>
     </form>
 
-    <div class="alert alert-error" th:if="${errorMessage}" th:text="${errorMessage}"></div>
+    <div class="mr-alert mr-alert--danger" th:if="${errorMessage}" th:text="${errorMessage}"></div>
 
-    <div class="alert alert-warning" th:if="${capped}">
-        ⚠️ Kết quả đã bị cắt ở <b th:text="${limit}">1000</b> dòng — có thể còn khách hàng khác chưa hiển thị.
+    <div class="mr-alert mr-alert--warn" th:if="${capped}">
+        ⚠️ Kết quả đã bị cắt ở <b th:text="${limit}">1000</b> dòng - có thể còn khách hàng khác chưa hiển thị.
         Tăng "Giới hạn dòng" hoặc siết bộ lọc để xem đầy đủ.
     </div>
 
-    <div class="table-card">
-        <div class="table-scroll" th:if="${total > 0}">
-            <table>
+    <div class="mr-card mr-card--flush">
+        <div class="mr-table-scroll" th:if="${total > 0}">
+            <table class="mr-table">
                 <thead>
                 <tr>
                     <th>STT</th>
@@ -249,28 +124,32 @@
                     <td th:text="${row.lastNoteAt}">01/01/2026</td>
                     <td th:text="${row.lastReceivedAt}">—</td>
                     <td>
-                        <span class="badge badge-a" th:if="${row.groupA}">Nhóm A</span>
-                        <span class="badge badge-b" th:if="${row.groupB}">Nhóm B</span>
-                        <span class="badge badge-c" th:if="${row.groupC}">Nhóm C</span>
+                        <span class="mr-badge mr-badge--warn" th:if="${row.groupA}">Nhóm A</span>
+                        <span class="mr-badge mr-badge--danger" th:if="${row.groupB}">Nhóm B</span>
+                        <span class="mr-badge mr-badge--info" th:if="${row.groupC}">Nhóm C</span>
                         <div class="reason-text" th:text="${row.reason}"></div>
                     </td>
                 </tr>
                 </tbody>
             </table>
         </div>
-        <div class="empty-state" th:if="${total == 0 and errorMessage == null}">
+        <div class="mr-empty" th:if="${total == 0 and errorMessage == null}">
             🎉 Không có khách hàng nào rơi vào diện cảnh báo với bộ lọc hiện tại.
         </div>
-        <div class="empty-state" th:if="${errorMessage != null}">
+        <div class="mr-empty" th:if="${errorMessage != null}">
             Không có dữ liệu để hiển thị.
         </div>
     </div>
 
-    <div class="meta-line">
+    <div class="mr-meta-line">
         Dữ liệu truy vấn trực tiếp từ POS DB lúc <span th:text="${generatedAt}">--</span>.
         Nhóm B chỉ tính khách có ≥ 1 ghi chú, tạo trong vòng <span th:text="${maxDays}">30</span> ngày gần nhất.
         Nhóm C: đơn đã nhận (Đã nhận / Đã thu tiền) gần nhất cách đây hơn <span th:text="${months}">5</span> tháng.
     </div>
+        </main>
+        <footer class="mr-shell-footer">MeraGroup Dashboard v2.0</footer>
+    </div>
 </div>
+<th:block th:replace="~{fragments/mera-layout :: shellScript}"></th:block>
 </body>
 </html>

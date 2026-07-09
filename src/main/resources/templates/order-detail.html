@@ -3,342 +3,394 @@
 <head>
   <meta charset="UTF-8">
     <link rel="icon" type="image/jpeg" href="/meraicon.ico">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Chi tiết đơn hàng</title>
+  <script th:replace="~{fragments/mera-layout :: themeInit}"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/mera-ui.css">
   <style>
-    body { font-family: Arial, sans-serif; padding: 20px; max-width: 1400px; margin: 0 auto; background: #f5f5f5; }
-    h1 { color: #333; }
-    h2 { color: #2c5aa0; border-bottom: 2px solid #2c5aa0; padding-bottom: 8px; margin-top: 30px; }
-    .back-link { display: inline-block; margin-bottom: 20px; color: #666; text-decoration: none; }
-    .back-link:hover { color: #333; }
-    table { border-collapse: collapse; width: 100%; margin-top: 10px; margin-bottom: 20px; background: white; }
-    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 12px; }
-    th { background-color: #2c5aa0; color: white; }
-    tr:nth-child(even) { background-color: #f9f9f9; }
-    .section { background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-    .error { color: red; background: #ffe6e6; padding: 10px; border-radius: 4px; }
-    .empty-data { color: #999; font-style: italic; padding: 10px; text-align: center; }
-    .money { text-align: right; }
-    .json-value { max-width: 300px; word-break: break-all; font-size: 11px; background: #f5f5f5; padding: 4px; }
-    .btn-save { background: #4CAF50; color: white; padding: 12px 24px; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; }
-    .btn-save:hover { background: #45a049; }
-    .action-bar { margin-top: 20px; padding: 20px; background: white; border-radius: 8px; text-align: center; }
-    .info-row { display: flex; gap: 20px; flex-wrap: wrap; }
-    .info-item { flex: 1; min-width: 200px; }
-    .info-label { font-weight: bold; color: #666; }
+    /* CSS đặc thù trang chi tiết đơn hàng (nhiều bảng nhỏ trong một card) */
+    h2 {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--mr-text);
+      border-bottom: 1px solid var(--mr-border);
+      padding-bottom: 6px;
+      margin: 28px 0 10px;
+    }
+
+    .section {
+      margin-bottom: 20px;
+      overflow-x: auto;
+    }
+
+    .section table.mr-table {
+      border: 1px solid var(--mr-border-soft);
+      margin-bottom: 14px;
+    }
+
+    .section table.mr-table:last-of-type { margin-bottom: 0; }
+
+    /* Bảng nằm trong card cuộn theo trang, không cần header dính */
+    .section .mr-table thead th { position: static; }
+
+    .money { text-align: right; font-variant-numeric: tabular-nums; }
+
+    .empty-data {
+      color: var(--mr-muted);
+      font-style: italic;
+      padding: 10px;
+      text-align: center;
+    }
+
+    .json-value {
+      max-width: 300px;
+      word-break: break-all;
+      font-size: 11px;
+      font-family: var(--mr-mono);
+      background: var(--mr-surface-2);
+      border-radius: var(--mr-radius-control);
+      padding: 4px 6px;
+      margin: 0;
+      white-space: pre-wrap;
+    }
+
+    .action-bar {
+      margin-top: 20px;
+      padding: 20px;
+      text-align: center;
+    }
   </style>
 </head>
-<body>
-  <a th:href="@{/pancake/orders}" class="back-link">← Quay lại danh sách đơn hàng</a>
-  <h1>Chi tiết đơn hàng #<span th:text="${systemId}"></span></h1>
-
-  <div th:if="${error}" class="error" th:text="${error}"></div>
-
-  <div th:if="${orderDetail}">
-
-    <!-- Bảng 1: Thông tin đơn hàng -->
-    <h2>1. Thông tin đơn hàng (orders)</h2>
-    <div class="section">
-      <table th:if="${orderDetail.orderInfo}">
-        <tr>
-          <th>ID (system_id)</th>
-          <th>Mã đơn</th>
-          <th>Shop ID</th>
-          <th>Status</th>
-          <th>Status Name</th>
-        </tr>
-        <tr>
-          <td th:text="${orderDetail.orderInfo.id}"></td>
-          <td th:text="${orderDetail.orderInfo.orderCode}"></td>
-          <td th:text="${orderDetail.orderInfo.shopId}"></td>
-          <td th:text="${orderDetail.orderInfo.status}"></td>
-          <td th:text="${orderDetail.orderInfo.statusName}"></td>
-        </tr>
-      </table>
-
-      <table>
-        <tr>
-          <th>Tên thanh toán</th>
-          <th>Điện thoại TT</th>
-          <th>Email TT</th>
-          <th>Tên giao hàng</th>
-          <th>Điện thoại GH</th>
-        </tr>
-        <tr>
-          <td th:text="${orderDetail.orderInfo.billFullName}"></td>
-          <td th:text="${orderDetail.orderInfo.billPhoneNumber}"></td>
-          <td th:text="${orderDetail.orderInfo.billEmail}"></td>
-          <td th:text="${orderDetail.orderInfo.shippingFullName}"></td>
-          <td th:text="${orderDetail.orderInfo.shippingPhoneNumber}"></td>
-        </tr>
-      </table>
-
-      <table>
-        <tr>
-          <th>Địa chỉ giao hàng</th>
-          <th>Tỉnh/TP</th>
-          <th>Quận/Huyện</th>
-          <th>Xã/Phường</th>
-        </tr>
-        <tr>
-          <td th:text="${orderDetail.orderInfo.shippingFullAddress}"></td>
-          <td th:text="${orderDetail.orderInfo.shippingProvinceName}"></td>
-          <td th:text="${orderDetail.orderInfo.shippingDistrictName}"></td>
-          <td th:text="${orderDetail.orderInfo.shippingCommuneName}"></td>
-        </tr>
-      </table>
-
-      <table>
-        <tr>
-          <th>Tổng tiền</th>
-          <th>Giảm giá</th>
-          <th>Phí ship</th>
-          <th>Thuế</th>
-          <th>COD</th>
-          <th>Tiền thu hộ</th>
-        </tr>
-        <tr>
-          <td class="money" th:text="${#numbers.formatDecimal(orderDetail.orderInfo.totalPrice, 0, 'COMMA', 0, 'POINT')}"></td>
-          <td class="money" th:text="${#numbers.formatDecimal(orderDetail.orderInfo.totalDiscount, 0, 'COMMA', 0, 'POINT')}"></td>
-          <td class="money" th:text="${#numbers.formatDecimal(orderDetail.orderInfo.shippingFee, 0, 'COMMA', 0, 'POINT')}"></td>
-          <td class="money" th:text="${#numbers.formatDecimal(orderDetail.orderInfo.tax, 0, 'COMMA', 0, 'POINT')}"></td>
-          <td class="money" th:text="${#numbers.formatDecimal(orderDetail.orderInfo.cod, 0, 'COMMA', 0, 'POINT')}"></td>
-          <td class="money" th:text="${#numbers.formatDecimal(orderDetail.orderInfo.moneyToCollect, 0, 'COMMA', 0, 'POINT')}"></td>
-        </tr>
-      </table>
-
-      <table>
-        <tr>
-          <th>Nguồn đơn</th>
-          <th>Quảng cáo</th>
-          <th>Ghi chú</th>
-        </tr>
-        <tr>
-          <td th:text="${orderDetail.orderInfo.orderSourcesName}"></td>
-          <td th:text="${orderDetail.orderInfo.adsSource}"></td>
-          <td th:text="${orderDetail.orderInfo.note}"></td>
-        </tr>
-      </table>
-
-      <table>
-        <tr>
-          <th>Creator ID</th>
-          <th> Seller ID</th>
-          <th>Care ID</th>
-          <th>Marketer ID</th>
-          <th>Ngày tạo</th>
-          <th>Ngày cập nhật</th>
-        </tr>
-        <tr>
-          <td th:text="${orderDetail.orderInfo.creatorId}"></td>
-          <td th:text="${orderDetail.orderInfo.assigningSellerId}"></td>
-          <td th:text="${orderDetail.orderInfo.assigningCareId}"></td>
-          <td th:text="${orderDetail.orderInfo.marketerId}"></td>
-          <td th:text="${orderDetail.orderInfo.insertedAt}"></td>
-          <td th:text="${orderDetail.orderInfo.updatedAt}"></td>
-        </tr>
-      </table>
+<body class="mera-page">
+<div class="mr-shell">
+  <th:block th:replace="~{fragments/mera-layout :: sidebar('pancakeOrders')}"></th:block>
+  <div class="mr-shell-main">
+    <th:block th:replace="~{fragments/mera-layout :: topbar('Chi Tiết Đơn Hàng')}"></th:block>
+    <main class="mr-shell-content">
+    <div class="mr-page-header">
+      <div>
+        <h1 class="mr-page-title">Chi tiết đơn hàng #<span th:text="${systemId}"></span></h1>
+      </div>
+      <a th:href="@{/pancake/orders}" class="mr-back-link">← Quay lại danh sách đơn hàng</a>
     </div>
 
-    <!-- Bảng 2: Khách hàng -->
-    <h2>2. Khách hàng (customers)</h2>
-    <div class="section">
-      <div th:if="${orderDetail.customer}" th:with="c=${orderDetail.customer}">
-        <table>
+    <div th:if="${error}" class="mr-alert mr-alert--danger" th:text="${error}"></div>
+
+    <div th:if="${orderDetail}">
+
+      <!-- Bảng 1: Thông tin đơn hàng -->
+      <h2>1. Thông tin đơn hàng (orders)</h2>
+      <div class="mr-card section">
+        <table class="mr-table" th:if="${orderDetail.orderInfo}">
           <tr>
-            <th>Customer ID</th>
-            <th>Tên</th>
-            <th>Giới tính</th>
-            <th>Số điện thoại</th>
-            <th>Facebook ID</th>
+            <th>ID (system_id)</th>
+            <th>Mã đơn</th>
+            <th>Shop ID</th>
+            <th>Status</th>
+            <th>Status Name</th>
           </tr>
           <tr>
-            <td th:text="${c.customerId}"></td>
-            <td th:text="${c.name}"></td>
-            <td th:text="${c.gender}"></td>
-            <td th:text="${c.phoneNumbers}"></td>
-            <td th:text="${c.fbId}"></td>
+            <td th:text="${orderDetail.orderInfo.id}"></td>
+            <td th:text="${orderDetail.orderInfo.orderCode}"></td>
+            <td th:text="${orderDetail.orderInfo.shopId}"></td>
+            <td th:text="${orderDetail.orderInfo.status}"></td>
+            <td th:text="${orderDetail.orderInfo.statusName}"></td>
           </tr>
         </table>
-        <table>
+
+        <table class="mr-table">
           <tr>
-            <th>Số đơn</th>
-            <th>Đơn thành công</th>
-            <th>Tổng mua</th>
-            <th>Điểm tích lũy</th>
-            <th>Bị khóa</th>
-            <th>Ngày tạo</th>
+            <th>Tên thanh toán</th>
+            <th>Điện thoại TT</th>
+            <th>Email TT</th>
+            <th>Tên giao hàng</th>
+            <th>Điện thoại GH</th>
           </tr>
           <tr>
-            <td th:text="${c.orderCount}"></td>
-            <td th:text="${c.succeedOrderCount}"></td>
-            <td class="money" th:text="${#numbers.formatDecimal(c.purchasedAmount, 0, 'COMMA', 0, 'POINT')}"></td>
-            <td th:text="${c.rewardPoint}"></td>
-            <td th:text="${c.isBlock}"></td>
-            <td th:text="${c.insertedAt}"></td>
+            <td th:text="${orderDetail.orderInfo.billFullName}"></td>
+            <td th:text="${orderDetail.orderInfo.billPhoneNumber}"></td>
+            <td th:text="${orderDetail.orderInfo.billEmail}"></td>
+            <td th:text="${orderDetail.orderInfo.shippingFullName}"></td>
+            <td th:text="${orderDetail.orderInfo.shippingPhoneNumber}"></td>
+          </tr>
+        </table>
+
+        <table class="mr-table">
+          <tr>
+            <th>Địa chỉ giao hàng</th>
+            <th>Tỉnh/TP</th>
+            <th>Quận/Huyện</th>
+            <th>Xã/Phường</th>
+          </tr>
+          <tr>
+            <td th:text="${orderDetail.orderInfo.shippingFullAddress}"></td>
+            <td th:text="${orderDetail.orderInfo.shippingProvinceName}"></td>
+            <td th:text="${orderDetail.orderInfo.shippingDistrictName}"></td>
+            <td th:text="${orderDetail.orderInfo.shippingCommuneName}"></td>
+          </tr>
+        </table>
+
+        <table class="mr-table">
+          <tr>
+            <th>Tổng tiền</th>
+            <th>Giảm giá</th>
+            <th>Phí ship</th>
+            <th>Thuế</th>
+            <th>COD</th>
+            <th>Tiền thu hộ</th>
+          </tr>
+          <tr>
+            <td class="money" th:text="${#numbers.formatDecimal(orderDetail.orderInfo.totalPrice, 0, 'COMMA', 0, 'POINT')}"></td>
+            <td class="money" th:text="${#numbers.formatDecimal(orderDetail.orderInfo.totalDiscount, 0, 'COMMA', 0, 'POINT')}"></td>
+            <td class="money" th:text="${#numbers.formatDecimal(orderDetail.orderInfo.shippingFee, 0, 'COMMA', 0, 'POINT')}"></td>
+            <td class="money" th:text="${#numbers.formatDecimal(orderDetail.orderInfo.tax, 0, 'COMMA', 0, 'POINT')}"></td>
+            <td class="money" th:text="${#numbers.formatDecimal(orderDetail.orderInfo.cod, 0, 'COMMA', 0, 'POINT')}"></td>
+            <td class="money" th:text="${#numbers.formatDecimal(orderDetail.orderInfo.moneyToCollect, 0, 'COMMA', 0, 'POINT')}"></td>
+          </tr>
+        </table>
+
+        <table class="mr-table">
+          <tr>
+            <th>Nguồn đơn</th>
+            <th>Quảng cáo</th>
+            <th>Ghi chú</th>
+          </tr>
+          <tr>
+            <td th:text="${orderDetail.orderInfo.orderSourcesName}"></td>
+            <td th:text="${orderDetail.orderInfo.adsSource}"></td>
+            <td th:text="${orderDetail.orderInfo.note}"></td>
+          </tr>
+        </table>
+
+        <table class="mr-table">
+          <tr>
+            <th>Creator ID</th>
+            <th> Seller ID</th>
+            <th>Care ID</th>
+            <th>Marketer ID</th>
+            <th>Ngày tạo</th>
+            <th>Ngày cập nhật</th>
+          </tr>
+          <tr>
+            <td th:text="${orderDetail.orderInfo.creatorId}"></td>
+            <td th:text="${orderDetail.orderInfo.assigningSellerId}"></td>
+            <td th:text="${orderDetail.orderInfo.assigningCareId}"></td>
+            <td th:text="${orderDetail.orderInfo.marketerId}"></td>
+            <td th:text="${orderDetail.orderInfo.insertedAt}"></td>
+            <td th:text="${orderDetail.orderInfo.updatedAt}"></td>
           </tr>
         </table>
       </div>
-      <div th:unless="${orderDetail.customer}" class="empty-data">Không có dữ liệu khách hàng</div>
-    </div>
 
-    <!-- Bảng 3: Địa chỉ khách hàng -->
-    <h2>3. Địa chỉ khách hàng (customer_addresses)</h2>
-    <div class="section">
-      <table th:if="${not #lists.isEmpty(orderDetail.addresses)}">
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Họ tên</th>
-            <th>Điện thoại</th>
-            <th>Địa chỉ</th>
-            <th>Địa chỉ đầy đủ</th>
-            <th>Tỉnh ID</th>
-            <th>Quận ID</th>
-            <th>Xã ID</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr th:each="addr : ${orderDetail.addresses}">
-            <td th:text="${addr.id}"></td>
-            <td th:text="${addr.fullName}"></td>
-            <td th:text="${addr.phoneNumber}"></td>
-            <td th:text="${addr.address}"></td>
-            <td th:text="${addr.fullAddress}"></td>
-            <td th:text="${addr.provinceId}"></td>
-            <td th:text="${addr.districtId}"></td>
-            <td th:text="${addr.communeId}"></td>
-          </tr>
-        </tbody>
-      </table>
-      <div th:if="${#lists.isEmpty(orderDetail.addresses)}" class="empty-data">Không có dữ liệu địa chỉ</div>
-    </div>
+      <!-- Bảng 2: Khách hàng -->
+      <h2>2. Khách hàng (customers)</h2>
+      <div class="mr-card section">
+        <div th:if="${orderDetail.customer}" th:with="c=${orderDetail.customer}">
+          <table class="mr-table">
+            <tr>
+              <th>Customer ID</th>
+              <th>Tên</th>
+              <th>Giới tính</th>
+              <th>Số điện thoại</th>
+              <th>Facebook ID</th>
+            </tr>
+            <tr>
+              <td th:text="${c.customerId}"></td>
+              <td th:text="${c.name}"></td>
+              <td th:text="${c.gender}"></td>
+              <td th:text="${c.phoneNumbers}"></td>
+              <td th:text="${c.fbId}"></td>
+            </tr>
+          </table>
+          <table class="mr-table">
+            <tr>
+              <th>Số đơn</th>
+              <th>Đơn thành công</th>
+              <th>Tổng mua</th>
+              <th>Điểm tích lũy</th>
+              <th>Bị khóa</th>
+              <th>Ngày tạo</th>
+            </tr>
+            <tr>
+              <td th:text="${c.orderCount}"></td>
+              <td th:text="${c.succeedOrderCount}"></td>
+              <td class="money" th:text="${#numbers.formatDecimal(c.purchasedAmount, 0, 'COMMA', 0, 'POINT')}"></td>
+              <td th:text="${c.rewardPoint}"></td>
+              <td th:text="${c.isBlock}"></td>
+              <td th:text="${c.insertedAt}"></td>
+            </tr>
+          </table>
+        </div>
+        <div th:unless="${orderDetail.customer}" class="empty-data">Không có dữ liệu khách hàng</div>
+      </div>
 
-    <!-- Bảng 4: Sản phẩm trong đơn -->
-    <h2>4. Sản phẩm trong đơn (order_items)</h2>
-    <div class="section">
-      <table th:if="${not #lists.isEmpty(orderDetail.items)}">
-        <thead>
-          <tr>
-            <th>Item ID</th>
-            <th>Variation ID</th>
-            <th>Tên sản phẩm</th>
-            <th>Số lượng</th>
-            <th>Giá</th>
-            <th>Thuế</th>
-            <th>Cân nặng</th>
-            <th>Giảm/SP</th>
-            <th>Tổng giảm</th>
-            <th>Ghi chú</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr th:each="item : ${orderDetail.items}">
-            <td th:text="${item.itemId}"></td>
-            <td th:text="${item.variationId}"></td>
-            <td th:text="${item.variationName}"></td>
-            <td th:text="${item.quantity}"></td>
-            <td class="money" th:text="${#numbers.formatDecimal(item.retailPrice, 0, 'COMMA', 0, 'POINT')}"></td>
-            <td class="money" th:text="${item.taxRate}"></td>
-            <td class="money" th:text="${item.weight}"></td>
-            <td class="money" th:text="${#numbers.formatDecimal(item.discountEachProduct, 0, 'COMMA', 0, 'POINT')}"></td>
-            <td class="money" th:text="${#numbers.formatDecimal(item.totalDiscount, 0, 'COMMA', 0, 'POINT')}"></td>
-            <td th:text="${item.note}"></td>
-          </tr>
-        </tbody>
-      </table>
-      <div th:if="${#lists.isEmpty(orderDetail.items)}" class="empty-data">Không có sản phẩm trong đơn</div>
-    </div>
+      <!-- Bảng 3: Địa chỉ khách hàng -->
+      <h2>3. Địa chỉ khách hàng (customer_addresses)</h2>
+      <div class="mr-card section">
+        <table class="mr-table" th:if="${not #lists.isEmpty(orderDetail.addresses)}">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Họ tên</th>
+              <th>Điện thoại</th>
+              <th>Địa chỉ</th>
+              <th>Địa chỉ đầy đủ</th>
+              <th>Tỉnh ID</th>
+              <th>Quận ID</th>
+              <th>Xã ID</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr th:each="addr : ${orderDetail.addresses}">
+              <td th:text="${addr.id}"></td>
+              <td th:text="${addr.fullName}"></td>
+              <td th:text="${addr.phoneNumber}"></td>
+              <td th:text="${addr.address}"></td>
+              <td th:text="${addr.fullAddress}"></td>
+              <td th:text="${addr.provinceId}"></td>
+              <td th:text="${addr.districtId}"></td>
+              <td th:text="${addr.communeId}"></td>
+            </tr>
+          </tbody>
+        </table>
+        <div th:if="${#lists.isEmpty(orderDetail.addresses)}" class="empty-data">Không có dữ liệu địa chỉ</div>
+      </div>
 
-    <!-- Bảng 5: Lịch sử trạng thái -->
-    <h2>5. Lịch sử trạng thái (order_status_histories)</h2>
-    <div class="section">
-      <table th:if="${not #lists.isEmpty(orderDetail.statusHistories)}">
-        <thead>
-          <tr>
-            <th>Order ID</th>
-            <th>Status cũ</th>
-            <th>Status mới</th>
-            <th>Editor ID</th>
-            <th>Editor Name</th>
-            <th>Ngày cập nhật</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr th:each="sh : ${orderDetail.statusHistories}">
-            <td th:text="${sh.orderId}"></td>
-            <td th:text="${sh.oldStatus}"></td>
-            <td th:text="${sh.newStatus}"></td>
-            <td th:text="${sh.editorId}"></td>
-            <td th:text="${sh.editorName}"></td>
-            <td th:text="${sh.updatedAt}"></td>
-          </tr>
-        </tbody>
-      </table>
-      <div th:if="${#lists.isEmpty(orderDetail.statusHistories)}" class="empty-data">Không có lịch sử trạng thái</div>
-    </div>
+      <!-- Bảng 4: Sản phẩm trong đơn -->
+      <h2>4. Sản phẩm trong đơn (order_items)</h2>
+      <div class="mr-card section">
+        <table class="mr-table" th:if="${not #lists.isEmpty(orderDetail.items)}">
+          <thead>
+            <tr>
+              <th>Item ID</th>
+              <th>Variation ID</th>
+              <th>Tên sản phẩm</th>
+              <th>Số lượng</th>
+              <th>Giá</th>
+              <th>Thuế</th>
+              <th>Cân nặng</th>
+              <th>Giảm/SP</th>
+              <th>Tổng giảm</th>
+              <th>Ghi chú</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr th:each="item : ${orderDetail.items}">
+              <td th:text="${item.itemId}"></td>
+              <td th:text="${item.variationId}"></td>
+              <td th:text="${item.variationName}"></td>
+              <td th:text="${item.quantity}"></td>
+              <td class="money" th:text="${#numbers.formatDecimal(item.retailPrice, 0, 'COMMA', 0, 'POINT')}"></td>
+              <td class="money" th:text="${item.taxRate}"></td>
+              <td class="money" th:text="${item.weight}"></td>
+              <td class="money" th:text="${#numbers.formatDecimal(item.discountEachProduct, 0, 'COMMA', 0, 'POINT')}"></td>
+              <td class="money" th:text="${#numbers.formatDecimal(item.totalDiscount, 0, 'COMMA', 0, 'POINT')}"></td>
+              <td th:text="${item.note}"></td>
+            </tr>
+          </tbody>
+        </table>
+        <div th:if="${#lists.isEmpty(orderDetail.items)}" class="empty-data">Không có sản phẩm trong đơn</div>
+      </div>
 
-    <!-- Bảng 6: Lịch sử chỉnh sửa -->
-    <h2>6. Lịch sử chỉnh sửa (order_edit_histories)</h2>
-    <div class="section">
-      <table th:if="${not #lists.isEmpty(orderDetail.editHistories)}">
-        <thead>
-          <tr>
-            <th>Order ID</th>
-            <th>Editor ID</th>
-            <th>Field thay đổi</th>
-            <th>Giá trị cũ</th>
-            <th>Giá trị mới</th>
-            <th>Ngày cập nhật</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr th:each="eh : ${orderDetail.editHistories}">
-            <td th:text="${eh.orderId}"></td>
-            <td th:text="${eh.editorId}"></td>
-            <td th:text="${eh.fieldChanged}"></td>
-            <td><pre class="json-value" th:text="${eh.oldValue}"></pre></td>
-            <td><pre class="json-value" th:text="${eh.newValue}"></pre></td>
-            <td th:text="${eh.updatedAt}"></td>
-          </tr>
-        </tbody>
-      </table>
-      <div th:if="${#lists.isEmpty(orderDetail.editHistories)}" class="empty-data">Không có lịch sử chỉnh sửa</div>
-    </div>
+      <!-- Bảng 5: Lịch sử trạng thái -->
+      <h2>5. Lịch sử trạng thái (order_status_histories)</h2>
+      <div class="mr-card section">
+        <table class="mr-table" th:if="${not #lists.isEmpty(orderDetail.statusHistories)}">
+          <thead>
+            <tr>
+              <th>Order ID</th>
+              <th>Status cũ</th>
+              <th>Status mới</th>
+              <th>Editor ID</th>
+              <th>Editor Name</th>
+              <th>Ngày cập nhật</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr th:each="sh : ${orderDetail.statusHistories}">
+              <td th:text="${sh.orderId}"></td>
+              <td th:text="${sh.oldStatus}"></td>
+              <td th:text="${sh.newStatus}"></td>
+              <td th:text="${sh.editorId}"></td>
+              <td th:text="${sh.editorName}"></td>
+              <td th:text="${sh.updatedAt}"></td>
+            </tr>
+          </tbody>
+        </table>
+        <div th:if="${#lists.isEmpty(orderDetail.statusHistories)}" class="empty-data">Không có lịch sử trạng thái</div>
+      </div>
 
-    <!-- Bảng 7: Nhân viên liên quan -->
-    <h2>7. Nhân viên liên quan (pos_users)</h2>
-    <div class="section">
-      <table th:if="${not #lists.isEmpty(orderDetail.users)}">
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Tên</th>
-            <th>Email</th>
-            <th>Facebook ID</th>
-            <th>Điện thoại</th>
-            <th>Vai trò</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr th:each="u : ${orderDetail.users}">
-            <td th:text="${u.id}"></td>
-            <td th:text="${u.name}"></td>
-            <td th:text="${u.email}"></td>
-            <td th:text="${u.fbId}"></td>
-            <td th:text="${u.phoneNumber}"></td>
-            <td th:text="${u.role}"></td>
-          </tr>
-        </tbody>
-      </table>
-      <div th:if="${#lists.isEmpty(orderDetail.users)}" class="empty-data">Không có nhân viên liên quan</div>
-    </div>
+      <!-- Bảng 6: Lịch sử chỉnh sửa -->
+      <h2>6. Lịch sử chỉnh sửa (order_edit_histories)</h2>
+      <div class="mr-card section">
+        <table class="mr-table" th:if="${not #lists.isEmpty(orderDetail.editHistories)}">
+          <thead>
+            <tr>
+              <th>Order ID</th>
+              <th>Editor ID</th>
+              <th>Field thay đổi</th>
+              <th>Giá trị cũ</th>
+              <th>Giá trị mới</th>
+              <th>Ngày cập nhật</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr th:each="eh : ${orderDetail.editHistories}">
+              <td th:text="${eh.orderId}"></td>
+              <td th:text="${eh.editorId}"></td>
+              <td th:text="${eh.fieldChanged}"></td>
+              <td><pre class="json-value" th:text="${eh.oldValue}"></pre></td>
+              <td><pre class="json-value" th:text="${eh.newValue}"></pre></td>
+              <td th:text="${eh.updatedAt}"></td>
+            </tr>
+          </tbody>
+        </table>
+        <div th:if="${#lists.isEmpty(orderDetail.editHistories)}" class="empty-data">Không có lịch sử chỉnh sửa</div>
+      </div>
 
-    <!-- Nút lưu đơn hàng -->
-    <div class="action-bar">
-      <button class="btn-save" th:attr="onclick=|saveOrder(${systemId})|">Lưu đơn hàng này vào DB</button>
-    </div>
+      <!-- Bảng 7: Nhân viên liên quan -->
+      <h2>7. Nhân viên liên quan (pos_users)</h2>
+      <div class="mr-card section">
+        <table class="mr-table" th:if="${not #lists.isEmpty(orderDetail.users)}">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Tên</th>
+              <th>Email</th>
+              <th>Facebook ID</th>
+              <th>Điện thoại</th>
+              <th>Vai trò</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr th:each="u : ${orderDetail.users}">
+              <td th:text="${u.id}"></td>
+              <td th:text="${u.name}"></td>
+              <td th:text="${u.email}"></td>
+              <td th:text="${u.fbId}"></td>
+              <td th:text="${u.phoneNumber}"></td>
+              <td th:text="${u.role}"></td>
+            </tr>
+          </tbody>
+        </table>
+        <div th:if="${#lists.isEmpty(orderDetail.users)}" class="empty-data">Không có nhân viên liên quan</div>
+      </div>
 
+      <!-- Nút lưu đơn hàng -->
+      <div class="mr-card action-bar">
+        <button class="mr-btn mr-btn--primary" th:attr="onclick=|saveOrder(${systemId})|">Lưu đơn hàng này vào DB</button>
+      </div>
+
+    </div>
+    </main>
+    <footer class="mr-shell-footer">MeraGroup Dashboard v2.0</footer>
   </div>
+</div>
+
+<th:block th:replace="~{fragments/mera-layout :: shellScript}"></th:block>
 
   <script>
     function saveOrder(systemId) {

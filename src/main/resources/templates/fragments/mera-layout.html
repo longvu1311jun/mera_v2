@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="vi">
+<!--
+  MERA UI - Fragments layout dùng chung cho toàn hệ thống.
+  - themeInit  : đặt trong <head>, chống FOUC khi bật dark mode
+  - sidebar    : app shell trang CRM, tham số active = key trang hiện tại
+  - topbar     : breadcrumb + hành động, tham số title = tên trang
+  - workspaceHeader : header cho trang report/search (không sidebar)
+  - shellScript: script toggle sidebar mobile + dark mode
+-->
+<head>
+    <script th:fragment="themeInit">
+        (function () {
+            try {
+                var t = localStorage.getItem('mera-theme');
+                if (t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                    document.documentElement.setAttribute('data-theme', 'dark');
+                }
+            } catch (e) { /* ignore */ }
+        })();
+    </script>
+</head>
+<body>
+
+<th:block th:fragment="sidebar(active)">
+    <div class="mr-shell-overlay" id="mrShellOverlay" onclick="mrToggleSidebar()"></div>
+    <aside class="mr-sidebar" id="mrSidebar" aria-label="Điều hướng chính">
+        <div class="mr-sidebar-header">
+            <div class="mr-sidebar-logo">M</div>
+            <a href="/" class="mr-sidebar-brand">Mera<span>Group</span></a>
+        </div>
+        <nav class="mr-sidebar-nav">
+            <div class="mr-nav-section">Menu Chính</div>
+            <a href="/" class="mr-nav-item" th:classappend="${active == 'dashboard'} ? 'active'">
+                <span class="mr-nav-ico">🏠</span> Dashboard
+            </a>
+            <a href="/saleReport" class="mr-nav-item" th:classappend="${active == 'saleReport'} ? 'active'">
+                <span class="mr-nav-ico">📊</span> Sale Report 1
+            </a>
+            <a href="/sale1report" class="mr-nav-item" th:classappend="${active == 'sale1report'} ? 'active'">
+                <span class="mr-nav-ico">🧾</span> Sale 1 Report
+            </a>
+            <a href="/stats" class="mr-nav-item" th:classappend="${active == 'stats'} ? 'active'">
+                <span class="mr-nav-ico">📈</span> Stats Lịch Hẹn
+            </a>
+            <a href="/report" class="mr-nav-item" th:classappend="${active == 'report'} ? 'active'">
+                <span class="mr-nav-ico">📋</span> Report Lark
+            </a>
+
+            <div class="mr-nav-section">Tra cứu &amp; POS</div>
+            <a href="/dongbo" class="mr-nav-item" th:classappend="${active == 'dongbo'} ? 'active'">
+                <span class="mr-nav-ico">🔄</span> Đồng Bộ
+            </a>
+            <a href="/attendance-punch" class="mr-nav-item" th:classappend="${active == 'attendance'} ? 'active'">
+                <span class="mr-nav-ico">⏰</span> Chấm Công
+            </a>
+            <a href="/assignment-monitoring" class="mr-nav-item" th:classappend="${active == 'assignment'} ? 'active'">
+                <span class="mr-nav-ico">📋</span> Phân Công CSKH
+            </a>
+            <a href="/assignment-config" class="mr-nav-item" th:classappend="${active == 'assignmentConfig'} ? 'active'">
+                <span class="mr-nav-ico">🧩</span> Cấu Hình Phân Công
+            </a>
+            <a href="/search-info" class="mr-nav-item" th:classappend="${active == 'searchInfo'} ? 'active'">
+                <span class="mr-nav-ico">🔎</span> Tìm Khách Hàng
+            </a>
+            <a href="/searchInfo" class="mr-nav-item" th:classappend="${active == 'searchSale'} ? 'active'">
+                <span class="mr-nav-ico">🕵️</span> Tra Cứu Của SALE
+            </a>
+            <a href="/tra_cuu_khach_hang" class="mr-nav-item" th:classappend="${active == 'searchCustomer'} ? 'active'">
+                <span class="mr-nav-ico">📱</span> Tra Cứu SĐT
+            </a>
+            <a href="/search-config" class="mr-nav-item" th:classappend="${active == 'searchConfig'} ? 'active'">
+                <span class="mr-nav-ico">🎛️</span> Cấu Hình Tra Cứu
+            </a>
+            <a href="/pancake-orders" class="mr-nav-item" th:classappend="${active == 'pancakeOrders'} ? 'active'">
+                <span class="mr-nav-ico">📦</span> Danh Sách Đơn POS
+            </a>
+            <a href="/khach-hang-canh-bao" class="mr-nav-item" th:classappend="${active == 'problemCustomers'} ? 'active'">
+                <span class="mr-nav-ico">⚠️</span> Số Thả Nổi
+            </a>
+
+            <div class="mr-nav-section">Hệ Thống</div>
+            <a href="/config" class="mr-nav-item" th:classappend="${active == 'config'} ? 'active'">
+                <span class="mr-nav-ico">⚙️</span> Cấu Hình Webhook
+            </a>
+            <a href="/lark/token" class="mr-nav-item" th:classappend="${active == 'token'} ? 'active'">
+                <span class="mr-nav-ico">🔑</span> Token &amp; Base
+            </a>
+            <a href="/admin/pos-users-baselark" class="mr-nav-item" th:classappend="${active == 'posUserMapping'} ? 'active'">
+                <span class="mr-nav-ico">🔗</span> Mapping BaseLark
+            </a>
+            <a href="/admin/cskh-mapping" class="mr-nav-item" th:classappend="${active == 'cskhMapping'} ? 'active'">
+                <span class="mr-nav-ico">🤝</span> CSKH Mapping
+            </a>
+            <a href="/admin/lark-bitable" class="mr-nav-item" th:classappend="${active == 'larkBitable'} ? 'active'">
+                <span class="mr-nav-ico">🗂️</span> Lark Bitable Config
+            </a>
+            <a href="/employee-mapping" class="mr-nav-item" th:classappend="${active == 'employeeMapping'} ? 'active'">
+                <span class="mr-nav-ico">👥</span> Employee Mapping
+            </a>
+            <a href="/logs" class="mr-nav-item" th:classappend="${active == 'logs'} ? 'active'">
+                <span class="mr-nav-ico">📝</span> Logs Realtime
+            </a>
+            <a href="/test-api.html" class="mr-nav-item">
+                <span class="mr-nav-ico">🧪</span> Công cụ Sync
+            </a>
+        </nav>
+        <div class="mr-sidebar-footer" th:if="${isAuthenticated}">
+            <div class="mr-sidebar-user">
+                <div class="mr-avatar">AD</div>
+                <div>
+                    <p class="mr-sidebar-user-name" th:text="${userName ?: 'Admin User'}">Admin User</p>
+                    <p class="mr-sidebar-user-meta"
+                       th:text="'Hết hạn: ' + ${#strings.substring(tokenExpiresAt, 11, 16)}">Hết hạn: --:--</p>
+                </div>
+            </div>
+            <a href="/lark/logout" id="sidebar-logout-btn"
+               onclick="return confirm('Bạn có chắc muốn đăng xuất không?')"
+               class="mr-btn mr-btn--danger" style="width: 100%;">
+                <span>🚪</span> Đăng Xuất
+            </a>
+        </div>
+    </aside>
+</th:block>
+
+<th:block th:fragment="topbar(title)">
+    <header class="mr-topbar">
+        <button class="mr-icon-btn mr-menu-btn" type="button" onclick="mrToggleSidebar()" aria-label="Mở menu">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="3" y1="6" x2="21" y2="6"></line>
+                <line x1="3" y1="12" x2="21" y2="12"></line>
+                <line x1="3" y1="18" x2="21" y2="18"></line>
+            </svg>
+        </button>
+        <nav class="mr-breadcrumb" aria-label="Breadcrumb">
+            <a href="/">Trang chủ</a>
+            <span class="sep">/</span>
+            <span class="current" th:text="${title}">Trang</span>
+        </nav>
+        <div class="mr-topbar-actions">
+            <button class="mr-icon-btn mr-theme-toggle" type="button" onclick="mrToggleTheme()"
+                    aria-label="Đổi giao diện sáng/tối" data-mr-tip="Sáng / Tối">
+                <span class="ico-moon">🌙</span><span class="ico-sun">☀️</span>
+            </button>
+        </div>
+    </header>
+</th:block>
+
+<th:block th:fragment="workspaceHeader(title)">
+    <header class="mr-workspace-header">
+        <div class="mr-sidebar-logo">M</div>
+        <h1 class="mr-workspace-title" th:text="${title}">Trang</h1>
+        <div class="mr-workspace-spacer"></div>
+        <a href="/" class="mr-btn mr-btn--ghost">← Về Dashboard</a>
+        <button class="mr-icon-btn mr-theme-toggle" type="button" onclick="mrToggleTheme()"
+                aria-label="Đổi giao diện sáng/tối" data-mr-tip="Sáng / Tối">
+            <span class="ico-moon">🌙</span><span class="ico-sun">☀️</span>
+        </button>
+    </header>
+</th:block>
+
+<th:block th:fragment="shellScript">
+    <script>
+        function mrToggleSidebar() {
+            var sb = document.getElementById('mrSidebar');
+            var ov = document.getElementById('mrShellOverlay');
+            if (sb) sb.classList.toggle('open');
+            if (ov) ov.classList.toggle('show');
+        }
+        function mrToggleTheme() {
+            var root = document.documentElement;
+            var next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+            if (next === 'dark') { root.setAttribute('data-theme', 'dark'); }
+            else { root.removeAttribute('data-theme'); }
+            try { localStorage.setItem('mera-theme', next); } catch (e) { /* ignore */ }
+        }
+    </script>
+</th:block>
+
+</body>
+</html>

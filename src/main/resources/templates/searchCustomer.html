@@ -1,65 +1,64 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
     <link rel="icon" type="image/jpeg" href="/meraicon.ico">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tra cứu khách hàng</title>
+    <script th:replace="~{fragments/mera-layout :: themeInit}"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/mera-ui.css">
     <style>
-body{ font-family: Arial, Helvetica, sans-serif; background:#f6f7fb; color:#222; }
-.container{ max-width:1000px; margin:30px auto; background:#fff; padding:20px; border-radius:8px; box-shadow:0 2px 8px rgba(0,0,0,0.06);} 
-h1{ margin:0 0 12px; font-size:20px; }
-.search{ display:flex; gap:8px; margin-bottom:12px; }
-input#phoneInput{ flex:1; padding:8px 10px; font-size:14px; border:1px solid #ccc; border-radius:4px; }
-button#searchBtn, button#clearBtn{ padding:8px 12px; font-size:14px; border:none; background:#2563eb; color:#fff; border-radius:4px; cursor:pointer; }
-button#clearBtn{ background:#6b7280 }
-button#searchBtn:hover{ background:#1e4fd8 }
-button#clearBtn:hover{ background:#565e66 }
+/* Style riêng của trang - phần chưa có trong mera-ui.css */
+h1{ margin:0 0 12px; font-size:16px; font-weight:700; letter-spacing:-0.01em; }
+.search{ display:flex; gap:8px; }
+.search .mr-input{ flex:1; }
 
-.panel{ margin-top:12px; border-top:1px solid #eee; }
+.panel{ background:var(--mr-surface); border:1px solid var(--mr-border); border-radius:var(--mr-radius-card); padding:8px 16px 12px; margin-top:16px; }
 .panel-head{ display:flex; align-items:center; justify-content:space-between; padding:8px 0; }
-.panel-head h2{ margin:0; font-size:16px; }
-.toggle-btn{ background:#e5e7eb; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; font-size:16px; }
+.panel-head h2{ margin:0; font-size:15px; font-weight:600; }
+.toggle-btn{ background:var(--mr-surface-2); border:1px solid var(--mr-border); padding:4px 10px; border-radius:var(--mr-radius-control); cursor:pointer; font-size:16px; color:var(--mr-text-2); font-family:inherit; }
+.toggle-btn:hover{ background:var(--mr-border-soft); }
 .panel-body{ padding:8px 0; }
 .panel-body.collapsed{ display:none; }
 
-.data-table{ width:100%; border-collapse:collapse; }
-.data-table th, .data-table td{ border:1px solid #eee; padding:8px; text-align:left; font-size:14px; }
-.data-table thead th{ background:#fafafa; }
+/* .data-table do JS render động - giữ tên class, chỉ đưa màu về token */
+.data-table{ width:100%; border-collapse:collapse; font-size:13px; }
+.data-table th, .data-table td{ border:1px solid var(--mr-border-soft); padding:8px; text-align:left; }
+.data-table thead th{ background:var(--mr-surface-2); font-weight:600; color:var(--mr-text-2); }
+.data-table tbody tr:hover td{ background:var(--mr-accent-soft); }
 
         /* Responsive */
         @media (max-width: 768px) {
-          body { padding: 12px; }
-          
-          .container {
-            max-width: 100%;
-            margin: 0;
-            padding: 16px;
-          }
-          
-          h1 { font-size: 18px; }
-          
+          h1 { font-size: 15px; }
+
           .search { flex-direction: column; }
-          
+          .search .mr-btn { width: 100%; }
+
           .panel-head { flex-direction: column; align-items: flex-start; gap: 8px; }
-          
+
           .data-table { font-size: 12px; }
-          
+
           .data-table th, .data-table td { padding: 6px; }
         }
     </style>
 </head>
-<body>
-    <div class="container">
+<body class="mera-page">
+<th:block th:replace="~{fragments/mera-layout :: workspaceHeader('Tra Cứu Khách Hàng')}"></th:block>
+<div class="mr-workspace-content">
+        <div class="mr-card">
         <h1>Tra cứu khách hàng theo số điện thoại</h1>
         <div class="search">
-            <input id="phoneInput" type="phone" placeholder="Nhập số điện thoại..." required />
-            <button id="searchBtn">Tra cứu</button>
-            <button id="clearBtn" title="Hiển thị tất cả">Xóa</button>
+            <input id="phoneInput" class="mr-input" type="phone" placeholder="Nhập số điện thoại..." required />
+            <button id="searchBtn" class="mr-btn mr-btn--primary">Tra cứu</button>
+            <button id="clearBtn" class="mr-btn mr-btn--ghost" title="Hiển thị tất cả">Xóa</button>
         </div>
-        <div id="searchInfo" style="margin-top:8px; padding:8px; background:#f0f0f0; border-radius:4px; font-size:13px; color:#666; display:none;">
+        <div id="searchInfo" class="mr-alert mr-alert--info" style="margin-top:12px; margin-bottom:0; display:none;">
             <span>⏰ Thời gian tra cứu: <strong id="searchTimeText">-</strong></span>
             <span style="margin-left:16px;">⚡ Thời gian phản hồi: <strong id="responseTimeText">-</strong></span>
+        </div>
         </div>
 
         <section class="panel">
@@ -85,7 +84,8 @@ button#clearBtn:hover{ background:#565e66 }
             </header>
             <div id="appointmentsSection" class="panel-body"></div>
         </section>
-    </div>
+</div>
+<th:block th:replace="~{fragments/mera-layout :: shellScript}"></th:block>
         <script>
 let customers = [];
 let notes = [];
