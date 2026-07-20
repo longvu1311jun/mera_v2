@@ -2,9 +2,10 @@
  * Trang "Số thả nổi" — logic dùng chung cho bản admin (/khach-hang-canh-bao)
  * và bản chia sẻ cho team sale (/so-tha-noi).
  *
- * Nạp toàn bộ tập cảnh báo 1 lần từ /api/khach-hang-canh-bao/data, cache phía client,
- * rồi phân trang / lọc nhóm / tìm kiếm hoàn toàn trong trình duyệt (tức thời).
- * Polling 60s làm mới cache. Trang share không có form filter server -> tự dùng mặc định.
+ * PHÂN TRANG SERVER-SIDE: mỗi lần đổi trang / nhóm / tìm kiếm / sắp xếp / bộ lọc đều gọi
+ * /api/khach-hang-canh-bao/data với tham số tương ứng; server đọc bảng precompute
+ * problem_customer_facts (đã đánh index) và trả về ĐÚNG 1 trang + số đếm nhóm. Không còn
+ * tải toàn bộ tập / cap 5000. Polling 60s làm mới trang hiện tại.
  */
 (function () {
     const DATA_URL = '/api/khach-hang-canh-bao/data';
@@ -15,8 +16,10 @@
     const body = $('pcBody');
     if (!body) return; // không phải trang số nổi
 
-    // Toàn bộ tập (cache client) + trạng thái xem
-    let allRows = [];
+    // Cột "Thao tác" (nút xóa nhóm) chỉ có ở bản admin /khach-hang-canh-bao.
+    const isAdmin = body.dataset.admin === '1';
+    const COLSPAN = isAdmin ? 12 : 11;
+
     let lastData = null;
     let errorState = false;
     let inFlight = false;
@@ -28,9 +31,9 @@
     const state = {
         page: 1,
         pageSize: (pageSizeEl && parseInt(pageSizeEl.value, 10)) || 50,
-        group: 'all',        // all | A | B | C
+        group: 'all',        // all | A | B | C | D
         search: '',
-        sortKey: null,       // null = giữ thứ tự mặc định từ server
+        sortKey: null,       // null = thứ tự mặc định server
         sortDir: null        // 'asc' | 'desc' | null
     };
 
@@ -40,7 +43,6 @@
             .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
             .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
     }
-    function normDigits(s) { return (s || '').replace(/\D/g, ''); }
     function toggle(el, show) { if (el) el.style.display = show ? '' : 'none'; }
     function badge(cls, txt) { return '<span class="mr-badge ' + cls + '">' + txt + '</span>'; }
 
@@ -50,53 +52,56 @@
         if (label && text) label.textContent = text;
     }
 
-    // ---- Lọc client (nhóm + tìm kiếm) ----
-    function filteredRows() {
-        const g = state.group;
-        const term = state.search.trim().toLowerCase();
-        const digits = normDigits(state.search);
-        return allRows.filter(r => {
-            if (g === 'A' && !r.groupA) return false;
-            if (g === 'B' && !r.groupB) return false;
-            if (g === 'C' && !r.groupC) return false;
-            if (term) {
-                const nameMatch = (r.name || '').toLowerCase().indexOf(term) > -1;
-                const phoneMatch = digits.length > 0 && normDigits(r.phone).indexOf(digits) > -1;
-                if (!nameMatch && !phoneMatch) return false;
+    // ---- Render bảng (dữ liệu đã là 1 trang từ server) ----
+    function renderRows(rows, offset) {
+        if (!rows || !rows.length) { body.innerHTML = ''; return; }
+        const minNotes = lastData ? lastData.minNotes : 0;
+        let html = '';
+        for (let i = 0; i < rows.length; i++) {
+            const r = rows[i];
+            const noteCls = r.noteCount >= minNotes ? ' class="note-hot"' : '';
+            let badges = '';
+            if (r.groupA) badges += badge('mr-badge--warn', 'Nhóm A');
+            if (r.groupB) badges += badge('mr-badge--danger', 'Nhóm B');
+            if (r.groupC) badges += badge('mr-badge--info', 'Nhóm C');
+            if (r.groupD) badges += badge('mr-badge--neutral', 'Nhóm D');
+            let actionCell = '';
+            if (isAdmin) {
+                const groups = rowGroups(r);
+                actionCell = '<td class="pc-actions">'
+                    + (groups.length
+                        ? '<button type="button" class="pc-remove-btn" data-cid="' + escapeHtml(r.customerId)
+                            + '" data-groups="' + groups.join(',') + '" data-name="' + escapeHtml(r.name || r.customerId)
+                            + '">✕ Xóa nhóm</button>'
+                        : '')
+                    + '</td>';
             }
-            return true;
-        });
+            html += '<tr>'
+                + '<td>' + (offset + i + 1) + '</td>'
+                + '<td>' + escapeHtml(r.name) + '</td>'
+                + '<td>' + escapeHtml(r.phone != null ? r.phone : '—') + '</td>'
+                + '<td class="customer-id">' + escapeHtml(r.customerId) + '</td>'
+                + '<td class="num"><span' + noteCls + '>' + r.noteCount + '</span></td>'
+                + '<td class="num">' + r.orderCount + '</td>'
+                + '<td class="num">' + r.succeedOrderCount + '</td>'
+                + '<td>' + escapeHtml(r.insertedAt) + '</td>'
+                + '<td>' + escapeHtml(r.lastNoteAt) + '</td>'
+                + '<td>' + escapeHtml(r.lastReceivedAt) + '</td>'
+                + '<td>' + badges + '<div class="reason-text">' + escapeHtml(r.reason) + '</div></td>'
+                + actionCell
+                + '</tr>';
+        }
+        body.innerHTML = html;
     }
 
-    // ---- Sắp xếp theo cột (asc -> desc -> bỏ sort) ----
-    /** "dd/MM/yyyy HH:mm" -> số so sánh được; "—"/rỗng -> null (luôn đẩy xuống cuối). */
-    function dateSortVal(s) {
-        if (!s || s === '—') return null;
-        const m = s.match(/(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2})/);
-        if (!m) return null;
-        return +(m[3] + m[2] + m[1] + m[4] + m[5]);
-    }
-
-    const SORT_COLS = {
-        noteCount: r => r.noteCount,
-        orderCount: r => r.orderCount,
-        succeedOrderCount: r => r.succeedOrderCount,
-        insertedAt: r => dateSortVal(r.insertedAt),
-        lastNoteAt: r => dateSortVal(r.lastNoteAt),
-        lastReceivedAt: r => dateSortVal(r.lastReceivedAt)
-    };
-
-    function sortedRows(rows) {
-        const getter = state.sortKey && SORT_COLS[state.sortKey];
-        if (!getter || !state.sortDir) return rows;
-        const dir = state.sortDir === 'asc' ? 1 : -1;
-        return rows.slice().sort((a, b) => {
-            const va = getter(a), vb = getter(b);
-            if (va == null && vb == null) return 0;
-            if (va == null) return 1;   // giá trị rỗng luôn xuống cuối
-            if (vb == null) return -1;
-            return va < vb ? -dir : (va > vb ? dir : 0);
-        });
+    // Danh sách nhóm mà 1 dòng đang thuộc (thứ tự A→D).
+    function rowGroups(r) {
+        const g = [];
+        if (r.groupA) g.push('A');
+        if (r.groupB) g.push('B');
+        if (r.groupC) g.push('C');
+        if (r.groupD) g.push('D');
+        return g;
     }
 
     function updateSortIndicators() {
@@ -116,42 +121,15 @@
         } else if (state.sortDir === 'asc') {
             state.sortDir = 'desc';
         } else {
-            state.sortKey = null;   // lần 3: bỏ sort, về thứ tự mặc định
+            state.sortKey = null;   // lần 3: bỏ sort, về mặc định server
             state.sortDir = null;
         }
         state.page = 1;
         updateSortIndicators();
-        applyView();
+        loadData(false);
     }
 
-    function renderRows(rows, offset) {
-        if (!rows.length) { body.innerHTML = ''; return; }
-        const minNotes = lastData ? lastData.minNotes : 0;
-        let html = '';
-        for (let i = 0; i < rows.length; i++) {
-            const r = rows[i];
-            const noteCls = r.noteCount >= minNotes ? ' class="note-hot"' : '';
-            let badges = '';
-            if (r.groupA) badges += badge('mr-badge--warn', 'Nhóm A');
-            if (r.groupB) badges += badge('mr-badge--danger', 'Nhóm B');
-            if (r.groupC) badges += badge('mr-badge--info', 'Nhóm C');
-            html += '<tr>'
-                + '<td>' + (offset + i + 1) + '</td>'
-                + '<td>' + escapeHtml(r.name) + '</td>'
-                + '<td>' + escapeHtml(r.phone != null ? r.phone : '—') + '</td>'
-                + '<td class="customer-id">' + escapeHtml(r.customerId) + '</td>'
-                + '<td class="num"><span' + noteCls + '>' + r.noteCount + '</span></td>'
-                + '<td class="num">' + r.orderCount + '</td>'
-                + '<td class="num">' + r.succeedOrderCount + '</td>'
-                + '<td>' + escapeHtml(r.insertedAt) + '</td>'
-                + '<td>' + escapeHtml(r.lastNoteAt) + '</td>'
-                + '<td>' + escapeHtml(r.lastReceivedAt) + '</td>'
-                + '<td>' + badges + '<div class="reason-text">' + escapeHtml(r.reason) + '</div></td>'
-                + '</tr>';
-        }
-        body.innerHTML = html;
-    }
-
+    // ---- Phân trang ----
     function pageButton(label, page, opts) {
         opts = opts || {};
         const btn = document.createElement('button');
@@ -180,6 +158,7 @@
 
     function renderPagination(current, totalPages) {
         const pager = $('pcPager');
+        if (!pager) return;
         pager.innerHTML = '';
         pager.appendChild(pageButton('‹', current - 1, { disabled: current <= 1 }));
         pageList(current, totalPages).forEach(item => {
@@ -195,37 +174,35 @@
         pager.appendChild(pageButton('›', current + 1, { disabled: current >= totalPages }));
     }
 
-    // ---- Áp dụng bộ lọc/tìm kiếm + phân trang (tức thời, không gọi server) ----
-    function applyView() {
-        const rows = sortedRows(filteredRows());
-        const total = rows.length;
-        const totalPages = Math.max(1, Math.ceil(total / state.pageSize));
-        if (state.page > totalPages) state.page = totalPages;
-        if (state.page < 1) state.page = 1;
+    function renderView(data) {
+        const page = data.page || 1;
+        const pageSize = data.pageSize || state.pageSize;
+        const totalPages = Math.max(1, data.totalPages || 1);
+        const matched = data.matched || 0;
+        const offset = (page - 1) * pageSize;
 
-        const offset = (state.page - 1) * state.pageSize;
-        const slice = rows.slice(offset, offset + state.pageSize);
-        renderRows(slice, offset);
-        toggle($('pcEmpty'), total === 0 && !errorState);
+        renderRows(data.rows || [], offset);
+        toggle($('pcEmpty'), matched === 0 && !errorState);
 
-        const fullTotal = allRows.length;
+        const total = data.total || 0;
         let info;
-        if (total === 0) {
+        if (matched === 0) {
             info = 'Không có kết quả';
         } else {
-            const filteredNote = (total !== fullTotal) ? (' (lọc từ ' + fullTotal + ')') : '';
-            info = 'Hiển thị ' + (offset + 1) + '–' + (offset + slice.length) + ' / ' + total + ' KH' + filteredNote
-                 + ' · Trang ' + state.page + '/' + totalPages;
+            const shown = (data.rows || []).length;
+            const filteredNote = (matched !== total) ? (' (lọc từ ' + total + ')') : '';
+            info = 'Hiển thị ' + (offset + 1) + '–' + (offset + shown) + ' / ' + matched + ' KH' + filteredNote
+                 + ' · Trang ' + page + '/' + totalPages;
         }
         const infoEl = $('pcPageInfo');
         if (infoEl) infoEl.textContent = info;
-        renderPagination(state.page, totalPages);
+        renderPagination(page, totalPages);
     }
 
     function goToPage(page) {
         if (page < 1) return;
         state.page = page;
-        applyView();
+        loadData(false);
     }
 
     function setGroup(group) {
@@ -236,70 +213,74 @@
         document.querySelectorAll('.mr-stat[data-group]').forEach(el => {
             el.classList.toggle('is-active', el.getAttribute('data-group') === group);
         });
-        applyView();
+        loadData(false);
     }
 
-    // ---- Nạp dữ liệu từ server (fetch toàn bộ) ----
-    function serverFilters() {
+    // ---- Nạp 1 trang từ server ----
+    function serverParams() {
         const p = new URLSearchParams();
         SERVER_FILTER_KEYS.forEach(k => { const el = $(k); if (el && el.value !== '') p.set(k, el.value); });
+        p.set('group', state.group);
+        if (state.search) p.set('search', state.search);
+        if (state.sortKey && state.sortDir) { p.set('sort', state.sortKey); p.set('dir', state.sortDir); }
+        p.set('page', state.page);
+        p.set('pageSize', state.pageSize);
         return p;
     }
 
     async function loadData(silent) {
         if (inFlight) {
-            if (silent) return;               // poll nền có thể bỏ qua
-            if (currentAbort) currentAbort.abort(); // hành động của user: hủy request cũ, ưu tiên chạy ngay
+            if (silent) return;
+            if (currentAbort) currentAbort.abort();
         }
         inFlight = true;
         const ac = new AbortController();
         currentAbort = ac;
         if (!silent) {
             setLive('is-refresh', 'Đang cập nhật…');
-            // Feedback rõ ràng: bảng chuyển sang trạng thái đang tải (query có thể mất ~30s lần đầu)
-            body.innerHTML = '<tr><td colspan="11" class="mr-empty">⏳ Đang truy vấn dữ liệu, vui lòng đợi…</td></tr>';
+            body.innerHTML = '<tr><td colspan="' + COLSPAN + '" class="mr-empty">⏳ Đang tải…</td></tr>';
             toggle($('pcEmpty'), false);
         }
         try {
-            const params = serverFilters();
+            const params = serverParams();
             const res = await fetch(DATA_URL + '?' + params.toString(), { signal: ac.signal });
             if (!res.ok) throw new Error('HTTP ' + res.status);
             const data = await res.json();
             lastData = data;
-            allRows = data.rows || [];
             errorState = !!data.errorMessage;
 
-            // Số liệu tổng (toàn tập)
+            // Server có thể clamp trang → đồng bộ lại state
+            if (data.page) state.page = data.page;
+
+            // Stat card (toàn tập theo khoảng ngày)
             const set = (id, v) => { const el = $(id); if (el) el.textContent = v; };
             set('pcTotal', data.total);
             set('pcGroupA', data.groupACount);
             set('pcGroupB', data.groupBCount);
             set('pcGroupC', data.groupCCount);
+            set('pcGroupD', data.groupDCount);
 
-            // Cảnh báo
             const errAlert = $('pcErrorAlert');
             if (errAlert) { errAlert.textContent = errorState ? data.errorMessage : ''; toggle(errAlert, errorState); }
-            toggle($('pcCappedAlert'), data.capped && !errorState);
+            toggle($('pcCappedAlert'), false); // không còn cap ở server-side
 
-            // Meta + đồng bộ input (nếu có) đã clamp
             set('pcGeneratedAt', data.generatedAt);
             set('pcMaxDays', data.maxDays);
             set('pcMonths', data.months);
             SERVER_FILTER_KEYS.forEach(k => { const el = $(k); if (el && data[k] != null) el.value = data[k]; });
             updateDateLabel();
 
-            // Giữ URL cho các filter server (chỉ khi trang có form)
             if ($('pcFilterForm')) {
                 try { history.replaceState(null, '', location.pathname + '?' + params.toString()); } catch (e) {}
             }
 
-            applyView();
+            renderView(data);
             setLive('is-live', 'Cập nhật ' + new Date().toLocaleTimeString('vi-VN'));
         } catch (e) {
-            if (e.name === 'AbortError') return; // đã bị thay thế bởi request mới hơn
+            if (e.name === 'AbortError') return;
             console.error('Load số nổi lỗi:', e);
             setLive('is-down', 'Lỗi tải dữ liệu');
-            if (!silent) applyView(); // khôi phục bảng từ cache client thay vì kẹt ở "đang tải"
+            if (!silent && lastData) renderView(lastData); // khôi phục trang trước
         } finally {
             if (currentAbort === ac) { inFlight = false; currentAbort = null; }
         }
@@ -311,7 +292,7 @@
         form.addEventListener('submit', function (ev) {
             ev.preventDefault();
             state.page = 1;
-            loadData(false);   // filter server -> fetch lại
+            loadData(false);
         });
     }
 
@@ -322,7 +303,7 @@
         pageSizeEl.addEventListener('change', function () {
             state.pageSize = parseInt(this.value, 10) || state.pageSize;
             state.page = 1;
-            applyView();
+            loadData(false);
         });
     }
 
@@ -333,17 +314,89 @@
         el.addEventListener('click', () => setGroup(el.getAttribute('data-group')));
     });
 
-    // Sort theo cột: click luân phiên tăng dần -> giảm dần -> bỏ sort
     document.querySelectorAll('th.pc-sortable').forEach(th => {
         th.addEventListener('click', () => toggleSort(th.getAttribute('data-sort')));
     });
+
+    // ---- Xóa nhóm (chỉ admin) ----
+    const GROUP_LABEL = { A: 'Nhóm A', B: 'Nhóm B', C: 'Nhóm C', D: 'Nhóm D (Từ chối chăm)' };
+    let removeMenu = null;
+
+    function closeRemoveMenu() {
+        if (removeMenu) { removeMenu.remove(); removeMenu = null; }
+        document.removeEventListener('mousedown', onRemoveOutside);
+        document.removeEventListener('keydown', onRemoveEsc);
+    }
+    function onRemoveOutside(e) { if (removeMenu && !removeMenu.contains(e.target)) closeRemoveMenu(); }
+    function onRemoveEsc(e) { if (e.key === 'Escape') closeRemoveMenu(); }
+
+    function openRemoveMenu(btn, cid, name, groups) {
+        closeRemoveMenu();
+        const menu = document.createElement('div');
+        menu.className = 'pc-remove-menu';
+        let html = '<div class="pc-remove-menu-title">Xóa "' + escapeHtml(name) + '" khỏi:</div>';
+        groups.forEach(g => { html += '<button type="button" data-g="' + g + '">' + GROUP_LABEL[g] + '</button>'; });
+        if (groups.length > 1) html += '<button type="button" class="pc-remove-all" data-g="*">Tất cả nhóm trên</button>';
+        menu.innerHTML = html;
+        document.body.appendChild(menu);
+        const rect = btn.getBoundingClientRect();
+        menu.style.top = (window.scrollY + rect.bottom + 4) + 'px';
+        // Canh phải theo nút, không tràn mép trái
+        menu.style.left = Math.max(8, window.scrollX + rect.right - menu.offsetWidth) + 'px';
+        menu.querySelectorAll('button').forEach(b => {
+            b.addEventListener('click', () => {
+                const g = b.getAttribute('data-g');
+                closeRemoveMenu();
+                if (g === '*') removeGroups(cid, groups);
+                else removeGroups(cid, [g]);
+            });
+        });
+        setTimeout(() => {
+            document.addEventListener('mousedown', onRemoveOutside);
+            document.addEventListener('keydown', onRemoveEsc);
+        }, 0);
+    }
+
+    async function removeGroups(cid, groups) {
+        const names = groups.map(g => GROUP_LABEL[g]).join(', ');
+        if (!confirm('Xóa khách khỏi ' + names + '?')) return;
+        try {
+            for (const g of groups) {
+                const res = await fetch('/api/khach-hang-canh-bao/remove-group', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: 'customerId=' + encodeURIComponent(cid) + '&group=' + encodeURIComponent(g)
+                });
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                const data = await res.json();
+                if (!data.success) throw new Error(data.errorMessage || 'Lỗi không xác định');
+            }
+            loadData(false);
+        } catch (e) {
+            console.error('Xóa nhóm lỗi:', e);
+            alert('Xóa nhóm thất bại: ' + e.message);
+        }
+    }
+
+    if (isAdmin) {
+        body.addEventListener('click', function (e) {
+            const btn = e.target.closest('.pc-remove-btn');
+            if (!btn) return;
+            const cid = btn.getAttribute('data-cid');
+            const name = btn.getAttribute('data-name') || cid;
+            const groups = (btn.getAttribute('data-groups') || '').split(',').filter(Boolean);
+            if (!cid || !groups.length) return;
+            if (groups.length === 1) removeGroups(cid, groups);
+            else openRemoveMenu(btn, cid, name, groups);
+        });
+    }
 
     const searchEl = $('pcSearch');
     if (searchEl) {
         searchEl.addEventListener('input', function () {
             const v = this.value;
             clearTimeout(searchDebounce);
-            searchDebounce = setTimeout(() => { state.search = v; state.page = 1; applyView(); }, 200);
+            searchDebounce = setTimeout(() => { state.search = v.trim(); state.page = 1; loadData(false); }, 300);
         });
     }
 

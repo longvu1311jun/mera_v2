@@ -170,6 +170,12 @@ public class ProblemCustomerCache {
         }
     }
 
+    /** Xoá toàn bộ cache — gọi khi dữ liệu nền đổi (vd cập nhật danh sách Từ chối chăm). */
+    public void clear() {
+        cache.clear();
+        log.info("Đã xoá cache số thả nổi.");
+    }
+
     @PreDestroy
     public void shutdown() {
         refreshPool.shutdownNow();

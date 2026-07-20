@@ -5,6 +5,7 @@ import java.util.Collection;
 import java.util.List;
 import jakarta.persistence.QueryHint;
 import mera.mera_v2.customer.DTO.OrderPresenceView;
+import mera.mera_v2.customer.DTO.PhoneMatchView;
 import mera.mera_v2.customer.DTO.ProblemCustomerView;
 import mera.mera_v2.entity.Customer;
 import org.springframework.data.jpa.repository.Query;
@@ -28,114 +29,53 @@ import org.springframework.data.repository.query.Param;
  *            và hiện KHÔNG có đơn nào đang xử lý.
  *
  * lastReceivedAt = MAX của 2 nhánh (khớp mã KH / khớp SĐT); NULL khi chưa có đơn đã nhận.
- * Dùng GREATEST(COALESCE(a,b), COALESCE(b,a)) để giữ đúng kiểu DATETIME (tránh sentinel chuỗi).
  *
- * Hiệu năng: filter khoảng Ngày tạo KH (:fromDate/:toDate) được đẩy vào TỪNG derived table
- * (JOIN customers c2 đã lọc) để khi chọn khoảng hẹp, các phép GROUP BY chỉ chạy trên tập
- * khách trong khoảng thay vì toàn bảng orders / customer_notes. Query cũng đặt timeout 90s
- * (query hint) để không bao giờ treo vô hạn khi DB quá tải.
+ * Hiệu năng: danh sách KHÔNG còn tính trực tiếp bằng query nhiều JOIN nặng (từng gây treo 90s).
+ * Toàn bộ "facts" theo từng khách (đếm đơn, số ghi chú, mốc gần nhất, có đơn active/đã nhận...)
+ * được tính sẵn định kỳ vào bảng {@code problem_customer_facts} bởi
+ * {@code ProblemCustomerFactsService}. Đọc danh sách chỉ là 1 SELECT phẳng đã đánh index
+ * ({@link #findProblemCustomerFacts}). Điều kiện nhóm A/B/C vẫn áp lúc đọc (theo ngưỡng +
+ * thời điểm hiện tại) nên đổi bộ lọc vẫn đúng.
  */
 public interface ProblemCustomerRepository extends Repository<Customer, String> {
 
-    @QueryHints(@QueryHint(name = "jakarta.persistence.query.timeout", value = "90000"))
+    /**
+     * Đọc danh sách "Số thả nổi" từ bảng facts precompute {@code problem_customer_facts}.
+     * Chỉ 1 SELECT phẳng (index theo note_count / inserted_at / has_received) — nhanh, không
+     * bao giờ treo. Nhóm A/B/C áp trực tiếp trên facts + ngưỡng hiện tại (giống logic cũ):
+     *  - Nhóm A: chưa có đơn đã nhận, note_count &gt;= :minNotes.
+     *  - Nhóm B: chưa có đơn đã nhận, tạo trong khoảng [:oldestTime, :thresholdTime), note_count &gt;= 1.
+     *  - Nhóm C: đã có đơn đã nhận nhưng lần gần nhất &lt; :staleTime.
+     * active_order_count = 0 đảm bảo khách chưa có đơn đang xử lý (đã tính sẵn khi refresh).
+     */
+    @QueryHints(@QueryHint(name = "jakarta.persistence.query.timeout", value = "30000"))
     @Query(value = """
-        SELECT c.id AS customerId,
-               c.name AS name,
-               p.phone_number AS phone,
-               c.inserted_at AS insertedAt,
-               (COALESCE(tot.cnt, 0) + COALESCE(oph.total_cnt, 0)) AS orderCount,
-               (COALESCE(rcv.cnt, 0) + COALESCE(oph.received_cnt, 0)) AS succeedOrderCount,
-               c.last_order_at AS lastOrderAt,
-               COALESCE(n.note_count, 0) AS noteCount,
-               n.last_note_at AS lastNoteAt,
-               CASE WHEN COALESCE(rcv.cnt, 0) > 0 OR COALESCE(oph.has_received, 0) > 0 THEN 1 ELSE 0 END AS hasReceivedOrder,
-               GREATEST(COALESCE(rcv.last_received_at, oph.last_received_at),
-                        COALESCE(oph.last_received_at, rcv.last_received_at)) AS lastReceivedAt
-        FROM customers c
-        LEFT JOIN (
-            SELECT cn.customer_id, COUNT(*) AS note_count, MAX(cn.created_at) AS last_note_at
-            FROM customer_notes cn
-            JOIN customers c2 ON c2.id = cn.customer_id
-                 AND c2.inserted_at >= :fromDate AND c2.inserted_at < :toDate
-            WHERE cn.removed_at IS NULL
-            GROUP BY cn.customer_id
-        ) n ON n.customer_id = c.id
-        LEFT JOIN (
-            SELECT o.customer_id, COUNT(*) AS cnt
-            FROM orders o
-            JOIN customers c2 ON c2.id = o.customer_id
-                 AND c2.inserted_at >= :fromDate AND c2.inserted_at < :toDate
-            WHERE o.status IN (11, 1, 8, 9, 2)
-            GROUP BY o.customer_id
-        ) act ON act.customer_id = c.id
-        LEFT JOIN (
-            SELECT o.customer_id, COUNT(*) AS cnt, MAX(o.inserted_at) AS last_received_at
-            FROM orders o
-            JOIN customers c2 ON c2.id = o.customer_id
-                 AND c2.inserted_at >= :fromDate AND c2.inserted_at < :toDate
-            WHERE o.status IN (3, 16)
-            GROUP BY o.customer_id
-        ) rcv ON rcv.customer_id = c.id
-        -- Tổng đơn (mọi trạng thái) khớp theo mã KH
-        LEFT JOIN (
-            SELECT o.customer_id, COUNT(*) AS cnt
-            FROM orders o
-            JOIN customers c2 ON c2.id = o.customer_id
-                 AND c2.inserted_at >= :fromDate AND c2.inserted_at < :toDate
-            GROUP BY o.customer_id
-        ) tot ON tot.customer_id = c.id
-        LEFT JOIN (
-            SELECT cpn.customer_id,
-                   SUBSTRING_INDEX(GROUP_CONCAT(cpn.phone_number ORDER BY cpn.is_primary DESC, cpn.id ASC), ',', 1) AS phone_number
-            FROM customer_phone_numbers cpn
-            JOIN customers c2 ON c2.id = cpn.customer_id
-                 AND c2.inserted_at >= :fromDate AND c2.inserted_at < :toDate
-            GROUP BY cpn.customer_id
-        ) p ON p.customer_id = c.id
-        LEFT JOIN (
-            SELECT cpn.customer_id,
-                   MAX(CASE WHEN op.status IN (11, 1, 8, 9, 2) THEN 1 ELSE 0 END) AS has_active,
-                   MAX(CASE WHEN op.status IN (3, 16) THEN 1 ELSE 0 END) AS has_received,
-                   MAX(CASE WHEN op.status IN (3, 16) THEN op.inserted_at END) AS last_received_at,
-                   -- Đếm đơn khớp qua SĐT, loại đơn đã đếm ở nhánh khớp mã KH (tránh đếm trùng)
-                   SUM(CASE WHEN op.status IN (3, 16) AND NOT (op.customer_id <=> cpn.customer_id) THEN 1 ELSE 0 END) AS received_cnt,
-                   SUM(CASE WHEN NOT (op.customer_id <=> cpn.customer_id) THEN 1 ELSE 0 END) AS total_cnt
-            FROM customer_phone_numbers cpn
-            JOIN customers c2 ON c2.id = cpn.customer_id
-                 AND c2.inserted_at >= :fromDate AND c2.inserted_at < :toDate
-            JOIN (
-                SELECT customer_id, status, inserted_at,
-                       RIGHT(REGEXP_REPLACE(customer_phone, '[^0-9]', ''), 9) AS p9
-                FROM orders
-                WHERE customer_phone IS NOT NULL
-                  AND LENGTH(REGEXP_REPLACE(customer_phone, '[^0-9]', '')) >= 9
-            ) op ON RIGHT(cpn.phone_number, 9) = op.p9
-            WHERE LENGTH(cpn.phone_number) >= 9
-            GROUP BY cpn.customer_id
-        ) oph ON oph.customer_id = c.id
-        WHERE COALESCE(act.cnt, 0) = 0
-          AND COALESCE(oph.has_active, 0) = 0
-          -- Lọc theo khoảng Ngày tạo KH (mặc định mở rộng khi không truyền)
-          AND c.inserted_at >= :fromDate
-          AND c.inserted_at < :toDate
+        SELECT customer_id AS customerId,
+               name AS name,
+               phone AS phone,
+               inserted_at AS insertedAt,
+               order_count AS orderCount,
+               succeed_order_count AS succeedOrderCount,
+               last_order_at AS lastOrderAt,
+               note_count AS noteCount,
+               last_note_at AS lastNoteAt,
+               has_received AS hasReceivedOrder,
+               last_received_at AS lastReceivedAt
+        FROM problem_customer_facts
+        WHERE active_order_count = 0
+          AND inserted_at >= :fromDate AND inserted_at < :toDate
           AND (
                -- Nhóm A / B: chưa có đơn đã nhận
-               (COALESCE(rcv.cnt, 0) = 0 AND COALESCE(oph.has_received, 0) = 0
-                AND (
-                     COALESCE(n.note_count, 0) >= :minNotes
-                  OR (c.inserted_at < :thresholdTime
-                      AND c.inserted_at >= :oldestTime
-                      AND COALESCE(n.note_count, 0) >= 1)
-                ))
+               (has_received = 0
+                AND (note_count >= :minNotes
+                     OR (inserted_at < :thresholdTime AND inserted_at >= :oldestTime AND note_count >= 1)))
                -- Nhóm C: có đơn đã nhận nhưng lần gần nhất quá lâu
-            OR ((COALESCE(rcv.cnt, 0) > 0 OR COALESCE(oph.has_received, 0) > 0)
-                AND GREATEST(COALESCE(rcv.last_received_at, oph.last_received_at),
-                             COALESCE(oph.last_received_at, rcv.last_received_at)) < :staleTime)
+            OR (has_received = 1 AND last_received_at < :staleTime)
           )
-        ORDER BY noteCount DESC, c.inserted_at ASC
+        ORDER BY note_count DESC, inserted_at ASC
         LIMIT :maxRows
         """, nativeQuery = true)
-    List<ProblemCustomerView> findProblemCustomers(
+    List<ProblemCustomerView> findProblemCustomerFacts(
         @Param("minNotes") int minNotes,
         @Param("thresholdTime") LocalDateTime thresholdTime,
         @Param("oldestTime") LocalDateTime oldestTime,
@@ -150,7 +90,7 @@ public interface ProblemCustomerRepository extends Repository<Customer, String> 
      * "đã tối ưu" (có đơn đang xử lý / đã nhận) với "rời vì lý do khác".
      *
      * <p>Đối chiếu đơn theo mã KH VÀ theo SĐT (9 số cuối), khử trùng phần khớp SĐT với phần đã
-     * khớp mã KH — cùng logic với {@link #findProblemCustomers}. Chỉ quét trong phạm vi :ids nên
+     * khớp mã KH — cùng logic với query refresh facts. Chỉ quét trong phạm vi :ids nên
      * nhẹ hơn nhiều so với query danh sách đầy đủ.</p>
      */
     @QueryHints(@QueryHint(name = "jakarta.persistence.query.timeout", value = "90000"))
@@ -175,18 +115,132 @@ public interface ProblemCustomerRepository extends Repository<Customer, String> 
                    SUM(CASE WHEN op.status IN (3, 16) AND NOT (op.customer_id <=> cpn.customer_id) THEN 1 ELSE 0 END) AS rcv,
                    SUM(CASE WHEN NOT (op.customer_id <=> cpn.customer_id) THEN 1 ELSE 0 END) AS tot
             FROM customer_phone_numbers cpn
-            JOIN (
-                SELECT customer_id, status,
-                       RIGHT(REGEXP_REPLACE(customer_phone, '[^0-9]', ''), 9) AS p9
-                FROM orders
-                WHERE customer_phone IS NOT NULL
-                  AND LENGTH(REGEXP_REPLACE(customer_phone, '[^0-9]', '')) >= 9
-            ) op ON RIGHT(cpn.phone_number, 9) = op.p9
+            JOIN orders op ON op.phone9 = cpn.phone9
             WHERE cpn.customer_id IN (:ids)
-              AND LENGTH(cpn.phone_number) >= 9
+              AND cpn.phone9 IS NOT NULL
             GROUP BY cpn.customer_id
         ) byPhone ON byPhone.cid = c.id
         WHERE c.id IN (:ids)
         """, nativeQuery = true)
     List<OrderPresenceView> checkOrderPresence(@Param("ids") Collection<String> ids);
+
+    /**
+     * Khớp danh sách "9 số cuối SĐT" (từ file Excel) → mã khách hàng.
+     *
+     * <p>Nhiều khách chỉ được nhận diện qua SĐT trên ĐƠN (orders.customer_phone) chứ chưa có
+     * trong customer_phone_numbers. Vì vậy khớp qua CẢ HAI nguồn (giống cách trang số nổi đối
+     * chiếu đơn theo 9 số cuối), rồi lấy MIN(customer_id) cho mỗi số. Chỉ nhận customer_id đã
+     * tồn tại (orders.customer_id chỉ được gán khi khách có trong bảng customers).</p>
+     */
+    @QueryHints(@QueryHint(name = "jakarta.persistence.query.timeout", value = "90000"))
+    @Query(value = """
+        SELECT m.p9 AS p9, MIN(m.customer_id) AS customerId
+        FROM (
+            SELECT cpn.phone9 AS p9, cpn.customer_id AS customer_id
+            FROM customer_phone_numbers cpn
+            WHERE cpn.phone9 IN (:phones9)
+            UNION ALL
+            SELECT o.phone9 AS p9, o.customer_id AS customer_id
+            FROM orders o
+            WHERE o.customer_id IS NOT NULL
+              AND o.phone9 IN (:phones9)
+        ) m
+        WHERE m.customer_id IS NOT NULL
+        GROUP BY m.p9
+        """, nativeQuery = true)
+    List<PhoneMatchView> matchCustomerIdsByPhone9(@Param("phones9") Collection<String> phones9);
+
+    /**
+     * Trong các "9 số cuối" không khớp được khách, lọc ra những số CÓ đơn trong hệ thống
+     * nhưng đơn chưa được gán mã khách (orders.customer_id IS NULL) — để báo lý do cụ thể
+     * khi tải danh sách SĐT không khớp trên trang Từ chối chăm.
+     */
+    @QueryHints(@QueryHint(name = "jakarta.persistence.query.timeout", value = "90000"))
+    @Query(value = """
+        SELECT DISTINCT o.phone9
+        FROM orders o
+        WHERE o.phone9 IN (:phones9)
+          AND o.customer_id IS NULL
+        """, nativeQuery = true)
+    List<String> findPhone9HavingOrdersWithoutCustomer(@Param("phones9") Collection<String> phones9);
+
+    /** Mã khách trong danh sách "Từ chối chăm" (để loại khỏi nhóm A/B/C — TCC đè). */
+    @Query(value = "SELECT customer_id FROM refused_care", nativeQuery = true)
+    List<String> findRefusedCareIds();
+
+    /**
+     * Làm giàu thông tin cho nhóm D "Từ chối chăm": mọi khách trong bảng refused_care
+     * (không cần điều kiện A/B/C), có lọc theo khoảng Ngày tạo KH. Các phép GROUP BY được
+     * giới hạn trong tập refused_care (nhỏ) nên nhẹ. Cấu trúc đếm đơn giống query chính
+     * (khớp mã KH + khớp 9 số cuối SĐT) để "tổng đơn" nhất quán với nhóm A/B/C.
+     */
+    @QueryHints(@QueryHint(name = "jakarta.persistence.query.timeout", value = "90000"))
+    @Query(value = """
+        SELECT c.id AS customerId,
+               c.name AS name,
+               COALESCE(p.phone_number, rc.phone) AS phone,
+               c.inserted_at AS insertedAt,
+               (COALESCE(tot.cnt, 0) + COALESCE(oph.total_cnt, 0)) AS orderCount,
+               (COALESCE(rcv.cnt, 0) + COALESCE(oph.received_cnt, 0)) AS succeedOrderCount,
+               c.last_order_at AS lastOrderAt,
+               COALESCE(n.note_count, 0) AS noteCount,
+               n.last_note_at AS lastNoteAt,
+               CASE WHEN COALESCE(rcv.cnt, 0) > 0 OR COALESCE(oph.has_received, 0) > 0 THEN 1 ELSE 0 END AS hasReceivedOrder,
+               GREATEST(COALESCE(rcv.last_received_at, oph.last_received_at),
+                        COALESCE(oph.last_received_at, rcv.last_received_at)) AS lastReceivedAt
+        FROM refused_care rc
+        JOIN customers c ON c.id = rc.customer_id
+             AND c.inserted_at >= :fromDate AND c.inserted_at < :toDate
+        LEFT JOIN (
+            SELECT cn.customer_id, COUNT(*) AS note_count, MAX(cn.created_at) AS last_note_at
+            FROM customer_notes cn
+            JOIN refused_care r2 ON r2.customer_id = cn.customer_id
+            WHERE cn.removed_at IS NULL
+            GROUP BY cn.customer_id
+        ) n ON n.customer_id = c.id
+        LEFT JOIN (
+            SELECT o.customer_id, COUNT(*) AS cnt
+            FROM orders o JOIN refused_care r2 ON r2.customer_id = o.customer_id
+            GROUP BY o.customer_id
+        ) tot ON tot.customer_id = c.id
+        LEFT JOIN (
+            SELECT o.customer_id, COUNT(*) AS cnt, MAX(o.inserted_at) AS last_received_at
+            FROM orders o JOIN refused_care r2 ON r2.customer_id = o.customer_id
+            WHERE o.status IN (3, 16)
+            GROUP BY o.customer_id
+        ) rcv ON rcv.customer_id = c.id
+        LEFT JOIN (
+            SELECT cpn.customer_id,
+                   SUBSTRING_INDEX(GROUP_CONCAT(cpn.phone_number ORDER BY cpn.is_primary DESC, cpn.id ASC), ',', 1) AS phone_number
+            FROM customer_phone_numbers cpn
+            JOIN refused_care r2 ON r2.customer_id = cpn.customer_id
+            GROUP BY cpn.customer_id
+        ) p ON p.customer_id = c.id
+        LEFT JOIN (
+            SELECT cpn.customer_id,
+                   MAX(CASE WHEN op.status IN (3, 16) THEN 1 ELSE 0 END) AS has_received,
+                   MAX(CASE WHEN op.status IN (3, 16) THEN op.inserted_at END) AS last_received_at,
+                   SUM(CASE WHEN op.status IN (3, 16) AND NOT (op.customer_id <=> cpn.customer_id) THEN 1 ELSE 0 END) AS received_cnt,
+                   SUM(CASE WHEN NOT (op.customer_id <=> cpn.customer_id) THEN 1 ELSE 0 END) AS total_cnt
+            FROM customer_phone_numbers cpn
+            JOIN refused_care r2 ON r2.customer_id = cpn.customer_id
+            JOIN orders op ON op.phone9 = cpn.phone9
+            WHERE cpn.phone9 IS NOT NULL
+            GROUP BY cpn.customer_id
+        ) oph ON oph.customer_id = c.id
+        -- Chỉ giữ ở Nhóm D nếu KHÔNG có đơn nhận nào MỚI hơn ngày thêm vào TCC.
+        -- Khi khách nhận đơn mới (đơn nhận gần nhất > uploaded_at) = sale tối ưu được
+        -- → rời Nhóm D (job đối soát sẽ đưa sang "Khách Đã Tối Ưu").
+        WHERE GREATEST(COALESCE(rcv.last_received_at, oph.last_received_at),
+                       COALESCE(oph.last_received_at, rcv.last_received_at)) IS NULL
+           OR GREATEST(COALESCE(rcv.last_received_at, oph.last_received_at),
+                       COALESCE(oph.last_received_at, rcv.last_received_at)) <= rc.uploaded_at
+        ORDER BY noteCount DESC, c.inserted_at ASC
+        LIMIT :maxRows
+        """, nativeQuery = true)
+    List<ProblemCustomerView> findRefusedCareCustomers(
+        @Param("fromDate") LocalDateTime fromDate,
+        @Param("toDate") LocalDateTime toDate,
+        @Param("maxRows") int maxRows
+    );
 }

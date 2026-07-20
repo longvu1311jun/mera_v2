@@ -41,12 +41,12 @@
 
   <div th:if="${message}" class="mr-alert mr-alert--warn">
     <span th:text="${message}"></span>
-    <br><a href="/">Đăng nhập tại đây</a>
+    <br><a href="/home">Đăng nhập tại đây</a>
   </div>
 
   <p th:if="${!hasToken and !message}" class="mr-alert mr-alert--danger">
     Vui lòng đăng nhập tại trang chủ để tự động lấy token và báo cáo.
-    <br><a href="/">Đăng nhập tại đây</a>
+    <br><a href="/home">Đăng nhập tại đây</a>
   </p>
 
 

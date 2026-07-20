@@ -39,6 +39,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -454,29 +455,36 @@ public class OrderSyncService {
       }
     }
 
-    // --- Step 4: Batch save with deadlock retry ---
+    // --- Step 4: Batch save ---
+    // Sort theo primary key để mọi transaction (kể cả instance thứ 2 cùng trỏ pos_db)
+    // khóa dòng theo cùng một thứ tự — tránh deadlock 1213 do khóa chéo.
+    // KHÔNG retry bên trong transaction này: khi deadlock, InnoDB đã rollback toàn bộ
+    // transaction nên phải để exception ném ra cho retryBatchSync chạy lại cả trang
+    // trong transaction mới (upsert idempotent nên an toàn).
     List<Order> ordersToSave = new ArrayList<>(ordersToSaveMap.values());
+    ordersToSave.sort(Comparator.comparing(Order::getId));
     List<OrderItem> itemsToSave = new ArrayList<>(itemsToSaveMap.values());
+    itemsToSave.sort(Comparator.comparing(OrderItem::getId));
 
     if (!customersToSave.isEmpty()) {
-      saveWithDeadlockRetry(() -> self.persistCustomersInNewTx(customersToSave));
+      customersToSave.sort(Comparator.comparing(Customer::getId));
+      batchUpsertCustomers(customersToSave);
       log.debug("Saved {} customers", customersToSave.size());
     }
-
-    saveWithDeadlockRetry(() -> {
-      if (!ordersToSave.isEmpty()) {
-        batchUpsertOrders(ordersToSave);
-        log.debug("Batch upserted {} orders", ordersToSave.size());
-      }
-      if (!itemsToSave.isEmpty()) {
-        orderItemRepository.saveAll(itemsToSave);
-        log.debug("Saved {} order items", itemsToSave.size());
-      }
-      if (!statusHistoriesToSave.isEmpty()) {
-        orderStatusHistoryRepository.saveAll(statusHistoriesToSave);
-        log.debug("Saved {} status histories", statusHistoriesToSave.size());
-      }
-    });
+    if (!ordersToSave.isEmpty()) {
+      batchUpsertOrders(ordersToSave);
+      log.debug("Batch upserted {} orders", ordersToSave.size());
+    }
+    if (!itemsToSave.isEmpty()) {
+      orderItemRepository.saveAll(itemsToSave);
+      log.debug("Saved {} order items", itemsToSave.size());
+    }
+    if (!statusHistoriesToSave.isEmpty()) {
+      statusHistoriesToSave.sort(
+          Comparator.comparing(h -> h.getOrder() != null ? h.getOrder().getId() : Long.MAX_VALUE));
+      orderStatusHistoryRepository.saveAll(statusHistoriesToSave);
+      log.debug("Saved {} status histories", statusHistoriesToSave.size());
+    }
 
     return new BatchSyncResult(
         insertedCustomers, updatedCustomers,
@@ -635,13 +643,6 @@ public class OrderSyncService {
           .toArray(SqlParameterSource[]::new);
       namedParameterJdbcTemplate.batchUpdate(UPSERT_CUSTOMER_SQL, batchParams);
     }
-  }
-
-  public void persistCustomersInNewTx(List<Customer> customers) {
-    if (customers == null || customers.isEmpty()) {
-      return;
-    }
-    batchUpsertCustomers(customers);
   }
 
   private MapSqlParameterSource customerToSqlParams(Customer c) {
@@ -1164,37 +1165,6 @@ public class OrderSyncService {
       }
     }
     return new BatchSyncResult(0, 0, 0, 0, 0, 0, 0, 0, orders.size(), List.of("Max retries exceeded"), List.of());
-  }
-
-  @FunctionalInterface
-  private interface RetryableOperation {
-    void execute() throws Exception;
-  }
-
-  private void saveWithDeadlockRetry(RetryableOperation op) {
-    int retries = 0;
-    int maxRetries = 10;
-    while (retries < maxRetries) {
-      try {
-        op.execute();
-        return;
-      } catch (Exception e) {
-        if (isDeadlockOrRollbackOnly(e)) {
-          retries++;
-          long waitTime = 1000L * retries; // 1s, 2s, 3s...
-          log.warn("Deadlock/rollback error on attempt {}/{}, waiting {}ms before retry...",
-              retries, maxRetries, waitTime);
-          if (retries >= maxRetries) {
-            log.error("Deadlock persisted after {} retries, giving up", maxRetries);
-            return; // Skip this batch instead of throwing
-          }
-          try { Thread.sleep(waitTime); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
-        } else {
-          log.error("Non-deadlock error: {}", e.getMessage());
-          throw e instanceof RuntimeException ? (RuntimeException) e : new RuntimeException(e);
-        }
-      }
-    }
   }
 
   private boolean isDeadlockOrRollbackOnly(Throwable t) {
