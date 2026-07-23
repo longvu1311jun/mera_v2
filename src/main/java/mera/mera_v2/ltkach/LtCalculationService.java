@@ -58,7 +58,8 @@ public class LtCalculationService {
         ).setParameter("orderId", orderId).getSingleResult();
 
         String customerId = (String) orderRow[1];
-        Boolean currentLtType = orderRow[3] != null ? (((Number) orderRow[3]).intValue() == 1) : null;
+        // Driver MariaDB map TINYINT(1) thành Boolean, không phải Number
+        Boolean currentLtType = toBoolean(orderRow[3]);
         Integer oldLtCount = orderRow[4] != null ? ((Number) orderRow[4]).intValue() : 0;
 
         // 2. Lấy items của order
@@ -264,6 +265,19 @@ public class LtCalculationService {
         }
 
         return result;
+    }
+
+    /**
+     * Đọc giá trị TINYINT(1)/BOOLEAN từ native query — tuỳ driver trả về Boolean hoặc Number.
+     */
+    private Boolean toBoolean(Object value) {
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof Boolean b) {
+            return b;
+        }
+        return ((Number) value).intValue() == 1;
     }
 
     /**
