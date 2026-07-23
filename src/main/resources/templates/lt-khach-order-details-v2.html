@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <link rel="icon" type="image/jpeg" href="/meraicon.ico">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đơn Hàng - LT Khách</title>
+    <script th:replace="~{fragments/mera-layout :: themeInit}"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/mera-ui.css">
+    <link rel="stylesheet" href="/css/lt-khach.css">
+    <link rel="stylesheet" href="/css/pancake-theme.css">
+    <link rel="stylesheet" href="/css/lt-khach-order-details.css">
+</head>
+<body class="mera-page">
+<div class="mr-shell">
+
+    <th:block th:replace="~{fragments/mera-layout :: sidebar('lt-khach')}"></th:block>
+
+    <div class="mr-shell-main">
+        <th:block th:replace="~{fragments/mera-layout :: topbar('LT Khách / Đơn Hàng')}"></th:block>
+
+        <main class="mr-shell-content">
+            <div class="lt-khach-tabs">
+                <a href="/lt-khach/dashboard" class="lt-khach-tab"><span class="tab-icon">📊</span><span class="tab-label">Dashboard</span></a>
+                <a href="/lt-khach/report" class="lt-khach-tab"><span class="tab-icon">📈</span><span class="tab-label">Báo Cáo</span></a>
+                <a href="/lt-khach/order-details" class="lt-khach-tab active"><span class="tab-icon">🛒</span><span class="tab-label">Đơn Hàng</span></a>
+                <a href="/lt-khach/combo" class="lt-khach-tab"><span class="tab-icon">⚙️</span><span class="tab-label">Cấu Hình LT</span></a>
+                <a href="/lt-khach/substitution" class="lt-khach-tab"><span class="tab-icon">💊</span><span class="tab-label">Thuốc Thay Thế</span></a>
+            </div>
+
+            <div class="pk-page">
+                <div class="pk-page-header">
+                    <div>
+                        <h1>🛒 Chi Tiết Đơn Hàng</h1>
+                        <p>Tra cứu thông tin đơn: mã, khách hàng, người tạo, nguồn, LT, sản phẩm.</p>
+                    </div>
+                    <div class="pk-page-filters">
+                        <label style="display:flex;flex-direction:column;gap:4px;font-size:11px;color:var(--pk-muted);text-transform:uppercase;letter-spacing:0.5px;font-weight:600;">
+                            Từ ngày
+                            <input type="date" id="fromDate">
+                        </label>
+                        <label style="display:flex;flex-direction:column;gap:4px;font-size:11px;color:var(--pk-muted);text-transform:uppercase;letter-spacing:0.5px;font-weight:600;">
+                            Đến ngày
+                            <input type="date" id="toDate">
+                        </label>
+                        <button type="button" class="pk-btn pk-btn--primary" id="loadBtn">🔄 Tải đơn</button>
+                    </div>
+                </div>
+
+                <div class="pk-page-filters" style="padding:10px 14px;background:var(--pk-card);border:1px solid var(--pk-hairline);border-radius:var(--pk-radius-md);">
+                    <label style="display:flex;flex-direction:column;gap:4px;font-size:11px;color:var(--pk-muted);text-transform:uppercase;letter-spacing:0.5px;font-weight:600;">
+                        Lọc Tên khách / SĐT / Mã đơn
+                        <input type="text" id="filterCustomer" placeholder="Tên, số điện thoại hoặc mã đơn...">
+                    </label>
+                    <label style="display:flex;flex-direction:column;gap:4px;font-size:11px;color:var(--pk-muted);text-transform:uppercase;letter-spacing:0.5px;font-weight:600;">
+                        Lọc theo LT
+                        <select id="filterLt">
+                            <option value="">Tất cả</option>
+                            <option value="LT">LT</option>
+                            <option value="LT_LE">LT Lẻ</option>
+                        </select>
+                    </label>
+                    <label style="display:flex;flex-direction:column;gap:4px;font-size:11px;color:var(--pk-muted);text-transform:uppercase;letter-spacing:0.5px;font-weight:600;">
+                        Lọc LT Real
+                        <select id="filterLtReal">
+                            <option value="">Tất cả</option>
+                            <option value="1">1</option>
+                            <option value="2">2</option>
+                            <option value="3">3</option>
+                            <option value="4">4</option>
+                            <option value=">4">&gt;4</option>
+                        </select>
+                    </label>
+                    <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--pk-muted);margin-top:18px;">
+                        <input type="checkbox" id="zaloOnly" checked> Chỉ Zalo
+                    </label>
+                    <button type="button" class="pk-btn" id="clearBtn" style="margin-top:14px;">✖ Xóa bộ lọc</button>
+                </div>
+
+                <div class="pk-error" id="orderError" hidden></div>
+
+                <div class="pk-panel">
+                    <div class="pk-panel-head">
+                        <div>
+                            <h3>Danh sách đơn hàng</h3>
+                            <div class="pk-panel-sub" id="tableInfo">—</div>
+                        </div>
+                        <div class="pk-page-filters" style="gap:6px;font-size:12px;">
+                            <label style="display:flex;align-items:center;gap:6px;color:var(--pk-muted);">
+                                Sắp xếp:
+                                <select id="sortColumn">
+                                    <option value="insertedAt">Thời gian tạo</option>
+                                    <option value="id">Mã đơn</option>
+                                    <option value="customerName">Tên khách</option>
+                                    <option value="totalPrice">Tổng tiền</option>
+                                    <option value="cod">COD</option>
+                                    <option value="creatorName">Người tạo</option>
+                                </select>
+                            </label>
+                            <label style="display:flex;align-items:center;gap:6px;color:var(--pk-muted);">
+                                Thứ tự:
+                                <select id="sortOrder">
+                                    <option value="desc">Giảm dần</option>
+                                    <option value="asc">Tăng dần</option>
+                                </select>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="od-table-wrap">
+                        <table class="od-table">
+                            <thead>
+                                <tr>
+                                    <th>Mã đơn</th>
+                                    <th>Tên khách</th>
+                                    <th>SĐT</th>
+                                    <th>Người tạo</th>
+                                    <th>LT</th>
+                                    <th>LT Real</th>
+                                    <th>Tổng tiền</th>
+                                    <th>COD</th>
+                                    <th>Nguồn</th>
+                                    <th>Thời gian tạo</th>
+                                    <th>Sản phẩm</th>
+                                </tr>
+                            </thead>
+                            <tbody id="orderTbody">
+                                <tr><td colspan="11" class="pk-empty">Bấm "Tải đơn" để xem dữ liệu.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+        <footer class="mr-shell-footer">MeraGroup Dashboard v2.0 - LT Khách Module</footer>
+    </div>
+</div>
+
+<th:block th:replace="~{fragments/mera-layout :: shellScript}"></th:block>
+<script>
+(function () {
+    const $ = id => document.getElementById(id);
+    const fmt = v => new Intl.NumberFormat('vi-VN').format(Math.round(Number(v) || 0));
+    const fmtDate = d => {
+        if (!d) return '';
+        try { return new Date(d).toLocaleString('vi-VN'); } catch { return d; }
+    };
+    const esc = s => { if (s == null) return ''; return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); };
+    const fetchJson = async url => { const r = await fetch(url); if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); };
+    const showErr = (id, msg) => { const b = $(id); b.textContent = '❌ ' + msg; b.hidden = false; };
+    const hideErr = id => { const b = $(id); b.hidden = true; b.textContent = ''; };
+
+    let allRows = [];
+
+    function defaultDates() {
+        const now = new Date();
+        const today = now.toISOString().slice(0, 10);
+        const f = new Date(now); f.setDate(now.getDate() - 30);
+        $('fromDate').value = f.toISOString().slice(0, 10);
+        $('toDate').value = today;
+        $('fromDate').max = today;
+        $('toDate').max = today;
+    }
+
+    async function loadOrders() {
+        hideErr('orderError');
+        const f = $('fromDate').value, to = $('toDate').value;
+        if (!f || !to) { showErr('orderError', 'Vui lòng chọn từ/đến ngày.'); return; }
+        if (f > to) { showErr('orderError', 'Từ ngày phải ≤ đến ngày.'); return; }
+        $('loadBtn').disabled = true; $('loadBtn').textContent = 'Đang tải...';
+        try {
+            const url = '/api/ltkach/order-details?fromDate=' + f + '&toDate=' + to
+                + '&zaloOnly=' + ($('zaloOnly').checked ? 'true' : 'false')
+                + '&limit=500';
+            const data = await fetchJson(url);
+            allRows = data.orders || [];
+            renderTable();
+        } catch (e) {
+            showErr('orderError', 'Không tải được: ' + e.message);
+        } finally {
+            $('loadBtn').disabled = false; $('loadBtn').textContent = '🔄 Tải đơn';
+        }
+    }
+
+    function renderTable() {
+        const tbody = $('orderTbody');
+        const customer = ($('filterCustomer').value || '').toLowerCase().trim();
+        const lt = $('filterLt').value;
+        const ltReal = $('filterLtReal').value;
+        let rows = allRows.slice();
+        if (customer) {
+            rows = rows.filter(o => (o.customerName && o.customerName.toLowerCase().includes(customer))
+                || (o.customerPhone && (o.customerPhone + '').includes(customer))
+                || (o.id + '').includes(customer)
+                || (o.orderCode && (o.orderCode + '').toLowerCase().includes(customer)));
+        }
+        if (lt) {
+            // lt: '' = all, '1' = LT lẻ (true), '0' = LT chẵn (false)
+            if (lt === '1') rows = rows.filter(o => o.ltType === true);
+            else if (lt === '0') rows = rows.filter(o => !o.ltType);
+        }
+        if (ltReal) {
+            // ltReal: filter theo lt_count của customer
+            if (ltReal === '>4') rows = rows.filter(o => (o.ltCount || 0) > 4);
+            else rows = rows.filter(o => (o.ltCount || 0) === Number(ltReal));
+        }
+        const col = $('sortColumn').value;
+        const ord = $('sortOrder').value;
+        rows.sort((a, b) => {
+            let av = a[col], bv = b[col];
+            if (col === 'insertedAt') { av = av ? new Date(av).getTime() : 0; bv = bv ? new Date(bv).getTime() : 0; }
+            if (typeof av === 'string') av = av.toLowerCase();
+            if (typeof bv === 'string') bv = bv.toLowerCase();
+            if (av < bv) return ord === 'asc' ? -1 : 1;
+            if (av > bv) return ord === 'asc' ? 1 : -1;
+            return 0;
+        });
+        $('tableInfo').textContent = `Tổng ${allRows.length} đơn · Hiển thị ${rows.length}`;
+        if (rows.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="11" class="pk-empty">Không có đơn nào khớp bộ lọc.</td></tr>';
+            return;
+        }
+        tbody.innerHTML = rows.map(o => `<tr>
+            <td class="od-cell od-id" title="ID: ${o.id}">${esc(o.orderCode || o.id)}</td>
+            <td class="od-cell od-name">${esc(o.customerName || '-')}</td>
+            <td class="od-cell od-phone">${esc(o.customerPhone || '-')}</td>
+            <td class="od-cell">${esc(o.creatorName || '-')}</td>
+            <td class="od-cell">${o.ltType ? 'LT LẺ' : 'LT'}</td>
+            <td class="od-cell">${o.ltCount != null ? o.ltCount : '-'}</td>
+            <td class="od-cell od-money">${fmt(o.totalPrice)}</td>
+            <td class="od-cell od-money">${fmt(o.cod)}</td>
+            <td class="od-cell">${esc(o.orderSourcesName || '-')}</td>
+            <td class="od-cell od-time">${fmtDate(o.insertedAt)}</td>
+            <td class="od-cell od-products" title="${esc(o.products || '')}">${esc(o.products || '-')}</td>
+        </tr>`).join('');
+    }
+
+    defaultDates();
+    $('loadBtn').addEventListener('click', loadOrders);
+    $('clearBtn').addEventListener('click', () => {
+        $('filterCustomer').value = '';
+        $('filterLt').value = '';
+        $('filterLtReal').value = '';
+        renderTable();
+    });
+    ['filterCustomer', 'filterLt', 'filterLtReal', 'sortColumn', 'sortOrder'].forEach(id =>
+        $(id).addEventListener('input', renderTable));
+    $('sortColumn').addEventListener('change', renderTable);
+    $('sortOrder').addEventListener('change', renderTable);
+
+    window.addEventListener('DOMContentLoaded', () => $('loadBtn').click());
+})();
+</script>
+</body>
+</html>

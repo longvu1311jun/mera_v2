@@ -68,4 +68,43 @@ public class OptimizedCustomer {
     /** Thời điểm phát hiện khách đã rời danh sách vì đã lên đơn. */
     @Column(name = "optimized_at")
     private LocalDateTime optimizedAt;
+
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+
+    public String getCustomerId() { return customerId; }
+    public void setCustomerId(String customerId) { this.customerId = customerId; }
+
+    public String getName() { return name; }
+    public void setName(String name) { this.name = name; }
+
+    public String getPhone() { return phone; }
+    public void setPhone(String phone) { this.phone = phone; }
+
+    public int getNoteCount() { return noteCount; }
+    public void setNoteCount(int noteCount) { this.noteCount = noteCount; }
+
+    public String getReason() { return reason; }
+    public void setReason(String reason) { this.reason = reason; }
+
+    public String getCustomerCreatedText() { return customerCreatedText; }
+    public void setCustomerCreatedText(String customerCreatedText) { this.customerCreatedText = customerCreatedText; }
+
+    public int getOrderCountBefore() { return orderCountBefore; }
+    public void setOrderCountBefore(int orderCountBefore) { this.orderCountBefore = orderCountBefore; }
+
+    public int getSucceedBefore() { return succeedBefore; }
+    public void setSucceedBefore(int succeedBefore) { this.succeedBefore = succeedBefore; }
+
+    public int getOrderCountAfter() { return orderCountAfter; }
+    public void setOrderCountAfter(int orderCountAfter) { this.orderCountAfter = orderCountAfter; }
+
+    public int getSucceedAfter() { return succeedAfter; }
+    public void setSucceedAfter(int succeedAfter) { this.succeedAfter = succeedAfter; }
+
+    public LocalDateTime getFirstSeenAt() { return firstSeenAt; }
+    public void setFirstSeenAt(LocalDateTime firstSeenAt) { this.firstSeenAt = firstSeenAt; }
+
+    public LocalDateTime getOptimizedAt() { return optimizedAt; }
+    public void setOptimizedAt(LocalDateTime optimizedAt) { this.optimizedAt = optimizedAt; }
 }

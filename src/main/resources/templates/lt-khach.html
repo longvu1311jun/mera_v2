@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <link rel="icon" type="image/jpeg" href="/meraicon.ico">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LT Khách - MeraGroup</title>
+    <script th:replace="~{fragments/mera-layout :: themeInit}"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/mera-ui.css">
+    <link rel="stylesheet" href="/css/lt-khach.css">
+</head>
+<body class="mera-page">
+<div class="mr-shell">
+
+    <th:block th:replace="~{fragments/mera-layout :: sidebar('lt-khach')}"></th:block>
+
+    <div class="mr-shell-main">
+        <th:block th:replace="~{fragments/mera-layout :: topbar('LT Khách')}"></th:block>
+
+        <main class="mr-shell-content lt-khach-container">
+            
+            <!-- LT Khách Navigation -->
+            <div class="lt-khach-tabs">
+                <a href="/lt-khach/dashboard" class="lt-khach-tab" id="tab-dashboard">
+                    <span class="tab-icon">📊</span>
+                    <span class="tab-label">Dashboard</span>
+                </a>
+                <a href="/lt-khach/report" class="lt-khach-tab" id="tab-report">
+                    <span class="tab-icon">📈</span>
+                    <span class="tab-label">Doanh Số SALE 2</span>
+                </a>
+                <a href="/lt-khach/order-details" class="lt-khach-tab" id="tab-order-details">
+                    <span class="tab-icon">🛒</span>
+                    <span class="tab-label">Đơn Hàng</span>
+                </a>
+                <a href="/lt-khach/combo" class="lt-khach-tab" id="tab-combo">
+                    <span class="tab-icon">⚙️</span>
+                    <span class="tab-label">Cấu Hình LT</span>
+                </a>
+                <a href="/lt-khach/substitution" class="lt-khach-tab" id="tab-substitution">
+                    <span class="tab-icon">💊</span>
+                    <span class="tab-label">Thuốc Thay Thế</span>
+                </a>
+            </div>
+
+            <!-- Content Area - sẽ được load bằng iframe hoặc JS -->
+            <div class="lt-khach-content" id="ltKhachContent">
+                <div class="lt-khach-placeholder">
+                    <div class="placeholder-icon">🎯</div>
+                    <h2>LT Khách</h2>
+                    <p>Quản lý và theo dõi tỷ lệ chốt đơn (Lần Trả) của khách hàng</p>
+                    <div class="placeholder-links">
+                        <a href="/lt-khach/dashboard" class="mr-btn mr-btn--primary">
+                            <span>📊</span> Mở Dashboard
+                        </a>
+                        <a href="/lt-khach/report" class="mr-btn mr-btn--ghost">
+                            <span>📈</span> Xem Báo Cáo
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+
+        <footer class="mr-shell-footer">
+            MeraGroup Dashboard v2.0 - LT Khách Module
+        </footer>
+    </div>
+</div>
+
+<th:block th:replace="~{fragments/mera-layout :: shellScript}"></th:block>
+<script>
+    // Auto-highlight active tab based on current URL
+    (function() {
+        var path = window.location.pathname;
+        var tabs = document.querySelectorAll('.lt-khach-tab');
+        tabs.forEach(function(tab) {
+            var href = tab.getAttribute('href');
+            if (path === href || path.startsWith(href + '/')) {
+                tab.classList.add('active');
+            }
+        });
+    })();
+</script>
+
+</body>
+</html>

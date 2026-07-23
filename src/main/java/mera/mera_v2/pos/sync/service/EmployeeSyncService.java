@@ -3,6 +3,8 @@ package mera.mera_v2.pos.sync.service;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import lombok.extern.slf4j.Slf4j;
 import mera.mera_v2.entity.*;
 import mera.mera_v2.pos.sync.client.EmployeeApiClient;
@@ -18,6 +20,7 @@ import java.util.*;
 @Service
 @RequiredArgsConstructor
 public class EmployeeSyncService {
+  private static final Logger log = LoggerFactory.getLogger(EmployeeSyncService.class);
 
     private static final long DEFAULT_SHOP_ID = 1546758L;
 

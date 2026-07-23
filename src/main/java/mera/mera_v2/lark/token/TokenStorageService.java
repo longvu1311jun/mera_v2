@@ -1,6 +1,7 @@
 package mera.mera_v2.lark.token;
 
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -9,12 +10,12 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 
 /**
- * Service Ä‘á»ƒ lÆ°u trá»¯ token persistent (in-memory)
- * Äá»ƒ scheduler cÃ³ thá»ƒ truy cáº­p vÃ  lÃ m má»›i token
+ * Service để lưu trữ token persistent (in-memory)
+ * Để scheduler có thể truy cập và làm mới token
  */
 @Service
-@Slf4j
 public class TokenStorageService {
+    private static final Logger log = LoggerFactory.getLogger(TokenStorageService.class);
 
     private volatile String userAccessToken;
     private volatile String refreshToken;

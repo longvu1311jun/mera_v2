@@ -197,7 +197,7 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
       @Param("time_assign_care") java.time.LocalDateTime timeAssignCare,
       @Param("inserted_at") java.time.LocalDateTime insertedAt,
       @Param("updated_at") java.time.LocalDateTime updatedAt,
-      @Param("lt_type") String ltType, @Param("tick") Integer tick,
+      @Param("lt_type") Boolean ltType, @Param("tick") Integer tick,
       @Param("created_at") java.time.LocalDateTime createdAt,
       @Param("customer_address") String customerAddress,
       @Param("customer_name") String customerName,

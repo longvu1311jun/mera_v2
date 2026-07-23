@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <link rel="icon" type="image/jpeg" href="/meraicon.ico">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Doanh Số SALE 2 - LT Khách</title>
+    <script th:replace="~{fragments/mera-layout :: themeInit}"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/mera-ui.css">
+    <link rel="stylesheet" href="/css/lt-khach.css">
+    <link rel="stylesheet" href="/css/pancake-theme.css">
+    <link rel="stylesheet" href="/css/lt-khach-report.css">
+    <style>
+        .pk-page-header {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .pk-page-header > div:first-child {
+            flex: 1;
+        }
+        .pk-page-filters {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+        .rep-table th.lt-header {
+            min-width: 50px;
+            width: 50px;
+        }
+        .rep-table th.dt-lt-money {
+            min-width: 100px;
+        }
+        .rep-table td.lt-cell {
+            text-align: center;
+        }
+        .rep-table td.dt-lt-money {
+            text-align: right;
+            color: var(--pk-success, #10b981);
+        }
+        .rep-table td.revenue-total-col {
+            font-weight: 600;
+            color: var(--pk-success, #10b981);
+            text-align: right;
+        }
+        .rep-table th.revenue-total-col {
+            background: #ecfdf5;
+            color: #047857;
+        }
+    </style>
+</head>
+<body class="mera-page">
+<div class="mr-shell">
+
+    <th:block th:replace="~{fragments/mera-layout :: sidebar('lt-khach')}"></th:block>
+
+    <div class="mr-shell-main">
+        <th:block th:replace="~{fragments/mera-layout :: topbar('LT Khách / Báo Cáo')}"></th:block>
+
+        <main class="mr-shell-content">
+            <div class="lt-khach-tabs">
+                <a href="/lt-khach/dashboard" class="lt-khach-tab"><span class="tab-icon">📊</span><span class="tab-label">Dashboard</span></a>
+                <a href="/lt-khach/report" class="lt-khach-tab active"><span class="tab-icon">📈</span><span class="tab-label">Doanh Số SALE 2</span></a>
+                <a href="/lt-khach/order-details" class="lt-khach-tab"><span class="tab-icon">🛒</span><span class="tab-label">Đơn Hàng</span></a>
+                <a href="/lt-khach/combo" class="lt-khach-tab"><span class="tab-icon">⚙️</span><span class="tab-label">Cấu Hình LT</span></a>
+                <a href="/lt-khach/substitution" class="lt-khach-tab"><span class="tab-icon">💊</span><span class="tab-label">Thuốc Thay Thế</span></a>
+            </div>
+
+            <div class="pk-page">
+                <div class="pk-page-header">
+                    <div>
+                        <h1>📈 Doanh Số SALE 2</h1>
+                        <p>Doanh số theo tháng - Chỉ Zalo</p>
+                    </div>
+                    <div class="pk-page-filters">
+                        <label style="display:flex;flex-direction:column;gap:4px;font-size:11px;color:var(--pk-muted);text-transform:uppercase;letter-spacing:0.5px;font-weight:600;">
+                            Tháng báo cáo
+                            <input type="month" id="reportMonth">
+                        </label>
+                        <button type="button" class="pk-btn pk-btn--primary" id="loadBtn">📊 Tải Báo Cáo</button>
+                        <button type="button" class="pk-btn" id="exportBtn">⬇ Xuất Excel</button>
+                    </div>
+                </div>
+
+                <div class="pk-error" id="reportError" hidden></div>
+
+                <div class="pk-panel">
+                    <div class="pk-panel-head">
+                        <div>
+                            <h3>Bảng hiệu suất nhân viên</h3>
+                            <div class="pk-panel-sub" id="tableInfo">—</div>
+                        </div>
+                    </div>
+
+                    <!-- DOANH SỐ view -->
+                    <div id="viewStatsContent" class="rep-table-view active">
+                        <div class="rep-table-wrap">
+                            <table class="rep-table">
+                                <thead>
+                                    <tr>
+                                        <th class="rep-sticky-col-1">#</th>
+                                        <th class="rep-sticky-col-2">Họ Tên</th>
+                                        <th>ĐƠN HÀNG</th>
+                                        <th class="lt-header">LT Lẻ</th>
+                                        <th class="lt-header dt-lt-money">DT LT LẺ</th>
+                                        <th class="lt-header">LT1</th>
+                                        <th class="lt-header dt-lt-money">DT LT1</th>
+                                        <th class="lt-header">LT2</th>
+                                        <th class="lt-header dt-lt-money">DT LT2</th>
+                                        <th class="lt-header">LT3</th>
+                                        <th class="lt-header dt-lt-money">DT LT3</th>
+                                        <th class="lt-header">LT4</th>
+                                        <th class="lt-header dt-lt-money">DT LT4</th>
+                                        <th class="revenue-total-col">Doanh thu</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="statsTbody">
+                                    <tr><td colspan="14" class="pk-empty">Chọn tháng và bấm "Tải Báo Cáo".</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+        <footer class="mr-shell-footer">MeraGroup Dashboard v2.0 - LT Khách Module</footer>
+    </div>
+</div>
+
+<th:block th:replace="~{fragments/mera-layout :: shellScript}"></th:block>
+<script>
+(function () {
+    const $ = id => document.getElementById(id);
+    const fmt = v => new Intl.NumberFormat('vi-VN').format(Math.round(Number(v) || 0));
+
+    const ymNow = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); };
+    const parseYM = ym => { const m = /^(\d{4})-(\d{2})$/.exec(ym); return m ? { y: +m[1], mo: +m[2] } : null; };
+    const period = ym => {
+        const p = parseYM(ym); if (!p) return null;
+        const last = new Date(p.y, p.mo, 0).getDate();
+        return { from: `${p.y}-${String(p.mo).padStart(2,'0')}-01`, to: `${p.y}-${String(p.mo).padStart(2,'0')}-${String(last).padStart(2,'0')}` };
+    };
+    const fetchJson = async url => { const r = await fetch(url); if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); };
+    const showErr = (id, msg) => { const b = $(id); b.textContent = '❌ ' + msg; b.hidden = false; };
+    const hideErr = id => { const b = $(id); b.hidden = true; b.textContent = ''; };
+
+    let allRows = [];
+
+    async function loadReport() {
+        hideErr('reportError');
+        const p = period($('reportMonth').value);
+        if (!p) { showErr('reportError', 'Tháng không hợp lệ.'); return; }
+        $('loadBtn').disabled = true; $('loadBtn').textContent = 'Đang tải...';
+        try {
+            const rows = await fetchJson('/api/ltkach/performance?fromDate=' + p.from + '&toDate=' + p.to + '&source=zalo');
+            allRows = rows || [];
+            renderStatsTable(allRows);
+            $('tableInfo').textContent = `Tổng ${allRows.length} nhân viên`;
+        } catch (e) {
+            showErr('reportError', 'Không tải được: ' + e.message);
+        } finally {
+            $('loadBtn').disabled = false; $('loadBtn').textContent = '📊 Tải Báo Cáo';
+        }
+    }
+
+    function renderStatsTable(rows) {
+        const tbody = $('statsTbody');
+        if (rows.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="16" class="pk-empty">Không có dữ liệu.</td></tr>';
+            return;
+        }
+        tbody.innerHTML = rows.map((r, idx) => {
+            return `<tr>
+                <td class="rep-sticky-col-1 rep-data-cell">${idx + 1}</td>
+                <td class="rep-sticky-col-2 rep-name-cell">${esc(r.fullName || r.userId)}</td>
+                <td class="rep-data-cell">${fmt(r.totalOrdersReceived)}</td>
+                <td class="lt-cell">${fmt(r.ltLe || 0)}</td>
+                <td class="dt-lt-money">${fmt(r.dtLtLe || 0)}</td>
+                <td class="lt-cell">${fmt(r.lt1 || 0)}</td>
+                <td class="dt-lt-money">${fmt(r.dtLt1 || 0)}</td>
+                <td class="lt-cell">${fmt(r.lt2 || 0)}</td>
+                <td class="dt-lt-money">${fmt(r.dtLt2 || 0)}</td>
+                <td class="lt-cell">${fmt(r.lt3 || 0)}</td>
+                <td class="dt-lt-money">${fmt(r.dtLt3 || 0)}</td>
+                <td class="lt-cell">${fmt(r.lt4 || 0)}</td>
+                <td class="dt-lt-money">${fmt(r.dtLt4 || 0)}</td>
+                <td class="revenue-total-col">${fmt(r.revenue || 0)}</td>
+            </tr>`;
+        }).join('');
+    }
+
+    function esc(s) { if (s == null) return ''; return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
+
+    function exportCsv() {
+        if (!allRows.length) { alert('Chưa có dữ liệu để xuất'); return; }
+        const headers = ['#', 'Nhân viên', 'UserId', 'Khách (data)', 'Đơn nhận', 'Hoàn thành', 'Hủy', 'Tỷ lệ chốt (%)', 'Doanh thu'];
+        const rows = allRows.map((r, i) => [
+            i + 1,
+            r.fullName || '',
+            r.userId || '',
+            r.totalDataReceived || 0,
+            r.totalOrdersReceived || 0,
+            r.completedOrders || 0,
+            r.cancelledOrders || 0,
+            (r.completionRate || 0).toFixed(2),
+            r.revenue || 0
+        ]);
+        const csv = [headers, ...rows].map(r => r.map(c => `"${c}"`).join(',')).join('\n');
+        const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'bao-cao-' + $('reportMonth').value + '.csv';
+        a.click();
+    }
+
+    $('reportMonth').value = ymNow();
+    $('loadBtn').addEventListener('click', loadReport);
+    $('exportBtn').addEventListener('click', exportCsv);
+
+    window.addEventListener('DOMContentLoaded', () => $('loadBtn').click());
+})();
+</script>
+</body>
+</html>

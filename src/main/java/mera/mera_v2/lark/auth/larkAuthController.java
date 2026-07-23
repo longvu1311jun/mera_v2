@@ -4,7 +4,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Controller;
@@ -14,12 +15,13 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-@Slf4j
 @Controller
 @RequestMapping("/lark")
 @RequiredArgsConstructor
 public class larkAuthController {
-  @Value("${lark.app-id}")
+    private static final Logger log = LoggerFactory.getLogger(larkAuthController.class);
+
+    @Value("${lark.app-id}")
   private String appId;
 
   @Value("${lark.redirect-uri}")

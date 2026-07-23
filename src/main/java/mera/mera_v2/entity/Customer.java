@@ -86,8 +86,8 @@ public class Customer {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
-    @Column(name = "lt_real", precision = 10, scale = 2)
-    private BigDecimal ltReal;
+    @Column(name = "lt_count")
+    private Integer ltCount = 0;
 
     @OneToMany(mappedBy = "customer", fetch = FetchType.LAZY, cascade = CascadeType.REMOVE)
     private List<CustomerAddress> addresses = new ArrayList<>();

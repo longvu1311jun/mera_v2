@@ -11,6 +11,7 @@ import mera.mera_v2.entity.OrderItem;
 import mera.mera_v2.entity.OrderPayment;
 import mera.mera_v2.entity.OrderStatusHistory;
 import mera.mera_v2.lark.webhook.dto.PosOrderWebhook;
+import mera.mera_v2.ltkach.LtCalculationService;
 import mera.mera_v2.repository.CustomerPhoneNumberRepository;
 import mera.mera_v2.repository.CustomerRepository;
 import mera.mera_v2.repository.OrderItemRepository;
@@ -47,6 +48,7 @@ public class WebhookPersistenceService {
     private final OrderStatusHistoryRepository orderStatusHistoryRepository;
     private final CustomerPhoneNumberRepository customerPhoneNumberRepository;
     private final PosUserRepository posUserRepository;
+    private final LtCalculationService ltCalculationService;
     private final ObjectMapper objectMapper;
 
     public PersistenceResult saveFromWebhook(JsonNode webhookData) {
@@ -93,6 +95,18 @@ public class WebhookPersistenceService {
                 // 5. Luu OrderStatusHistory
                 int historiesSaved = saveOrderStatusHistory(orderWebhook);
                 result.setHistoriesSaved(historiesSaved);
+
+                // 6. Tinh LT (Liệu Trình) cho order vừa lưu
+                Integer orderStatus = orderWebhook.getStatus();
+                boolean isCompletedOrder = (orderStatus != null && orderStatus == 3);
+                try {
+                    LtCalculationService.LtResult ltResult = ltCalculationService.calculateForOrder(orderId, isCompletedOrder);
+                    result.setLtType(ltResult.ltType());
+                    result.setLtCount(ltResult.ltCount());
+                    log.info("   LT: order={}, lt_type={}, lt_count={}", orderId, ltResult.ltType(), ltResult.ltCount());
+                } catch (Exception e) {
+                    log.warn("   LT: Loi khi tinh LT cho order {}: {}", orderId, e.getMessage());
+                }
 
                 result.setSuccess(true);
                 log.info("=== HOÀN THÀNH LƯU DATA: Order #{} ===", orderId);
@@ -870,6 +884,8 @@ public class WebhookPersistenceService {
         private int itemsSaved;
         private int paymentsSaved;
         private int historiesSaved;
+        private boolean ltType;
+        private int ltCount;
     }
 
     @lombok.Data

@@ -2,6 +2,8 @@ package mera.mera_v2.report.sale;
 
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import lombok.extern.slf4j.Slf4j;
 import mera.mera_v2.model.SaleSummaryRow;
 import mera.mera_v2.repository.OrderRepository;
@@ -11,6 +13,7 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 @Slf4j
 public class SaleReportTongDonService {
+  private static final Logger log = LoggerFactory.getLogger(SaleReportTongDonService.class);
 
   private static final int ORDER_STATUS_COMPLETED = 3;
   private static final int ORDER_STATUS_CANCELLED = 6;

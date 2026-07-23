@@ -1,6 +1,8 @@
 package mera.mera_v2.pos.attendance.controller;
 
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import lombok.extern.slf4j.Slf4j;
 import mera.mera_v2.config.SyncFeatureToggleService;
 import mera.mera_v2.entity.LarkAttendancePunch;
@@ -21,6 +23,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Slf4j
 public class AttendancePunchController {
+  private static final Logger log = LoggerFactory.getLogger(AttendancePunchController.class);
 
     private final LarkAttendancePunchRepository attendancePunchRepository;
     private final AttendanceSyncScheduler attendanceSyncScheduler;
