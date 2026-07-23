@@ -60,8 +60,23 @@ public class OrderApiDto {
   @JsonProperty("sub_status")
   private String subStatus;
 
+  // API thường trả số, nhưng đơn marketplace trả chuỗi kiểu "pzl_332931694312735907" —
+  // cột DB là BIGINT nên id dạng chuỗi đành bỏ (order_sources_name vẫn giữ tên nguồn).
+  @JsonIgnore
+  private Long orderSourcesId;
+
   @JsonProperty("order_sources")
-  private Long orderSources;
+  public void setOrderSources(String raw) {
+    try {
+      this.orderSourcesId = (raw == null || raw.isBlank()) ? null : Long.valueOf(raw.trim());
+    } catch (NumberFormatException e) {
+      this.orderSourcesId = null;
+    }
+  }
+
+  public Long getOrderSources() {
+    return orderSourcesId;
+  }
 
   @JsonProperty("order_sources_name")
   private String orderSourcesName;

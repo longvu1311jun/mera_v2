@@ -100,6 +100,7 @@
         /* Bảng */
         .note-hot { font-weight: 700; color: var(--mr-warn); }
         .mr-table .mr-badge { margin-right: 4px; }
+        .mr-stat--tcc .mr-stat-value { color: #64748b; }
         /* Cột sort được: click luân phiên tăng -> giảm -> bỏ sort */
         th.pc-sortable { cursor: pointer; user-select: none; white-space: nowrap; }
         th.pc-sortable:hover { color: var(--mr-accent, #2563eb); }
@@ -171,9 +172,15 @@
         </div>
         <div class="mr-stat mr-stat--info" data-group="C">
             <div class="mr-stat-label">Nhóm C
-                <span class="pc-tip pc-tip--end" data-tip="Đơn đã nhận gần nhất đã quá lâu và hiện không có đơn đang xử lý.">?</span>
+                <span class="pc-tip" data-tip="Đơn đã nhận gần nhất đã quá lâu và hiện không có đơn đang xử lý.">?</span>
             </div>
             <div class="mr-stat-value" id="pcGroupC">0</div>
+        </div>
+        <div class="mr-stat mr-stat--tcc" data-group="D">
+            <div class="mr-stat-label">Nhóm D
+                <span class="pc-tip pc-tip--end" data-tip="Khách từ chối chăm — nạp từ file danh sách. Không giục sale chăm nữa.">?</span>
+            </div>
+            <div class="mr-stat-value" id="pcGroupD">0</div>
         </div>
     </div>
 
@@ -191,6 +198,7 @@
                 <option value="A">Nhóm A</option>
                 <option value="B">Nhóm B</option>
                 <option value="C">Nhóm C</option>
+                <option value="D">Nhóm D (Từ chối chăm)</option>
             </select>
         </div>
 <!--        <div class="mr-field pc-daterange">-->

@@ -18,8 +18,9 @@ import mera.mera_v2.repository.CustomerNoteEditHistoryRepository;
 import mera.mera_v2.repository.CustomerNoteRepository;
 import mera.mera_v2.repository.CustomerPhoneNumberRepository;
 import mera.mera_v2.repository.CustomerRepository;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -43,7 +44,12 @@ public class CustomerSyncService {
     private final CustomerNoteRepository customerNoteRepository;
     private final CustomerNoteEditHistoryRepository editHistoryRepository;
     private final CustomerPhoneNumberRepository customerPhoneNumberRepository;
+    private final TransactionTemplate transactionTemplate;
     private final ObjectMapper objectMapper = new ObjectMapper();
+
+    /** shop_id NOT NULL trong DB nhưng API có bản ghi thiếu shop_id → dùng shop cấu hình (luôn là 1546758). */
+    @Value("${pos.api.shop-id}")
+    private Long defaultShopId;
 
     public CustomerSyncResult syncCustomers(String startDate, String endDate, Integer pageSize) {
         int size = pageSize != null && pageSize > 0 ? pageSize : 50;
@@ -89,7 +95,10 @@ public class CustomerSyncService {
                 break;
             }
 
-            PageOutcome outcome = persistPage(customers);
+            // Bọc qua TransactionTemplate vì gọi nội bộ (this.persistPage) không đi qua proxy
+            // → @Transactional không có hiệu lực; deleteByNoteIdIn (@Modifying) sẽ lỗi
+            // "No active transaction" khi có ghi chú bị xoá phía API.
+            PageOutcome outcome = transactionTemplate.execute(status -> persistPage(customers));
             insertedCustomers += outcome.insertedCustomers;
             updatedCustomers += outcome.updatedCustomers;
             insertedNotes += outcome.insertedNotes;
@@ -118,7 +127,7 @@ public class CustomerSyncService {
                 .build();
     }
 
-    @Transactional
+    /** Luôn gọi trong transaction (qua {@code transactionTemplate} ở syncCustomers — xem ghi chú tại đó). */
     public PageOutcome persistPage(List<CustomerApiDto> customers) {
         PageOutcome outcome = new PageOutcome();
         if (customers == null || customers.isEmpty()) {
@@ -183,6 +192,7 @@ public class CustomerSyncService {
             Customer customer = existing != null ? existing : new Customer();
             customer.setId(customerId);
             if (dto.getShopId() != null) customer.setShopId(dto.getShopId());
+            else if (customer.getShopId() == null) customer.setShopId(defaultShopId);
             customer.setName(dto.getName() != null ? dto.getName() : "Unknown");
             customer.setGender(dto.getGender());
             customer.setFbId(dto.getFbId());
@@ -241,7 +251,7 @@ public class CustomerSyncService {
                 CustomerNote note = existingNote != null ? existingNote : new CustomerNote();
                 note.setId(noteDto.getId());
                 note.setCustomerId(customerId);
-                note.setShopId(dto.getShopId() != null ? dto.getShopId() : 0L);
+                note.setShopId(dto.getShopId() != null ? dto.getShopId() : defaultShopId);
                 note.setOrderId(noteDto.getOrderId());
                 if (noteDto.getMessage() != null && !noteDto.getMessage().isBlank()) {
                     note.setMessage(noteDto.getMessage());

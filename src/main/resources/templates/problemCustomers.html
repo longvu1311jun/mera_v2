@@ -16,6 +16,7 @@
         .filter-form .mr-input { width: 130px; }
         .note-hot { font-weight: 700; color: var(--mr-warn); }
         .mr-table .mr-badge { margin-right: 4px; }
+        .mr-stat--tcc .mr-stat-value { color: #64748b; }
         /* Cột sort được: click luân phiên tăng -> giảm -> bỏ sort */
         th.pc-sortable { cursor: pointer; user-select: none; white-space: nowrap; }
         th.pc-sortable:hover { color: var(--mr-accent, #2563eb); }
@@ -24,6 +25,29 @@
         th.pc-sortable[data-dir="desc"]::after { content: ' ↓'; opacity: 1; color: var(--mr-accent, #2563eb); }
         .customer-id { font-size: 11px; color: var(--mr-muted); word-break: break-all; }
         .reason-text { font-size: 12px; color: var(--mr-text-2); }
+
+        /* Nút xóa nhóm (chỉ trang admin) */
+        .pc-actions { white-space: nowrap; }
+        .pc-remove-btn {
+            display: inline-flex; align-items: center; gap: 5px;
+            padding: 5px 10px; font-size: 12px; font-family: inherit; cursor: pointer;
+            color: var(--mr-danger, #dc2626); background: transparent;
+            border: 1px solid var(--mr-border); border-radius: 8px; transition: background .12s, border-color .12s;
+        }
+        .pc-remove-btn:hover { background: rgba(220,38,38,.08); border-color: var(--mr-danger, #dc2626); }
+        .pc-remove-menu {
+            position: absolute; z-index: 70; min-width: 168px; padding: 6px;
+            background: var(--mr-surface, #fff); border: 1px solid var(--mr-border);
+            border-radius: 10px; box-shadow: 0 12px 30px rgba(0,0,0,.18);
+        }
+        .pc-remove-menu-title { font-size: 11px; color: var(--mr-muted); padding: 4px 8px 6px; }
+        .pc-remove-menu button {
+            display: block; width: 100%; text-align: left; padding: 8px 10px; border: none;
+            background: transparent; border-radius: 7px; font-size: 13px; font-family: inherit;
+            color: var(--mr-text); cursor: pointer;
+        }
+        .pc-remove-menu button:hover { background: var(--mr-surface-2); }
+        .pc-remove-menu button.pc-remove-all { color: var(--mr-danger, #dc2626); border-top: 1px solid var(--mr-border); margin-top: 4px; }
 
         /* Stat card có thể bấm để lọc nhóm */
         .mr-stat { cursor: pointer; transition: box-shadow .15s, transform .05s; }
@@ -123,6 +147,10 @@
             <div class="mr-stat-label">Nhóm C - lâu chưa mua lại</div>
             <div class="mr-stat-value" id="pcGroupC">0</div>
         </div>
+        <div class="mr-stat mr-stat--tcc" data-group="D">
+            <div class="mr-stat-label">Nhóm D - từ chối chăm</div>
+            <div class="mr-stat-value" id="pcGroupD">0</div>
+        </div>
     </div>
 
     <form id="pcFilterForm" class="mr-card mr-form-row filter-form" method="get" action="/khach-hang-canh-bao">
@@ -147,6 +175,7 @@
 
     <div class="pc-toolbar">
         <button type="button" class="mr-btn" id="pcRefreshBtn">↻ Làm mới</button>
+        <a class="mr-btn" href="/khach-hang-canh-bao/tu-choi-cham">🚫 Quản lý Từ chối chăm</a>
         <label class="pc-autorefresh">
             <input type="checkbox" id="pcAutoRefresh" checked>
             Tự động cập nhật (60s)
@@ -172,6 +201,7 @@
                 <option value="A">Nhóm A</option>
                 <option value="B">Nhóm B</option>
                 <option value="C">Nhóm C</option>
+                <option value="D">Nhóm D (Từ chối chăm)</option>
             </select>
         </div>
         <div class="mr-field pc-daterange">
@@ -227,10 +257,11 @@
                     <th class="pc-sortable" data-sort="lastNoteAt">Ghi chú gần nhất</th>
                     <th class="pc-sortable" data-sort="lastReceivedAt">Đơn nhận gần nhất</th>
                     <th>Lý do cảnh báo</th>
+                    <th>Thao tác</th>
                 </tr>
                 </thead>
-                <tbody id="pcBody">
-                <tr><td colspan="11" class="mr-empty">Đang tải dữ liệu…</td></tr>
+                <tbody id="pcBody" data-admin="1">
+                <tr><td colspan="12" class="mr-empty">Đang tải dữ liệu…</td></tr>
                 </tbody>
             </table>
         </div>

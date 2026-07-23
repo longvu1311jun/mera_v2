@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Từ Chối Chăm - Mera</title>
+    <script th:replace="~{fragments/mera-layout :: themeInit}"></script>
+    <link rel="icon" type="image/jpeg" href="/meraicon.ico">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/mera-ui.css">
+    <style>
+        .rc-card { max-width: 720px; }
+        .rc-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 16px 0; }
+        .rc-file { font-family: inherit; }
+        .rc-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-top: 12px; }
+        .rc-tile { border: 1px solid var(--mr-border); border-radius: 10px; padding: 12px 14px; }
+        .rc-tile .n { font-size: 22px; font-weight: 700; }
+        .rc-tile .l { font-size: 12px; color: var(--mr-muted); }
+        .rc-unmatched { margin-top: 12px; font-size: 12px; color: var(--mr-text-2); word-break: break-all; }
+    </style>
+</head>
+<body class="mera-page">
+<div class="mr-shell">
+    <th:block th:replace="~{fragments/mera-layout :: sidebar('problemCustomers')}"></th:block>
+    <div class="mr-shell-main">
+        <th:block th:replace="~{fragments/mera-layout :: topbar('Từ Chối Chăm')}"></th:block>
+        <main class="mr-shell-content">
+    <div class="mr-page-header">
+        <div>
+            <div class="mr-page-title"><span>🚫</span> Từ Chối Chăm (Nhóm D)</div>
+            <div class="mr-page-subtitle">
+                Tải file Excel chứa danh sách <b>số điện thoại</b> khách từ chối chăm. Hệ thống lấy 9 số cuối
+                của SĐT để khớp ra khách trong hệ thống, rồi hiển thị họ thành <b>Nhóm D</b> trên trang Số Thả Nổi.
+                Mỗi lần tải lên sẽ <b>thêm vào danh sách hiện có</b> (không xoá khách cũ) — có thể tải nhiều file để gộp dần.
+                Chưa có file? Bấm <b>Tải file mẫu</b> để lấy mẫu chuẩn.
+            </div>
+        </div>
+    </div>
+
+    <div class="mr-card rc-card">
+        <div>Danh sách hiện tại: <b id="rcCount" th:text="${currentCount}">0</b> khách.</div>
+
+        <div class="rc-row">
+            <input class="mr-input rc-file" type="file" id="rcFile" accept=".xlsx,.xls">
+            <button type="button" class="mr-btn mr-btn--primary" id="rcUploadBtn">Tải lên &amp; cập nhật</button>
+            <a class="mr-btn" href="/api/khach-hang-canh-bao/tu-choi-cham/mau">⬇ Tải file mẫu</a>
+            <button type="button" class="mr-btn" id="rcClearBtn" style="color:var(--mr-danger,#dc2626)">🗑 Xóa toàn bộ</button>
+            <a class="mr-btn" href="/khach-hang-canh-bao">← Về Số Thả Nổi</a>
+        </div>
+
+        <div class="mr-alert mr-alert--danger" id="rcError" style="display:none"></div>
+        <div class="mr-alert mr-alert--success" id="rcOk" style="display:none"></div>
+
+        <div id="rcSummary" class="rc-summary" style="display:none">
+            <div class="rc-tile"><div class="n" id="rcTotal">0</div><div class="l">SĐT trong file</div></div>
+            <div class="rc-tile"><div class="n" id="rcMatched">0</div><div class="l">Khớp được khách</div></div>
+            <div class="rc-tile"><div class="n" id="rcSaved">0</div><div class="l">Thêm/cập nhật lần này</div></div>
+            <div class="rc-tile"><div class="n" id="rcUnmatched">0</div><div class="l">Không khớp</div></div>
+        </div>
+        <div id="rcUnmatchedList" class="rc-unmatched" style="display:none"></div>
+        <div class="rc-row" id="rcDownloadRow" style="display:none">
+            <button type="button" class="mr-btn" id="rcDownloadUnmatched">⬇ Tải SĐT không khớp (kèm lý do)</button>
+        </div>
+    </div>
+        </main>
+        <footer class="mr-shell-footer">MeraGroup Dashboard v2.0</footer>
+    </div>
+</div>
+<th:block th:replace="~{fragments/mera-layout :: shellScript}"></th:block>
+<script>
+(function () {
+    const $ = (id) => document.getElementById(id);
+    const btn = $('rcUploadBtn');
+    const fileEl = $('rcFile');
+    let unmatchedDetails = [];
+
+    function show(el, on) { if (el) el.style.display = on ? '' : 'none'; }
+
+    btn.addEventListener('click', async function () {
+        const f = fileEl.files && fileEl.files[0];
+        unmatchedDetails = [];
+        show($('rcError'), false); show($('rcOk'), false); show($('rcSummary'), false); show($('rcUnmatchedList'), false); show($('rcDownloadRow'), false);
+        if (!f) { $('rcError').textContent = 'Vui lòng chọn file Excel (.xlsx/.xls).'; show($('rcError'), true); return; }
+
+        btn.disabled = true; const old = btn.textContent; btn.textContent = 'Đang xử lý…';
+        try {
+            const fd = new FormData();
+            fd.append('file', f);
+            const res = await fetch('/api/khach-hang-canh-bao/tu-choi-cham/upload', { method: 'POST', body: fd });
+            const d = await res.json();
+            if (!d.success) {
+                $('rcError').textContent = d.errorMessage || 'Không xử lý được file.';
+                show($('rcError'), true);
+            } else {
+                $('rcOk').textContent = '✅ Đã cập nhật danh sách Từ Chối Chăm. Nhóm D trên trang Số Thả Nổi sẽ hiện dữ liệu mới.';
+                show($('rcOk'), true);
+                $('rcTotal').textContent = d.totalPhones;
+                $('rcMatched').textContent = d.matchedPhones;
+                $('rcSaved').textContent = d.savedCustomers;
+                $('rcUnmatched').textContent = d.unmatchedPhones;
+                $('rcCount').textContent = d.totalAfter;
+                show($('rcSummary'), true);
+                if (d.unmatchedSample && d.unmatchedSample.length) {
+                    $('rcUnmatchedList').textContent = 'SĐT không khớp (mẫu): ' + d.unmatchedSample.join(', ')
+                        + (d.unmatchedPhones > d.unmatchedSample.length ? ' …' : '');
+                    show($('rcUnmatchedList'), true);
+                }
+                unmatchedDetails = d.unmatchedDetails || [];
+                show($('rcDownloadRow'), unmatchedDetails.length > 0);
+            }
+        } catch (e) {
+            $('rcError').textContent = 'Lỗi tải lên: ' + e.message;
+            show($('rcError'), true);
+        } finally {
+            btn.disabled = false; btn.textContent = old;
+        }
+    });
+
+    const dlBtn = $('rcDownloadUnmatched');
+    dlBtn.addEventListener('click', async function () {
+        if (!unmatchedDetails.length) return;
+        dlBtn.disabled = true; const old = dlBtn.textContent; dlBtn.textContent = 'Đang tạo file…';
+        try {
+            const res = await fetch('/api/khach-hang-canh-bao/tu-choi-cham/khong-khop', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(unmatchedDetails)
+            });
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            const blob = await res.blob();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'sdt-khong-khop-tcc.xlsx';
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+        } catch (e) {
+            $('rcError').textContent = 'Lỗi tải file không khớp: ' + e.message;
+            show($('rcError'), true);
+        } finally {
+            dlBtn.disabled = false; dlBtn.textContent = old;
+        }
+    });
+
+    const clearBtn = $('rcClearBtn');
+    clearBtn.addEventListener('click', async function () {
+        if (!confirm('Xoá TOÀN BỘ danh sách Từ Chối Chăm? Hành động này không hoàn tác được.')) return;
+        show($('rcError'), false); show($('rcOk'), false); show($('rcSummary'), false); show($('rcUnmatchedList'), false); show($('rcDownloadRow'), false);
+        clearBtn.disabled = true;
+        try {
+            const res = await fetch('/api/khach-hang-canh-bao/tu-choi-cham/clear', { method: 'POST' });
+            const d = await res.json();
+            if (d.success) {
+                $('rcCount').textContent = '0';
+                $('rcOk').textContent = '✅ Đã xoá toàn bộ danh sách Từ Chối Chăm. Nhóm D trên trang Số Thả Nổi giờ trống.';
+                show($('rcOk'), true);
+            }
+        } catch (e) {
+            $('rcError').textContent = 'Lỗi xoá: ' + e.message; show($('rcError'), true);
+        } finally {
+            clearBtn.disabled = false;
+        }
+    });
+})();
+</script>
+</body>
+</html>

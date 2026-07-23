@@ -17,6 +17,7 @@ public class ProblemCustomerRow {
     private boolean groupA;
     private boolean groupB;
     private boolean groupC;
+    private boolean groupD;   // Nhóm D: Từ Chối Chăm (từ file upload)
     private String reason;
 
     public String getCustomerId() { return customerId; }
@@ -43,6 +44,8 @@ public class ProblemCustomerRow {
     public void setGroupB(boolean groupB) { this.groupB = groupB; }
     public boolean isGroupC() { return groupC; }
     public void setGroupC(boolean groupC) { this.groupC = groupC; }
+    public boolean isGroupD() { return groupD; }
+    public void setGroupD(boolean groupD) { this.groupD = groupD; }
     public String getReason() { return reason; }
     public void setReason(String reason) { this.reason = reason; }
 }

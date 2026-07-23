@@ -112,7 +112,19 @@ public class authenController {
     }
   }
 
+  // Chặn "/" — trang chủ chuyển sang /home; đồng thời tránh Spring Boot
+  // tự render templates/index.html làm welcome page (không có model → lỗi Thymeleaf).
+  // Trả thẳng file 403.html (trang tĩnh bundled, không qua Thymeleaf parser).
   @GetMapping("/")
+  public ResponseEntity<byte[]> root() throws IOException {
+    byte[] html = new org.springframework.core.io.ClassPathResource("templates/403.html")
+        .getInputStream().readAllBytes();
+    return ResponseEntity.status(org.springframework.http.HttpStatus.FORBIDDEN)
+        .contentType(MediaType.TEXT_HTML)
+        .body(html);
+  }
+
+  @GetMapping("/home")
   public String home(Model model, HttpSession session) {
     String baseUrl = "https://open.larksuite.com/open-apis/authen/v1/index";
 
@@ -164,7 +176,7 @@ public class authenController {
 
     if (error != null) {
       redirectAttributes.addFlashAttribute("error", "Authentication failed: " + error);
-      return "redirect:/";
+      return "redirect:/home";
     }
 
     if (code != null) {
@@ -178,7 +190,7 @@ public class authenController {
       }
     }
 
-    return "redirect:/";
+    return "redirect:/home";
   }
 
   private static final String SESSION_ALL_BASES = "SESSION_ALL_BASES";
