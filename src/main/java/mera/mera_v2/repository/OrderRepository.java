@@ -125,7 +125,7 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
           returned_reason_name = VALUES(returned_reason_name), note = VALUES(note),
           note_print = VALUES(note_print), link = VALUES(link), time_assign_seller = VALUES(time_assign_seller),
           time_assign_care = VALUES(time_assign_care), updated_at = VALUES(updated_at),
-          lt_type = VALUES(lt_type), tick = VALUES(tick), created_at = VALUES(created_at),
+          tick = VALUES(tick), created_at = VALUES(created_at),
           customer_address = VALUES(customer_address), customer_name = VALUES(customer_name),
           customer_phone = VALUES(customer_phone), last_editor_name = VALUES(last_editor_name),
           order_id = VALUES(order_id), partner_delivery_name = VALUES(partner_delivery_name),
