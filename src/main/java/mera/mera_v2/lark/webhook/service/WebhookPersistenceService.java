@@ -495,6 +495,10 @@ public class WebhookPersistenceService {
                     }
 
                     item.setOrderId(orderId);
+                    // product_id / variation_id BẮT BUỘC phải lưu — LtCalculationService
+                    // match combo theo 2 cột này; thiếu chúng thì mọi đơn qua webhook đều LT=false
+                    item.setProductId(getTextField(itemNode, "product_id"));
+                    item.setVariationId(getTextField(itemNode, "variation_id"));
                     item.setProductName(getTextField(itemNode, "product_name"));
                     item.setVariationName(getTextField(itemNode, "variation_name"));
                     item.setQuantity(getIntField(itemNode, "quantity", 1));

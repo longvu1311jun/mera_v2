@@ -67,13 +67,23 @@ public class LtCalculationService {
             "SELECT oi.product_id, oi.variation_id, oi.quantity FROM order_items oi WHERE oi.order_id = :orderId"
         ).setParameter("orderId", orderId).getResultList();
 
-        // Map: productKey -> quantity (key = productId|variationId hoặc productId)
+        // Map: productKey -> quantity.
+        // Combo/substitution được cấu hình theo product (variation_id = null) nên
+        // phải index đơn theo CẢ product-only key lẫn product|variation key —
+        // nếu chỉ dùng product|variation thì combo cấu hình theo product không bao giờ khớp.
         Map<String, Integer> orderProductMap = new HashMap<>();
         for (Object[] row : items) {
-            String key = buildKey((String) row[0], (String) row[1]);
-            if (key != null) {
-                int qty = row[2] != null ? ((Number) row[2]).intValue() : 1;
-                orderProductMap.merge(key, qty, Integer::sum);
+            String productId = (String) row[0];
+            String variationId = (String) row[1];
+            int qty = row[2] != null ? ((Number) row[2]).intValue() : 1;
+
+            String productKey = buildKey(productId, null);
+            if (productKey != null) {
+                orderProductMap.merge(productKey, qty, Integer::sum);
+            }
+            String fullKey = buildKey(productId, variationId);
+            if (fullKey != null && !fullKey.equals(productKey)) {
+                orderProductMap.merge(fullKey, qty, Integer::sum);
             }
         }
 
