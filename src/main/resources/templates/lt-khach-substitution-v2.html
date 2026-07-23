@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <link rel="icon" type="image/jpeg" href="/meraicon.ico">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thuốc Thay Thế - LT Khách</title>
+    <script th:replace="~{fragments/mera-layout :: themeInit}"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/mera-ui.css">
+    <link rel="stylesheet" href="/css/lt-khach.css">
+    <link rel="stylesheet" href="/css/pancake-theme.css">
+    <link rel="stylesheet" href="/css/lt-khach-config.css">
+</head>
+<body class="mera-page">
+<div class="mr-shell">
+
+    <th:block th:replace="~{fragments/mera-layout :: sidebar('lt-khach')}"></th:block>
+
+    <div class="mr-shell-main">
+        <th:block th:replace="~{fragments/mera-layout :: topbar('LT Khách / Thuốc Thay Thế')}"></th:block>
+
+        <main class="mr-shell-content">
+            <div class="lt-khach-tabs">
+                <a href="/lt-khach/dashboard" class="lt-khach-tab"><span class="tab-icon">📊</span><span class="tab-label">Dashboard</span></a>
+                <a href="/lt-khach/report" class="lt-khach-tab"><span class="tab-icon">📈</span><span class="tab-label">Báo Cáo</span></a>
+                <a href="/lt-khach/order-details" class="lt-khach-tab"><span class="tab-icon">🛒</span><span class="tab-label">Đơn Hàng</span></a>
+                <a href="/lt-khach/combo" class="lt-khach-tab"><span class="tab-icon">⚙️</span><span class="tab-label">Cấu Hình LT</span></a>
+                <a href="/lt-khach/substitution" class="lt-khach-tab active"><span class="tab-icon">💊</span><span class="tab-label">Thuốc Thay Thế</span></a>
+            </div>
+
+            <div class="pk-page">
+                <div class="pk-page-header">
+                    <div>
+                        <h1>💊 Cấu Hình Nhóm Thuốc Thay Thế</h1>
+                        <p>Mỗi nhóm gồm nhiều sản phẩm có thể thay thế cho nhau. Hỗ trợ chọn biến thể &amp; số lượng quy đổi.</p>
+                    </div>
+                    <div class="pk-page-filters">
+                        <button type="button" class="pk-btn pk-btn--primary" id="addBtn">+ Thêm Nhóm</button>
+                        <button type="button" class="pk-btn" id="reloadBtn">🔄 Tải lại</button>
+                    </div>
+                </div>
+
+                <div class="pk-error" id="subError" hidden></div>
+
+                <div class="pk-panel">
+                    <div class="pk-panel-head">
+                        <div>
+                            <h3>Danh sách nhóm thuốc</h3>
+                            <div class="pk-panel-sub" id="subInfo">—</div>
+                        </div>
+                    </div>
+                    <div id="subList"></div>
+                </div>
+            </div>
+        </main>
+        <footer class="mr-shell-footer">MeraGroup Dashboard v2.0 - LT Khách Module</footer>
+    </div>
+</div>
+
+<!-- Modal -->
+<div class="pk-modal-overlay" id="subModal" hidden>
+    <div class="pk-modal" style="max-width:800px;">
+        <div class="pk-modal-header">
+            <div>
+                <h3 class="pk-modal-title" id="modalTitle">Thêm Nhóm Thuốc Thay Thế</h3>
+                <div class="pk-modal-sub">Nhập tên nhóm và thêm từng thuốc vào nhóm.</div>
+            </div>
+            <button type="button" class="pk-modal-close" id="modalClose">Đóng</button>
+        </div>
+        <div class="pk-modal-body">
+            <label style="display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--pk-muted);text-transform:uppercase;letter-spacing:0.5px;font-weight:600;margin-bottom:14px;">
+                Tên nhóm *
+                <input type="text" id="grpName" class="combo-input" placeholder="Ví dụ: Nhóm A, B, C">
+            </label>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+                <h4 style="margin:0;font-size:14px;font-weight:600;color:var(--pk-ink);">Danh sách thuốc trong nhóm</h4>
+                <button type="button" class="pk-btn pk-btn--success" id="addItemBtn">+ Thêm Thuốc</button>
+            </div>
+            <div id="itemList" style="display:flex;flex-direction:column;gap:10px;"></div>
+        </div>
+        <div class="pk-modal-footer">
+            <button type="button" class="pk-btn" id="modalCancel">Hủy</button>
+            <button type="button" class="pk-btn pk-btn--primary" id="modalSave">💾 Lưu</button>
+        </div>
+    </div>
+</div>
+
+<th:block th:replace="~{fragments/mera-layout :: shellScript}"></th:block>
+<script>
+(function () {
+    const $ = id => document.getElementById(id);
+    const fmt = v => new Intl.NumberFormat('vi-VN').format(Math.round(Number(v) || 0));
+    const esc = s => { if (s == null) return ''; return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); };
+    const fetchJson = async (url, opts) => { const r = await fetch(url, opts); if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); };
+    const showErr = (id, msg) => { const b = $(id); b.textContent = '❌ ' + msg; b.hidden = false; };
+    const hideErr = id => { const b = $(id); b.hidden = true; b.textContent = ''; };
+
+    let products = [];
+    let editing = null;
+    let formItems = [];
+
+    async function loadAll() {
+        hideErr('subError');
+        try {
+            const [groups, prods] = await Promise.all([
+                fetchJson('/api/ltkach/config/substitution-groups'),
+                fetchJson('/api/ltkach/config/products')
+            ]);
+            products = prods || [];
+            renderGroups(groups || []);
+        } catch (e) { showErr('subError', 'Không tải được: ' + e.message); }
+    }
+
+    function renderGroups(groups) {
+        const list = $('subList');
+        $('subInfo').textContent = `Tổng ${groups.length} nhóm`;
+        if (groups.length === 0) {
+            list.innerHTML = '<div class="pk-empty">Chưa có nhóm nào. Bấm "+ Thêm Nhóm" để tạo.</div>';
+            return;
+        }
+        list.innerHTML = groups.map(g => `
+            <div class="combo-card">
+                <div class="combo-card-head">
+                    <div class="combo-card-title">${esc(g.groupName)}</div>
+                    <div class="combo-card-actions">
+                        <button type="button" class="pk-btn pk-btn--ghost" data-act="edit" data-id="${g.groupId}">✏️ Sửa</button>
+                        <button type="button" class="pk-btn pk-btn--danger" data-act="del" data-id="${g.groupId}">🗑️ Xóa</button>
+                    </div>
+                </div>
+                <div class="sub-items">
+                    ${(g.items || []).map(it => `
+                        <div class="sub-item">
+                            <strong>${esc(it.productName)}</strong>
+                            ${it.variationName ? `<span class="muted">(${esc(it.variationName)})</span>` : ''}
+                            ${it.quantity > 1 ? `<span class="qty">x${it.quantity}</span>` : ''}
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `).join('');
+        list.querySelectorAll('button[data-act="edit"]').forEach(b => b.addEventListener('click', () => openModal(groups.find(g => g.groupId == b.dataset.id))));
+        list.querySelectorAll('button[data-act="del"]').forEach(b => b.addEventListener('click', () => deleteGroup(b.dataset.id)));
+    }
+
+    function openModal(group) {
+        editing = group || null;
+        $('modalTitle').textContent = group ? 'Sửa Nhóm Thuốc' : 'Thêm Nhóm Thuốc';
+        $('grpName').value = group?.groupName || '';
+        formItems = group?.items ? group.items.map(it => ({ productId: it.productId, variationId: it.variationId || '', quantity: it.quantity || 1 })) : [{ productId: '', variationId: '', quantity: 1 }];
+        renderFormItems();
+        $('subModal').hidden = false;
+        document.body.style.overflow = 'hidden';
+    }
+    function closeModal() { $('subModal').hidden = true; document.body.style.overflow = ''; editing = null; formItems = []; }
+
+    function renderFormItems() {
+        const wrap = $('itemList');
+        wrap.innerHTML = formItems.map((it, idx) => {
+            const product = products.find(p => p.id === it.productId);
+            return `
+            <div class="sub-form-row" data-idx="${idx}">
+                <div class="sub-form-head">
+                    <strong>Thuốc #${idx + 1}</strong>
+                    ${formItems.length > 1 ? `<button type="button" class="pk-btn pk-btn--danger" data-act="rm" style="padding:4px 10px;font-size:12px;">Xóa</button>` : ''}
+                </div>
+                <div class="sub-form-grid">
+                    <label>Thuốc *
+                        <select data-field="productId">
+                            <option value="">-- Chọn sản phẩm --</option>
+                            ${products.map(p => `<option value="${esc(p.id)}" ${p.id === it.productId ? 'selected' : ''}>${esc(p.name)}${p.code ? ' - ' + esc(p.code) : ''}</option>`).join('')}
+                        </select>
+                    </label>
+                    <label>Biến thể
+                        <select data-field="variationId" ${!it.productId ? 'disabled' : ''}>
+                            <option value="">-- Tất cả --</option>
+                            ${(product?.variations || []).map(v => `<option value="${esc(v.id)}" ${v.id === it.variationId ? 'selected' : ''}>${esc(v.name)}</option>`).join('')}
+                        </select>
+                    </label>
+                    <label>Số lượng *
+                        <input type="number" min="1" step="1" value="${it.quantity}" data-field="quantity">
+                    </label>
+                </div>
+            </div>`;
+        }).join('');
+        wrap.querySelectorAll('.sub-form-row').forEach(row => {
+            const idx = +row.dataset.idx;
+            row.querySelectorAll('[data-field]').forEach(el => {
+                el.addEventListener('change', () => {
+                    const field = el.dataset.field;
+                    formItems[idx][field] = field === 'quantity' ? (Number(el.value) || 1) : el.value;
+                    if (field === 'productId') {
+                        formItems[idx].variationId = '';
+                        renderFormItems();
+                    }
+                });
+            });
+            const rm = row.querySelector('[data-act="rm"]');
+            if (rm) rm.addEventListener('click', () => {
+                formItems.splice(idx, 1);
+                renderFormItems();
+            });
+        });
+    }
+
+    async function saveGroup() {
+        const name = $('grpName').value.trim();
+        if (!name) { alert('Vui lòng nhập tên nhóm'); return; }
+        const invalid = formItems.filter(it => !it.productId);
+        if (invalid.length) { alert('Vui lòng chọn đầy đủ thuốc cho từng mục'); return; }
+        const url = editing ? '/api/ltkach/config/substitution-groups/' + editing.groupId : '/api/ltkach/config/substitution-groups';
+        const method = editing ? 'PUT' : 'POST';
+        try {
+            await fetchJson(url, {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ groupName: name, items: formItems })
+            });
+            closeModal();
+            loadAll();
+        } catch (e) { alert('Lỗi: ' + e.message); }
+    }
+
+    async function deleteGroup(id) {
+        if (!confirm('Bạn có chắc muốn xóa nhóm này?')) return;
+        try {
+            await fetchJson('/api/ltkach/config/substitution-groups/' + id, { method: 'DELETE' });
+            loadAll();
+        } catch (e) { alert('Lỗi: ' + e.message); }
+    }
+
+    $('reloadBtn').addEventListener('click', loadAll);
+    $('addBtn').addEventListener('click', () => openModal(null));
+    $('addItemBtn').addEventListener('click', () => { formItems.push({ productId: '', variationId: '', quantity: 1 }); renderFormItems(); });
+    $('modalClose').addEventListener('click', closeModal);
+    $('modalCancel').addEventListener('click', closeModal);
+    $('modalSave').addEventListener('click', saveGroup);
+    $('subModal').addEventListener('click', e => { if (e.target.id === 'subModal') closeModal(); });
+
+    window.addEventListener('DOMContentLoaded', loadAll);
+})();
+</script>
+</body>
+</html>

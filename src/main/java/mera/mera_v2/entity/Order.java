@@ -270,8 +270,11 @@ public class Order {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
-    @Column(name = "lt_type", length = 255)
-    private String ltType;
+    @Column(name = "lt_type")
+    private Boolean ltType;
+
+    @Column(name = "lt_count_snapshot")
+    private Integer ltCountSnapshot;
 
     @Column(name = "tick")
     private Integer tick;

@@ -21,6 +21,7 @@ import mera.mera_v2.repository.OrderStatusHistoryRepository;
 import mera.mera_v2.repository.ProductVariationRepository;
 import mera.mera_v2.repository.WarehouseRepository;
 import mera.mera_v2.repository.PosUserRepository;
+import mera.mera_v2.ltkach.LtCalculationService;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -63,6 +64,7 @@ public class OrderSyncService {
   private final ProductVariationRepository productVariationRepository;
   private final WarehouseRepository warehouseRepository;
   private final PosUserRepository posUserRepository;
+  private final LtCalculationService ltCalculationService;
   private final NamedParameterJdbcTemplate namedParameterJdbcTemplate;
 
   @Lazy
@@ -212,6 +214,23 @@ public class OrderSyncService {
       errorMessages.addAll(batchResult.errorMessages);
       skippedOrderIds.addAll(batchResult.skippedOrderIds);
       totalSynced += orders.size();
+
+      // Tính LT cho các đơn hàng vừa sync (idempotent — re-sync không cộng trùng)
+      if (!orders.isEmpty()) {
+        List<Long> orderIds = orders.stream()
+            .map(o -> parseOrderId(o.getId()))
+            .filter(id -> id != null)
+            .toList();
+
+        if (!orderIds.isEmpty()) {
+          try {
+            ltCalculationService.calculateForOrders(orderIds);
+          } catch (Exception e) {
+            // Lỗi tính LT không được làm gãy job sync đơn hàng
+            log.warn("Loi tinh LT cho batch {} orders: {}", orderIds.size(), e.getMessage());
+          }
+        }
+      }
 
       currentPage++;
 
@@ -513,7 +532,7 @@ public class OrderSyncService {
           buyer_total_amount, levera_point, is_free_shipping, is_exchange_order, is_calculation_tax,
           is_smc, customer_pay_fee, received_at_shop, partner, tracking_link, time_send_partner,
           estimate_delivery_date, returned_reason, returned_reason_name, note, note_print, link,
-          time_assign_seller, time_assign_care, inserted_at, updated_at, lt_type, tick, created_at,
+          time_assign_seller, time_assign_care, inserted_at, updated_at, lt_type, lt_count_snapshot, tick, created_at,
           customer_address, customer_name, customer_phone, last_editor_name, order_id,
           partner_delivery_name, partner_tracking_id, account, account_name, order_link, raw_data)
       VALUES (:id, :order_code, :shop_id, :page_id, :customer_id, :conversation_id, :post_id,
@@ -530,7 +549,7 @@ public class OrderSyncService {
           :buyer_total_amount, :levera_point, :is_free_shipping, :is_exchange_order, :is_calculation_tax,
           :is_smc, :customer_pay_fee, :received_at_shop, :partner, :tracking_link, :time_send_partner,
           :estimate_delivery_date, :returned_reason, :returned_reason_name, :note, :note_print, :link,
-          :time_assign_seller, :time_assign_care, :inserted_at, :updated_at, :lt_type, :tick, :created_at,
+          :time_assign_seller, :time_assign_care, :inserted_at, :updated_at, :lt_type, :lt_count_snapshot, :tick, :created_at,
           :customer_address, :customer_name, :customer_phone, :last_editor_name, :order_id,
           :partner_delivery_name, :partner_tracking_id, :account, :account_name, :order_link, :raw_data)
       ON DUPLICATE KEY UPDATE
@@ -571,7 +590,7 @@ public class OrderSyncService {
           returned_reason_name = VALUES(returned_reason_name), note = VALUES(note),
           note_print = VALUES(note_print), link = VALUES(link), time_assign_seller = VALUES(time_assign_seller),
           time_assign_care = VALUES(time_assign_care), updated_at = VALUES(updated_at),
-          lt_type = VALUES(lt_type), tick = VALUES(tick), created_at = VALUES(created_at),
+          tick = VALUES(tick), created_at = VALUES(created_at),
           customer_address = VALUES(customer_address), customer_name = VALUES(customer_name),
           customer_phone = VALUES(customer_phone), last_editor_name = VALUES(last_editor_name),
           order_id = VALUES(order_id), partner_delivery_name = VALUES(partner_delivery_name),
@@ -597,12 +616,12 @@ public class OrderSyncService {
           id, shop_id, name, gender, date_of_birth, fb_id, referral_code, customer_referral_code,
           is_discount_by_level, reward_point, used_reward_point, current_debts, level_id, is_block,
           order_count, succeed_order_count, returned_order_count, purchased_amount, last_order_at,
-          assigned_user_id, creator_id, inserted_at, updated_at, lt_real
+          assigned_user_id, creator_id, inserted_at, updated_at, lt_count
       ) VALUES (
           :id, :shop_id, :name, :gender, :date_of_birth, :fb_id, :referral_code, :customer_referral_code,
           :is_discount_by_level, :reward_point, :used_reward_point, :current_debts, :level_id, :is_block,
           :order_count, :succeed_order_count, :returned_order_count, :purchased_amount, :last_order_at,
-          :assigned_user_id, :creator_id, :inserted_at, :updated_at, :lt_real
+          :assigned_user_id, :creator_id, :inserted_at, :updated_at, :lt_count
       )
       ON DUPLICATE KEY UPDATE
           shop_id = VALUES(shop_id),
@@ -626,8 +645,7 @@ public class OrderSyncService {
           assigned_user_id = VALUES(assigned_user_id),
           creator_id = VALUES(creator_id),
           inserted_at = IFNULL(inserted_at, VALUES(inserted_at)),
-          updated_at = VALUES(updated_at),
-          lt_real = VALUES(lt_real)
+          updated_at = VALUES(updated_at)
       """;
 
   private static final int CUSTOMER_UPSERT_CHUNK_SIZE = 50;
@@ -670,7 +688,7 @@ public class OrderSyncService {
     p.addValue("creator_id", c.getCreatorId());
     p.addValue("inserted_at", toTimestamp(c.getInsertedAt()));
     p.addValue("updated_at", toTimestamp(c.getUpdatedAt()));
-    p.addValue("lt_real", c.getLtReal());
+    p.addValue("lt_count", c.getLtCount());
     return p;
   }
 
@@ -761,6 +779,7 @@ public class OrderSyncService {
     p.addValue("inserted_at", toTimestamp(o.getInsertedAt()));
     p.addValue("updated_at", toTimestamp(o.getUpdatedAt()));
     p.addValue("lt_type", o.getLtType());
+    p.addValue("lt_count_snapshot", o.getLtCountSnapshot());
     p.addValue("tick", o.getTick());
     p.addValue("created_at", toTimestamp(o.getCreatedAt()));
     p.addValue("customer_address", o.getCustomerAddress());

@@ -2,6 +2,8 @@ package mera.mera_v2.pos.sync.controller;
 
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import lombok.extern.slf4j.Slf4j;
 import mera.mera_v2.config.SyncFeatureToggleService;
 import mera.mera_v2.lark.sync.service.*;
@@ -21,6 +23,7 @@ import java.util.Map;
 @Controller
 @RequiredArgsConstructor
 public class DongBoController {
+  private static final Logger log = LoggerFactory.getLogger(DongBoController.class);
 
     private final EmployeeSyncService employeeSyncService;
     private final LarkSyncOrchestratorService larkSyncOrchestratorService;

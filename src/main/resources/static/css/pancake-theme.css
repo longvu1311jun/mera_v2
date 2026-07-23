@@ -1,0 +1,615 @@
+/* ============================================================
+   PANCAKE-INSPIRED THEME
+   Design tokens theo DESIGN.md (MeraGroup):
+   - Warm cream canvas (#f7f7f4), ink (#26251e)
+   - Primary CTA: Cursor Orange (#f54e00) - dùng kín đáo
+   - Hairline depth, no shadows
+   - JetBrains Mono cho số liệu, Inter cho body
+   ============================================================ */
+
+:root {
+    /* Brand */
+    --pk-primary: #f54e00;
+    --pk-primary-active: #d04200;
+    --pk-primary-soft: rgba(245, 78, 0, 0.08);
+
+    /* Surface */
+    --pk-canvas: #f7f7f4;
+    --pk-canvas-soft: #fafaf7;
+    --pk-card: #ffffff;
+    --pk-surface-strong: #e6e5e0;
+
+    /* Hairline */
+    --pk-hairline: #e6e5e0;
+    --pk-hairline-soft: #efeee8;
+    --pk-hairline-strong: #cfcdc4;
+
+    /* Text */
+    --pk-ink: #26251e;
+    --pk-body: #5a5852;
+    --pk-muted: #807d72;
+    --pk-muted-soft: #a09c92;
+    --pk-on-primary: #ffffff;
+
+    /* Semantic */
+    --pk-error: #cf2d56;
+    --pk-error-soft: #fef2f2;
+    --pk-success: #1f8a65;
+    --pk-success-soft: #f0fdf4;
+    --pk-info: #4f46e5;
+    --pk-info-soft: #eef2ff;
+
+    /* Sizing */
+    --pk-radius-sm: 6px;
+    --pk-radius-md: 8px;
+    --pk-radius-lg: 12px;
+    --pk-radius-xl: 16px;
+    --pk-radius-pill: 9999px;
+
+    /* Spacing */
+    --pk-space-xs: 8px;
+    --pk-space-sm: 12px;
+    --pk-space-md: 16px;
+    --pk-space-lg: 24px;
+    --pk-space-xl: 32px;
+    --pk-space-xxl: 48px;
+}
+
+/* ============================================================
+   Generic page container (MERA layout)
+   ============================================================ */
+.pk-page {
+    background: var(--pk-canvas);
+    min-height: 100%;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    color: var(--pk-ink);
+}
+
+.pk-page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 18px;
+    background: var(--pk-card);
+    border: 1px solid var(--pk-hairline);
+    border-radius: var(--pk-radius-xl);
+    flex-wrap: wrap;
+}
+
+.pk-page-header h1 {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--pk-ink);
+    letter-spacing: -0.11px;
+}
+
+.pk-page-header p {
+    margin: 4px 0 0;
+    color: var(--pk-muted);
+    font-size: 13px;
+}
+
+.pk-page-filters {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.pk-page-filters select,
+.pk-page-filters input[type='date'],
+.pk-page-filters input[type='month'],
+.pk-page-filters input[type='text'] {
+    padding: 7px 10px;
+    border: 1px solid var(--pk-hairline-strong);
+    border-radius: var(--pk-radius-md);
+    background: var(--pk-card);
+    color: var(--pk-ink);
+    font-size: 13px;
+    min-width: 140px;
+    font-family: inherit;
+}
+
+.pk-page-filters input:focus,
+.pk-page-filters select:focus {
+    outline: none;
+    border-color: var(--pk-primary);
+    box-shadow: 0 0 0 3px var(--pk-primary-soft);
+}
+
+/* ============================================================
+   Buttons
+   ============================================================ */
+.pk-btn {
+    padding: 8px 16px;
+    border: 1px solid var(--pk-hairline-strong);
+    border-radius: var(--pk-radius-md);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    background: var(--pk-card);
+    color: var(--pk-ink);
+}
+
+.pk-btn:hover { background: var(--pk-canvas-soft); }
+
+.pk-btn--primary {
+    background: var(--pk-primary);
+    color: var(--pk-on-primary);
+    border-color: var(--pk-primary);
+}
+.pk-btn--primary:hover:not(:disabled) {
+    background: var(--pk-primary-active);
+    border-color: var(--pk-primary-active);
+}
+
+.pk-btn--ghost {
+    background: transparent;
+    border-color: var(--pk-hairline-strong);
+}
+
+.pk-btn--danger {
+    background: var(--pk-card);
+    color: var(--pk-error);
+    border-color: var(--pk-error);
+}
+.pk-btn--danger:hover { background: var(--pk-error-soft); }
+
+.pk-btn--success {
+    background: var(--pk-success);
+    color: var(--pk-on-primary);
+    border-color: var(--pk-success);
+}
+
+.pk-btn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+/* ============================================================
+   KPI Card
+   ============================================================ */
+.pk-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px;
+}
+
+.pk-kpi {
+    background: var(--pk-card);
+    border: 1px solid var(--pk-hairline);
+    border-radius: var(--pk-radius-xl);
+    padding: 16px 18px;
+    position: relative;
+    overflow: hidden;
+}
+
+.pk-kpi::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 14px;
+    bottom: 14px;
+    width: 3px;
+    background: var(--pk-info);
+    border-radius: 0 4px 4px 0;
+}
+
+.pk-kpi--revenue::before   { background: var(--pk-primary); }
+.pk-kpi--orders::before    { background: #0284c7; }
+.pk-kpi--completed::before { background: var(--pk-success); }
+.pk-kpi--rate::before      { background: #f59e0b; }
+
+.pk-kpi-label {
+    color: var(--pk-muted);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+    margin-bottom: 6px;
+}
+
+.pk-kpi-value {
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--pk-ink);
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    line-height: 1.1;
+}
+
+.pk-kpi-trend {
+    margin-top: 6px;
+    font-size: 12px;
+    color: var(--pk-muted);
+}
+
+/* ============================================================
+   Panel (generic white card with hairline)
+   ============================================================ */
+.pk-panel {
+    background: var(--pk-card);
+    border: 1px solid var(--pk-hairline);
+    border-radius: var(--pk-radius-xl);
+    padding: 16px;
+}
+
+.pk-panel-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--pk-hairline-soft);
+}
+
+.pk-panel-head h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--pk-ink);
+}
+
+.pk-panel-sub {
+    font-size: 12px;
+    color: var(--pk-muted);
+    margin-top: 4px;
+}
+
+/* ============================================================
+   Revenue Growth Bar Chart (vertical bars, CSS only)
+   ============================================================ */
+.pk-rg-wrap { overflow-x: auto; }
+.pk-rg-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: center;
+    font-size: 13px;
+    min-width: 600px;
+}
+.pk-rg-table th, .pk-rg-table td { padding: 4px; white-space: nowrap; }
+.pk-rg-table th {
+    font-weight: 600;
+    color: var(--pk-muted);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+.pk-rg-amount {
+    font-weight: 700;
+    color: var(--pk-ink);
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+}
+.pk-rg-bar-cell {
+    vertical-align: bottom;
+    padding: 2px 4px;
+    height: 140px;
+}
+.pk-rg-bar-track {
+    width: 36px;
+    height: 140px;
+    margin: 0 auto;
+    background: var(--pk-canvas-soft);
+    border: 1px solid var(--pk-hairline-soft);
+    border-radius: 4px 4px 0 0;
+    display: flex;
+    align-items: flex-end;
+    overflow: hidden;
+}
+.pk-rg-bar-fill {
+    width: 100%;
+    background: linear-gradient(180deg, var(--pk-primary) 0%, var(--pk-primary-active) 100%);
+    border-radius: 4px 4px 0 0;
+    transition: height 0.4s ease;
+    min-height: 2px;
+}
+.pk-rg-total {
+    margin-top: 12px;
+    text-align: right;
+    font-size: 14px;
+    color: var(--pk-muted);
+}
+.pk-rg-total strong {
+    color: var(--pk-ink);
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+/* ============================================================
+   Rank list (Top employees)
+   ============================================================ */
+.pk-rank-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.pk-rank-btn {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    border: 1px solid var(--pk-hairline);
+    border-radius: var(--pk-radius-md);
+    background: transparent;
+    text-align: left;
+    width: 100%;
+    font-size: 13px;
+    color: var(--pk-ink);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    font-family: inherit;
+}
+
+.pk-rank-btn:hover {
+    background: var(--pk-canvas-soft);
+    border-color: var(--pk-hairline-strong);
+}
+
+.pk-rank-btn.active {
+    background: var(--pk-primary-soft);
+    border-color: var(--pk-primary);
+}
+
+.pk-rank-label {
+    min-width: 180px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.pk-rank-idx {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-weight: 700;
+    color: var(--pk-primary);
+    font-size: 13px;
+    min-width: 32px;
+}
+
+.pk-rank-name {
+    font-weight: 600;
+    color: var(--pk-ink);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.pk-rank-bar-wrap {
+    flex: 1;
+    height: 10px;
+    border-radius: var(--pk-radius-pill);
+    background: var(--pk-canvas-soft);
+    overflow: hidden;
+}
+
+.pk-rank-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--pk-primary) 0%, var(--pk-primary-active) 100%);
+    border-radius: var(--pk-radius-pill);
+    transition: width 0.4s ease;
+}
+
+.pk-rank-value {
+    min-width: 120px;
+    text-align: right;
+    font-weight: 700;
+    color: var(--pk-ink);
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 13px;
+    flex-shrink: 0;
+}
+
+/* ============================================================
+   Empty / Loading / Error states
+   ============================================================ */
+.pk-empty {
+    text-align: center;
+    color: var(--pk-muted);
+    padding: 36px 18px;
+    font-size: 14px;
+    background: var(--pk-canvas-soft);
+    border: 1px dashed var(--pk-hairline-strong);
+    border-radius: var(--pk-radius-md);
+}
+
+.pk-error {
+    color: var(--pk-error);
+    font-size: 14px;
+    padding: 10px 14px;
+    background: var(--pk-error-soft);
+    border: 1px solid rgba(207, 45, 86, 0.2);
+    border-radius: var(--pk-radius-md);
+    margin-bottom: 10px;
+}
+
+.pk-loading {
+    text-align: center;
+    color: var(--pk-muted);
+    padding: 24px;
+}
+
+.pk-spinner {
+    display: inline-block;
+    width: 28px;
+    height: 28px;
+    border: 3px solid var(--pk-hairline);
+    border-top-color: var(--pk-primary);
+    border-radius: 50%;
+    animation: pkSpin 0.8s linear infinite;
+    margin-bottom: 10px;
+}
+
+@keyframes pkSpin { to { transform: rotate(360deg); } }
+
+/* ============================================================
+   Modal (employee detail, substitution group form)
+   ============================================================ */
+.pk-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(38, 37, 30, 0.5);
+    z-index: 9000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    animation: pkFadeIn 0.18s ease-out;
+}
+.pk-modal-overlay[hidden] { display: none !important; }
+@keyframes pkFadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+.pk-modal {
+    background: var(--pk-card);
+    border: 1px solid var(--pk-hairline);
+    border-radius: var(--pk-radius-xl);
+    width: 100%;
+    max-width: 640px;
+    max-height: 95vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.pk-modal-header {
+    flex-shrink: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 18px 22px;
+    border-bottom: 1px solid var(--pk-hairline);
+}
+
+.pk-modal-body {
+    flex: 1;
+    padding: 18px 22px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+@keyframes pkSlideIn {
+    from { transform: scale(0.96) translateY(8px); opacity: 0; }
+    to { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+.pk-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 18px 22px;
+    border-bottom: 1px solid var(--pk-hairline);
+}
+
+.pk-modal-title {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--pk-ink);
+}
+
+.pk-modal-sub {
+    margin: 4px 0 0;
+    font-size: 12px;
+    color: var(--pk-muted);
+}
+
+.pk-modal-close {
+    background: var(--pk-card);
+    border: 1px solid var(--pk-hairline-strong);
+    border-radius: var(--pk-radius-md);
+    padding: 6px 14px;
+    cursor: pointer;
+    color: var(--pk-muted);
+    font-size: 13px;
+    font-family: inherit;
+}
+.pk-modal-close:hover { background: var(--pk-error-soft); color: var(--pk-error); }
+
+.pk-modal-body {
+    padding: 18px 22px;
+}
+
+.pk-modal-footer {
+    flex-shrink: 0;
+    padding: 14px 22px;
+    border-top: 1px solid var(--pk-hairline);
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    background: var(--pk-canvas-soft);
+    border-radius: 0 0 var(--pk-radius-xl) var(--pk-radius-xl);
+}
+
+/* ============================================================
+   Stats mini-table
+   ============================================================ */
+.pk-stats-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 14px;
+}
+.pk-stats-table th, .pk-stats-table td {
+    padding: 8px 14px;
+    text-align: left;
+    border-bottom: 1px solid var(--pk-hairline-soft);
+}
+.pk-stats-table th {
+    background: var(--pk-canvas-soft);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--pk-muted);
+    font-weight: 600;
+}
+.pk-stats-table td {
+    font-weight: 600;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    color: var(--pk-ink);
+}
+
+/* ============================================================
+   Tab pill (mẫu Pancake: dùng cho LT/Substitution toggle)
+   ============================================================ */
+.pk-tab-pill {
+    padding: 6px 14px;
+    border: 1px solid var(--pk-hairline-strong);
+    border-radius: var(--pk-radius-pill);
+    background: transparent;
+    color: var(--pk-muted);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: inherit;
+}
+.pk-tab-pill.active {
+    background: var(--pk-primary);
+    color: var(--pk-on-primary);
+    border-color: var(--pk-primary);
+}
+.pk-tab-pill:hover:not(.active) {
+    background: var(--pk-canvas-soft);
+}
+
+/* ============================================================
+   Responsive
+   ============================================================ */
+@media (max-width: 1024px) {
+    .pk-page { padding: 10px; gap: 10px; }
+    .pk-page-header h1 { font-size: 18px; }
+}
+
+@media (max-width: 768px) {
+    .pk-page-header { flex-direction: column; align-items: stretch; }
+    .pk-kpi-value { font-size: 22px; }
+    .pk-rank-btn { flex-wrap: wrap; }
+    .pk-rank-label { min-width: 100%; flex: 1 1 100%; }
+    .pk-rank-value { min-width: 0; font-size: 12px; }
+}

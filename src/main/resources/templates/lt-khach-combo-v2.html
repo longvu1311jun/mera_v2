@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <link rel="icon" type="image/jpeg" href="/meraicon.ico">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cấu Hình LT - LT Khách</title>
+    <script th:replace="~{fragments/mera-layout :: themeInit}"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/mera-ui.css">
+    <link rel="stylesheet" href="/css/lt-khach.css">
+    <link rel="stylesheet" href="/css/pancake-theme.css">
+    <link rel="stylesheet" href="/css/lt-khach-config.css">
+</head>
+<body class="mera-page">
+<div class="mr-shell">
+
+    <th:block th:replace="~{fragments/mera-layout :: sidebar('lt-khach')}"></th:block>
+
+    <div class="mr-shell-main">
+        <th:block th:replace="~{fragments/mera-layout :: topbar('LT Khách / Cấu Hình LT')}"></th:block>
+
+        <main class="mr-shell-content">
+            <div class="lt-khach-tabs">
+                <a href="/lt-khach/dashboard" class="lt-khach-tab"><span class="tab-icon">📊</span><span class="tab-label">Dashboard</span></a>
+                <a href="/lt-khach/report" class="lt-khach-tab"><span class="tab-icon">📈</span><span class="tab-label">Báo Cáo</span></a>
+                <a href="/lt-khach/order-details" class="lt-khach-tab"><span class="tab-icon">🛒</span><span class="tab-label">Đơn Hàng</span></a>
+                <a href="/lt-khach/combo" class="lt-khach-tab active"><span class="tab-icon">⚙️</span><span class="tab-label">Cấu Hình LT</span></a>
+                <a href="/lt-khach/substitution" class="lt-khach-tab"><span class="tab-icon">💊</span><span class="tab-label">Thuốc Thay Thế</span></a>
+            </div>
+
+            <div class="pk-page">
+                <div class="pk-page-header">
+                    <div>
+                        <h1>⚙️ Cấu Hình Liệu Trình (LT)</h1>
+                        <p>Mỗi combo gồm nhiều sản phẩm. Đơn hàng thỏa mãn combo sẽ được tính là 1 LT.</p>
+                    </div>
+                    <div class="pk-page-filters">
+                        <button type="button" class="pk-btn pk-btn--primary" id="addBtn">+ Thêm Combo</button>
+                        <button type="button" class="pk-btn" id="reloadBtn">🔄 Tải lại</button>
+                    </div>
+                </div>
+
+                <div class="pk-error" id="comboError" hidden></div>
+
+                <div class="pk-panel">
+                    <div class="pk-panel-head">
+                        <div>
+                            <h3>Danh sách combo LT</h3>
+                            <div class="pk-panel-sub" id="comboInfo">—</div>
+                        </div>
+                    </div>
+                    <div id="comboList" class="combo-list"></div>
+                </div>
+            </div>
+        </main>
+        <footer class="mr-shell-footer">MeraGroup Dashboard v2.0 - LT Khách Module</footer>
+    </div>
+</div>
+
+<!-- Modal thêm/sửa combo -->
+<div class="pk-modal-overlay" id="comboModal" hidden>
+    <div class="pk-modal" style="max-width:700px;">
+        <div class="pk-modal-header">
+            <div>
+                <h3 class="pk-modal-title" id="modalTitle">Thêm Combo LT</h3>
+                <div class="pk-modal-sub">Mỗi combo có thể gồm nhiều sản phẩm. Đơn hàng thỏa mãn sẽ tính 1 LT.</div>
+            </div>
+            <button type="button" class="pk-modal-close" id="modalClose">Đóng</button>
+        </div>
+        <div class="pk-modal-body">
+            <!-- Tên combo -->
+            <label style="display:flex;flex-direction:column;gap:6px;font-size:11px;color:var(--pk-muted);text-transform:uppercase;letter-spacing:0.5px;font-weight:600;margin-bottom:14px;">
+                Tên combo *
+                <input type="text" id="cmbName" class="combo-input" placeholder="Ví dụ: Combo Liều Thấp 1">
+            </label>
+
+            <!-- Danh sách sản phẩm -->
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+                <h4 style="margin:0;font-size:14px;font-weight:600;color:var(--pk-ink);">Sản phẩm trong combo</h4>
+                <button type="button" class="pk-btn pk-btn--success" id="addItemBtn">+ Thêm Sản Phẩm</button>
+            </div>
+
+            <div id="itemList" style="display:flex;flex-direction:column;gap:10px;margin-bottom:14px;"></div>
+
+            <!-- Giá combo -->
+            <label style="display:flex;flex-direction:column;gap:6px;font-size:11px;color:var(--pk-muted);text-transform:uppercase;letter-spacing:0.5px;font-weight:600;">
+                Giá combo (tổng thành tiền)
+                <input type="number" id="cmbPrice" class="combo-input" min="0" step="1000" placeholder="Tự động tính">
+            </label>
+        </div>
+        <div class="pk-modal-footer">
+            <button type="button" class="pk-btn" id="modalCancel">Hủy</button>
+            <button type="button" class="pk-btn pk-btn--primary" id="modalSave">💾 Lưu</button>
+        </div>
+    </div>
+</div>
+
+<th:block th:replace="~{fragments/mera-layout :: shellScript}"></th:block>
+<script>
+(function () {
+    const $ = id => document.getElementById(id);
+    const fmt = v => new Intl.NumberFormat('vi-VN').format(Math.round(Number(v) || 0));
+    const esc = s => { if (s == null) return ''; return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); };
+    const fetchJson = async (url, opts) => { const r = await fetch(url, opts); if (!r.ok) throw new Error('HTTP ' + r.status + ': ' + await r.text()); return r.json(); };
+    const showErr = (id, msg) => { const b = $(id); b.textContent = '❌ ' + msg; b.hidden = false; };
+    const hideErr = id => { const b = $(id); b.hidden = true; b.textContent = ''; };
+
+    let products = [];
+    let editingName = null;   // comboName đang sửa (null = thêm mới)
+    let formItems = [];       // [{ productId, variationId, productName, unitPrice, quantity }]
+
+    // ===== Load =====
+    async function loadCombos() {
+        hideErr('comboError');
+        $('reloadBtn').disabled = true;
+        try {
+            const [combos, prods] = await Promise.all([
+                fetchJson('/api/ltkach/config/combos'),
+                fetchJson('/api/ltkach/config/products')
+            ]);
+            products = prods || [];
+            renderList(combos || []);
+        } catch (e) { showErr('comboError', 'Không tải được: ' + e.message); }
+        finally { $('reloadBtn').disabled = false; }
+    }
+
+    // ===== Render list =====
+    function renderList(combos) {
+        const list = $('comboList');
+        $('comboInfo').textContent = `Tổng ${combos.length} combo`;
+        if (!combos.length) {
+            list.innerHTML = '<div class="pk-empty">Chưa có combo nào. Bấm "+ Thêm Combo" để tạo.</div>';
+            return;
+        }
+        list.innerHTML = combos.map((combo, idx) => {
+            const items = combo.items || [];
+            const totalAmt = items.reduce((s, it) => s + (Number(it.amount) || 0), 0);
+            return `
+            <div class="combo-card">
+                <div class="combo-card-head">
+                    <div class="combo-card-title">${esc(combo.comboName)}</div>
+                    <div class="combo-card-actions">
+                        <button type="button" class="pk-btn pk-btn--ghost" data-act="edit" data-name="${esc(combo.comboName)}">✏️ Sửa</button>
+                        <button type="button" class="pk-btn pk-btn--danger" data-act="del" data-name="${esc(combo.comboName)}">🗑️ Xóa</button>
+                    </div>
+                </div>
+                <div class="combo-products-list">
+                    <div class="combo-prod-row combo-prod-header">
+                        <span>STT</span>
+                        <span>Sản phẩm</span>
+                        <span style="text-align:right;">Đơn giá</span>
+                        <span style="text-align:center;">SL</span>
+                        <span style="text-align:right;">Thành tiền</span>
+                    </div>
+                    ${items.map((it, i) => `
+                    <div class="combo-prod-row">
+                        <span style="color:var(--pk-muted);font-size:12px;">${i + 1}</span>
+                        <span>
+                            <strong>${esc(it.productName || it.productId || '—')}</strong>
+                            ${it.variationId ? `<span class="muted">(${esc(it.variationId)})</span>` : ''}
+                        </span>
+                        <span style="text-align:right;font-family:'JetBrains Mono',monospace;font-weight:500;">
+                            ${it.unitPrice ? fmt(it.unitPrice) + ' đ' : '—'}
+                        </span>
+                        <span style="text-align:center;">
+                            ${it.quantity > 1 ? `<span class="qty">x${it.quantity}</span>` : `<span class="qty">×1</span>`}
+                        </span>
+                        <span style="text-align:right;font-family:'JetBrains Mono',monospace;font-weight:600;">
+                            ${it.amount ? fmt(it.amount) + ' đ' : '—'}
+                        </span>
+                    </div>
+                    `).join('')}
+                    <div class="combo-prod-row combo-prod-total">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                        <span style="text-align:right;font-weight:700;color:var(--pk-primary);">
+                            Tổng: ${fmt(totalAmt)} đ
+                        </span>
+                    </div>
+                </div>
+            </div>`;
+        }).join('');
+
+        list.querySelectorAll('[data-act="edit"]').forEach(b => b.addEventListener('click', () => {
+            const name = b.dataset.name;
+            const combo = (combos || []).find(c => c.comboName === name);
+            openModal(combo);
+        }));
+        list.querySelectorAll('[data-act="del"]').forEach(b => b.addEventListener('click', () => {
+            deleteCombo(b.dataset.name);
+        }));
+    }
+
+    // ===== Open/Close modal =====
+    function openModal(combo) {
+        editingName = combo ? combo.comboName : null;
+        $('modalTitle').textContent = combo ? 'Sửa Combo LT' : 'Thêm Combo LT';
+        $('cmbName').value = combo ? combo.comboName : '';
+
+        if (combo && combo.items) {
+            formItems = combo.items.map(it => ({
+                productId: it.productId || '',
+                variationId: it.variationId || '',
+                productName: it.productName || '',
+                unitPrice: it.unitPrice || 0,
+                quantity: it.quantity || 1,
+                amount: it.amount || 0
+            }));
+        } else {
+            formItems = [{ productId: '', variationId: '', productName: '', unitPrice: 0, quantity: 1, amount: 0 }];
+        }
+        renderFormItems();
+        recalcComboPrice();
+        $('comboModal').hidden = false;
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeModal() {
+        $('comboModal').hidden = true;
+        document.body.style.overflow = '';
+        editingName = null;
+        formItems = [];
+    }
+
+    // ===== Render form items =====
+    function renderFormItems() {
+        const wrap = $('itemList');
+        wrap.innerHTML = formItems.map((it, idx) => {
+            const product = products.find(p => p.id === it.productId);
+            const variations = product ? (product.variations || []) : [];
+            return `
+            <div class="sub-form-row" data-idx="${idx}">
+                <div class="sub-form-head">
+                    <strong>Sản phẩm #${idx + 1}</strong>
+                    ${formItems.length > 1
+                        ? `<button type="button" class="pk-btn pk-btn--danger" data-act="rm-item" style="padding:4px 10px;font-size:12px;">🗑️ Xóa</button>`
+                        : ''}
+                </div>
+                <div class="sub-form-grid" style="grid-template-columns:1fr 1fr 60px 100px 100px;">
+                    <label>Sản phẩm *
+                        <select data-field="productId">
+                            <option value="">-- Chọn --</option>
+                            ${products.map(p => `<option value="${esc(p.id)}" ${p.id === it.productId ? 'selected' : ''}>${esc(p.name)}</option>`).join('')}
+                        </select>
+                    </label>
+                    <label>Biến thể
+                        <select data-field="variationId" ${!it.productId ? 'disabled' : ''}>
+                            <option value="">— Tất cả —</option>
+                            ${variations.map(v => `<option value="${esc(v.id)}" ${v.id === it.variationId ? 'selected' : ''}>${esc(v.name)} (${fmt(v.retailPrice || 0)}đ)</option>`).join('')}
+                        </select>
+                    </label>
+                    <label>SL *
+                        <input type="number" min="1" step="1" value="${it.quantity}" data-field="quantity">
+                    </label>
+                    <label>Đơn giá
+                        <input type="number" min="0" step="1000" value="${it.unitPrice || 0}" data-field="unitPrice" placeholder="0">
+                    </label>
+                    <label>Thành tiền
+                        <span class="item-amount" style="padding:8px 10px;display:block;font-weight:600;color:var(--pk-primary);">
+                            ${fmt((Number(it.unitPrice) || 0) * (Number(it.quantity) || 1))} đ
+                        </span>
+                    </label>
+                </div>
+            </div>`;
+        }).join('');
+
+        // Attach listeners
+        wrap.querySelectorAll('.sub-form-row').forEach(row => {
+            const idx = +row.dataset.idx;
+            row.querySelectorAll('[data-field]').forEach(el => {
+                el.addEventListener('change', () => {
+                    const field = el.dataset.field;
+                    const val = field === 'quantity' ? Math.max(1, parseInt(el.value) || 1) : el.value;
+                    formItems[idx][field] = val;
+                    if (field === 'productId') {
+                        // Reset variation + fill productName + clear price
+                        formItems[idx].variationId = '';
+                        const prod = products.find(p => p.id === val);
+                        formItems[idx].productName = prod ? prod.name : '';
+                        formItems[idx].unitPrice = 0;
+                        formItems[idx].amount = 0;
+                        renderFormItems();
+                        recalcComboPrice();
+                    } else if (field === 'variationId') {
+                        // Auto-fill price from variation
+                        const prod = products.find(p => p.id === formItems[idx].productId);
+                        const vars = prod ? (prod.variations || []) : [];
+                        const selVar = vars.find(v => v.id === val);
+                        if (selVar && selVar.retailPrice) {
+                            formItems[idx].unitPrice = Number(selVar.retailPrice) || 0;
+                        } else {
+                            formItems[idx].unitPrice = 0;
+                        }
+                        recalcAmount(idx);
+                        recalcComboPrice();
+                        renderFormItems();
+                    } else if (field === 'unitPrice' || field === 'quantity') {
+                        recalcAmount(idx);
+                        recalcComboPrice();
+                    }
+                });
+            });
+            const rm = row.querySelector('[data-act="rm-item"]');
+            if (rm) rm.addEventListener('click', () => {
+                formItems.splice(idx, 1);
+                renderFormItems();
+                recalcComboPrice();
+            });
+        });
+    }
+
+    function recalcAmount(idx) {
+        const it = formItems[idx];
+        it.amount = (Number(it.unitPrice) || 0) * (Number(it.quantity) || 1);
+    }
+
+    function recalcComboPrice() {
+        const total = formItems.reduce((s, it) => s + ((Number(it.unitPrice) || 0) * (Number(it.quantity) || 1)), 0);
+        // Chỉ ghi vào input nếu chưa có giá trị tùy chỉnh (auto)
+        // Để đơn giản: luôn cập nhật = tổng
+        $('cmbPrice').value = total || '';
+    }
+
+    // ===== Save =====
+    async function saveCombo() {
+        const name = $('cmbName').value.trim();
+        if (!name) { alert('Vui lòng nhập tên combo'); return; }
+        const invalid = formItems.filter(it => !it.productId);
+        if (invalid.length) { alert('Vui lòng chọn sản phẩm cho tất cả các mục'); return; }
+
+        // Tính amount cho từng item
+        formItems.forEach(it => {
+            it.amount = (Number(it.unitPrice) || 0) * (Number(it.quantity) || 1);
+            // productName từ product list
+            const prod = products.find(p => p.id === it.productId);
+            if (prod && !it.productName) it.productName = prod.name;
+        });
+
+        const comboPrice = Number($('cmbPrice').value) || 0;
+        const body = {
+            comboName: name,
+            comboPrice,
+            items: formItems.map(it => ({
+                productId: it.productId,
+                variationId: it.variationId || null,
+                productName: it.productName || '',
+                unitPrice: Number(it.unitPrice) || 0,
+                quantity: Number(it.quantity) || 1,
+                amount: it.amount
+            }))
+        };
+
+        try {
+            await fetchJson('/api/ltkach/config/combos', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+            closeModal();
+            loadCombos();
+        } catch (e) { alert('Lỗi: ' + e.message); }
+    }
+
+    // ===== Delete =====
+    async function deleteCombo(comboName) {
+        if (!confirm('Bạn có chắc muốn xóa combo "' + comboName + '"?')) return;
+        try {
+            await fetchJson('/api/ltkach/config/combos/by-name', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ comboName })
+            });
+            loadCombos();
+        } catch (e) { alert('Lỗi: ' + e.message); }
+    }
+
+    // ===== Event listeners =====
+    $('reloadBtn').addEventListener('click', loadCombos);
+    $('addBtn').addEventListener('click', () => openModal(null));
+    $('addItemBtn').addEventListener('click', () => {
+        formItems.push({ productId: '', variationId: '', productName: '', unitPrice: 0, quantity: 1, amount: 0 });
+        renderFormItems();
+        recalcComboPrice();
+    });
+    $('modalClose').addEventListener('click', closeModal);
+    $('modalCancel').addEventListener('click', closeModal);
+    $('modalSave').addEventListener('click', saveCombo);
+    $('comboModal').addEventListener('click', e => { if (e.target.id === 'comboModal') closeModal(); });
+
+    window.addEventListener('DOMContentLoaded', loadCombos);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,217 @@
+/* ============================================================
+   LT Khách Config (Combo + Substitution)
+   ============================================================ */
+
+.combo-list {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.combo-card {
+    background: var(--pk-canvas-soft);
+    border: 1px solid var(--pk-hairline);
+    border-radius: var(--pk-radius-lg);
+    padding: 14px 16px 2px;
+}
+
+.combo-card-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 10px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--pk-hairline-soft);
+    flex-wrap: wrap;
+}
+
+.combo-card-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--pk-ink);
+}
+
+.combo-card-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.combo-card-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr;
+    gap: 12px;
+    font-size: 13px;
+}
+
+.combo-card-grid > div {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.muted-label {
+    font-size: 11px;
+    color: var(--pk-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+}
+
+.muted {
+    color: var(--pk-muted);
+    margin-left: 6px;
+    font-size: 12px;
+}
+
+.qty {
+    color: var(--pk-info);
+    margin-left: 6px;
+    font-weight: 600;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+.combo-input {
+    width: 100%;
+    padding: 9px 12px;
+    border: 1px solid var(--pk-hairline-strong);
+    border-radius: var(--pk-radius-md);
+    font-size: 14px;
+    font-family: inherit;
+    background: var(--pk-card);
+    color: var(--pk-ink);
+}
+.combo-input:focus {
+    outline: none;
+    border-color: var(--pk-primary);
+    box-shadow: 0 0 0 3px var(--pk-primary-soft);
+}
+
+/* Substitution items list (read-only display in card) */
+.sub-items {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.sub-item {
+    padding: 8px 12px;
+    background: var(--pk-card);
+    border: 1px solid var(--pk-hairline-soft);
+    border-radius: var(--pk-radius-md);
+    font-size: 13px;
+}
+
+/* Substitution form row (modal) */
+.sub-form-row {
+    border: 1px solid var(--pk-hairline);
+    border-radius: var(--pk-radius-lg);
+    padding: 12px;
+    background: var(--pk-canvas-soft);
+}
+
+.sub-form-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    font-size: 13px;
+    color: var(--pk-ink);
+}
+
+.sub-form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 60px 100px 100px;
+    gap: 8px;
+    flex-wrap: nowrap;
+    overflow-x: visible;
+}
+
+.sub-form-grid > * {
+    min-width: 0;
+}
+
+.sub-form-grid input,
+.sub-form-grid select {
+    padding: 8px 10px;
+    border: 1px solid var(--pk-hairline-strong);
+    border-radius: var(--pk-radius-md);
+    font-size: 13px;
+    font-family: inherit;
+    background: var(--pk-card);
+    color: var(--pk-ink);
+    text-transform: none;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.sub-form-grid label {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 11px;
+    color: var(--pk-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+}
+
+.sub-form-grid label {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 11px;
+    color: var(--pk-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+}
+
+.sub-form-grid select,
+.sub-form-grid input {
+    padding: 8px 10px;
+    border: 1px solid var(--pk-hairline-strong);
+    border-radius: var(--pk-radius-md);
+    font-size: 13px;
+    font-family: inherit;
+    background: var(--pk-card);
+    color: var(--pk-ink);
+    text-transform: none;
+}
+
+/* ============================================================
+   Combo product rows (in card)
+   ============================================================ */
+.combo-products-list {
+    border: 1px solid var(--pk-hairline-soft);
+    border-radius: var(--pk-radius-md);
+    overflow: hidden;
+}
+
+.combo-prod-row {
+    display: grid;
+    grid-template-columns: 36px 1fr 120px 60px 130px;
+    gap: 8px;
+    padding: 8px 12px;
+    font-size: 13px;
+    border-bottom: 1px solid var(--pk-hairline-soft);
+    align-items: center;
+}
+
+.combo-prod-row:last-child { border-bottom: none; }
+
+.combo-prod-header {
+    background: var(--pk-canvas-soft);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--pk-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+
+.combo-prod-total {
+    background: var(--pk-card);
+    border-top: 2px solid var(--pk-hairline-strong) !important;
+     padding-left:-10px; 
+    padding-right: 0;
+}

@@ -2,6 +2,8 @@ package mera.mera_v2.pos.sync.client;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import lombok.extern.slf4j.Slf4j;
 import mera.mera_v2.pos.sync.dto.CustomerApiDto;
 import mera.mera_v2.pos.sync.dto.CustomerListResponseDto;
@@ -24,6 +26,7 @@ import java.util.List;
 @Slf4j
 @Component
 public class CustomerApiClient {
+  private static final Logger log = LoggerFactory.getLogger(CustomerApiClient.class);
 
     private static final ZoneId VN_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
     private static final DateTimeFormatter DMY_FORMAT = DateTimeFormatter.ofPattern("dd/MM/yyyy");

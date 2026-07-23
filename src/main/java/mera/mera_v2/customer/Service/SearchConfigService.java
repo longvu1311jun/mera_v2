@@ -8,6 +8,8 @@ import mera.mera_v2.model.BitableTable;
 import mera.mera_v2.model.LarkNode;
 import mera.mera_v2.model.PosUser;
 import mera.mera_v2.repository.SearchConfigRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,10 +18,10 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-@Slf4j
 @Service
 @RequiredArgsConstructor
 public class SearchConfigService {
+    private static final Logger log = LoggerFactory.getLogger(SearchConfigService.class);
 
     public static final int STATUS_PENDING = 0;
     public static final int STATUS_LOADING = 1;

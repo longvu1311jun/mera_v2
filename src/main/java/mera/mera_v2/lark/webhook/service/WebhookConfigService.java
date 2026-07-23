@@ -1,7 +1,8 @@
 package mera.mera_v2.lark.webhook.service;
 
 import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -9,9 +10,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 /**
  * Service quản lý config bật/tắt xử lý webhook theo status
  */
-@Slf4j
 @Service
 public class WebhookConfigService {
+  private static final Logger log = LoggerFactory.getLogger(WebhookConfigService.class);
     
     // Config cho status = 1 (đã xác nhận)
     @Getter
