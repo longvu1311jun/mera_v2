@@ -974,41 +974,48 @@ public class LtKhachService {
     public List<OrderDetailDto> getOrderDetails(LocalDateTime fromDate, LocalDateTime toDate, String creatorId, Boolean useInsertedAt, Boolean zaloOnly, int limit) {
         List<OrderDetailDto> result = new ArrayList<>();
         try {
-            LocalDateTime start = fromDate;
-            LocalDateTime end = toDate;
-            int safeLimit = Math.min(Math.max(limit, 1), 500);
-
-            // Tách creator / zalo filter ra để set parameter an toàn
             StringBuilder sql = new StringBuilder();
             boolean needCreatorParam = creatorId != null && !creatorId.isBlank();
-            boolean needZaloFilter = Boolean.TRUE.equals(zaloOnly);
 
+            // Chỉ lấy đơn status = 3 (completed)
             if (Boolean.TRUE.equals(useInsertedAt)) {
-                sql.append("SELECT /*+ MAX_EXECUTION_TIME(60000) */ o.id, o.order_code, o.status, o.status_name, o.total_price, o.cod, o.prepaid, ")
-                   .append("o.inserted_at, o.creator_id, o.last_editor_name, o.order_sources_name, ")
-                   .append("o.bill_full_name, o.bill_phone_number, o.lt_type, c.lt_count ")
-                   .append("FROM orders o LEFT JOIN customers c ON o.customer_id = c.id ")
-                   .append("WHERE o.inserted_at >= :start AND o.inserted_at <= :end ");
+                sql.append("SELECT o.id, o.order_code, o.status, o.status_name, o.total_price, ")
+                   .append("o.inserted_at, o.creator_id, u.name AS creator_name, o.order_sources_name, ")
+                   .append("o.bill_full_name, o.bill_phone_number, c.lt_count ")
+                   .append("FROM orders o ")
+                   .append("LEFT JOIN customers c ON o.customer_id = c.id ")
+                   .append("LEFT JOIN pos_users u ON o.creator_id = u.id ")
+                   .append("WHERE o.inserted_at >= :start AND o.inserted_at <= :end ")
+                   .append("AND o.status = 3 ");
             } else {
-                sql.append("SELECT /*+ MAX_EXECUTION_TIME(60000) */ o.id, o.order_code, o.status, o.status_name, o.total_price, o.cod, o.prepaid, ")
-                   .append("o.inserted_at, o.creator_id, o.last_editor_name, o.order_sources_name, ")
-                   .append("o.bill_full_name, o.bill_phone_number, o.lt_type, c.lt_count ")
-                   .append("FROM orders o LEFT JOIN customers c ON o.customer_id = c.id ")
+                sql.append("SELECT o.id, o.order_code, o.status, o.status_name, o.total_price, ")
+                   .append("o.inserted_at, o.creator_id, u.name AS creator_name, o.order_sources_name, ")
+                   .append("o.bill_full_name, o.bill_phone_number, c.lt_count ")
+                   .append("FROM orders o ")
+                   .append("LEFT JOIN customers c ON o.customer_id = c.id ")
+                   .append("LEFT JOIN pos_users u ON o.creator_id = u.id ")
                    .append("WHERE EXISTS (SELECT 1 FROM order_status_histories h ")
                    .append("WHERE h.order_id = o.id AND h.new_status = 1 ")
-                   .append("AND h.updated_at >= :start AND h.updated_at <= :end) ");
+                   .append("AND h.updated_at >= :start AND h.updated_at <= :end) ")
+                   .append("AND o.status = 3 ");
             }
             if (needCreatorParam) sql.append("AND o.creator_id = :creatorId ");
-            if (needZaloFilter) sql.append("AND LOWER(IFNULL(o.order_sources_name,'')) LIKE '%zalo%' ");
-            sql.append("ORDER BY o.id DESC LIMIT ").append(safeLimit);
+            sql.append("ORDER BY o.id DESC");
 
             Query q = em.createNativeQuery(sql.toString());
-            q.setParameter("start", start);
-            q.setParameter("end", end);
+            q.setParameter("start", fromDate);
+            q.setParameter("end", toDate);
             if (needCreatorParam) q.setParameter("creatorId", creatorId);
 
             @SuppressWarnings("unchecked")
             List<Object[]> rows = q.getResultList();
+
+            // Lấy products cho tất cả orders (batch)
+            Set<Long> orderIds = rows.stream()
+                .map(row -> row[0] != null ? ((Number) row[0]).longValue() : 0L)
+                .collect(Collectors.toSet());
+            Map<Long, String> productMap = loadOrderProducts(orderIds);
+
             for (Object[] row : rows) {
                 OrderDetailDto dto = new OrderDetailDto();
                 dto.setId(row[0] != null ? ((Number) row[0]).longValue() : 0L);
@@ -1016,26 +1023,53 @@ public class LtKhachService {
                 if (row[2] != null) dto.setStatus(((Number) row[2]).intValue());
                 dto.setStatusName(row[3] != null ? String.valueOf(row[3]) : null);
                 dto.setTotalPrice(toBigDecimal(row[4]));
-                dto.setCod(toBigDecimal(row[5]));
-                dto.setPrepaid(toBigDecimal(row[6]));
-                if (row[7] != null) {
-                    Object t = row[7];
+                if (row[5] != null) {
+                    Object t = row[5];
                     if (t instanceof java.sql.Timestamp) dto.setInsertedAt(((java.sql.Timestamp) t).toLocalDateTime());
                     else if (t instanceof java.time.LocalDateTime) dto.setInsertedAt((java.time.LocalDateTime) t);
                 }
-                dto.setCreatorId(row[8] != null ? String.valueOf(row[8]) : null);
-                dto.setCreatorName(row[9] != null ? String.valueOf(row[9]) : null);
-                dto.setOrderSourcesName(row[10] != null ? String.valueOf(row[10]) : null);
-                dto.setCustomerName(row[11] != null ? String.valueOf(row[11]) : null);
-                dto.setCustomerPhone(row[12] != null ? String.valueOf(row[12]) : null);
-                // lt_type (Boolean): 1/0 from DB -> Boolean
-                dto.setLtType(row[13] != null ? ((Number) row[13]).intValue() == 1 : null);
-                // lt_count từ customers
-                dto.setLtCount(row[14] != null ? ((Number) row[14]).intValue() : 0);
+                dto.setCreatorId(row[6] != null ? String.valueOf(row[6]) : null);
+                dto.setCreatorName(row[7] != null ? String.valueOf(row[7]) : null);
+                dto.setOrderSourcesName(row[8] != null ? String.valueOf(row[8]) : null);
+                dto.setCustomerName(row[9] != null ? String.valueOf(row[9]) : null);
+                dto.setCustomerPhone(row[10] != null ? String.valueOf(row[10]) : null);
+                // lt_count từ customers (cột 11)
+                dto.setLtCount(row[11] != null ? ((Number) row[11]).intValue() : 0);
+                // products từ order_items
+                dto.setProducts(productMap.get(dto.getId()));
                 result.add(dto);
             }
         } catch (Exception e) {
             log.error("Error getting order details", e);
+        }
+        return result;
+    }
+
+    /**
+     * Load products cho nhiều orders (batch query)
+     */
+    private Map<Long, String> loadOrderProducts(Set<Long> orderIds) {
+        Map<Long, String> result = new HashMap<>();
+        if (orderIds == null || orderIds.isEmpty()) return result;
+
+        try {
+            // Dùng product_name trực tiếp từ order_items (không cần join products)
+            String productSql = "SELECT oi.order_id, GROUP_CONCAT(oi.product_name ORDER BY oi.id SEPARATOR ', ') AS products " +
+                "FROM order_items oi " +
+                "WHERE oi.order_id IN (:orderIds) " +
+                "GROUP BY oi.order_id";
+
+            Query q = em.createNativeQuery(productSql);
+            q.setParameter("orderIds", orderIds);
+            @SuppressWarnings("unchecked")
+            List<Object[]> rows = q.getResultList();
+            for (Object[] row : rows) {
+                Long orderId = row[0] != null ? ((Number) row[0]).longValue() : 0L;
+                String products = row[1] != null ? String.valueOf(row[1]) : "";
+                result.put(orderId, products);
+            }
+        } catch (Exception e) {
+            log.warn("Error loading order products: {}", e.getMessage());
         }
         return result;
     }
