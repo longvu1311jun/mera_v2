@@ -33,7 +33,7 @@
                 <div class="pk-page-header">
                     <div>
                         <h1>🛒 Chi Tiết Đơn Hàng</h1>
-                        <p>Tra cứu thông tin đơn: mã, khách hàng, người tạo, nguồn, LT, sản phẩm.</p>
+                        <p>Tra cứu đơn hoàn thành (status=3): mã, khách hàng, người tạo, LT, sản phẩm.</p>
                     </div>
                     <div class="pk-page-filters">
                         <label style="display:flex;flex-direction:column;gap:4px;font-size:11px;color:var(--pk-muted);text-transform:uppercase;letter-spacing:0.5px;font-weight:600;">
@@ -57,23 +57,13 @@
                         Lọc theo LT
                         <select id="filterLt">
                             <option value="">Tất cả</option>
-                            <option value="LT">LT</option>
-                            <option value="LT_LE">LT Lẻ</option>
+                            <option value="0">LT 0</option>
+                            <option value="1">LT 1</option>
+                            <option value="2">LT 2</option>
+                            <option value="3">LT 3</option>
+                            <option value="4">LT 4</option>
+                            <option value="gt4">LT &gt; 4</option>
                         </select>
-                    </label>
-                    <label style="display:flex;flex-direction:column;gap:4px;font-size:11px;color:var(--pk-muted);text-transform:uppercase;letter-spacing:0.5px;font-weight:600;">
-                        Lọc LT Real
-                        <select id="filterLtReal">
-                            <option value="">Tất cả</option>
-                            <option value="1">1</option>
-                            <option value="2">2</option>
-                            <option value="3">3</option>
-                            <option value="4">4</option>
-                            <option value=">4">&gt;4</option>
-                        </select>
-                    </label>
-                    <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--pk-muted);margin-top:18px;">
-                        <input type="checkbox" id="zaloOnly" checked> Chỉ Zalo
                     </label>
                     <button type="button" class="pk-btn" id="clearBtn" style="margin-top:14px;">✖ Xóa bộ lọc</button>
                 </div>
@@ -94,8 +84,8 @@
                                     <option value="id">Mã đơn</option>
                                     <option value="customerName">Tên khách</option>
                                     <option value="totalPrice">Tổng tiền</option>
-                                    <option value="cod">COD</option>
                                     <option value="creatorName">Người tạo</option>
+                                    <option value="ltCount">LT</option>
                                 </select>
                             </label>
                             <label style="display:flex;align-items:center;gap:6px;color:var(--pk-muted);">
@@ -103,6 +93,15 @@
                                 <select id="sortOrder">
                                     <option value="desc">Giảm dần</option>
                                     <option value="asc">Tăng dần</option>
+                                </select>
+                            </label>
+                            <label style="display:flex;align-items:center;gap:6px;color:var(--pk-muted);">
+                                Trang:
+                                <select id="pageSize">
+                                    <option value="50">50</option>
+                                    <option value="100" selected>100</option>
+                                    <option value="200">200</option>
+                                    <option value="500">500</option>
                                 </select>
                             </label>
                         </div>
@@ -116,18 +115,18 @@
                                     <th>SĐT</th>
                                     <th>Người tạo</th>
                                     <th>LT</th>
-                                    <th>LT Real</th>
                                     <th>Tổng tiền</th>
-                                    <th>COD</th>
                                     <th>Nguồn</th>
                                     <th>Thời gian tạo</th>
                                     <th>Sản phẩm</th>
                                 </tr>
                             </thead>
                             <tbody id="orderTbody">
-                                <tr><td colspan="11" class="pk-empty">Bấm "Tải đơn" để xem dữ liệu.</td></tr>
+                                <tr><td colspan="9" class="pk-empty">Bấm "Tải đơn" để xem dữ liệu.</td></tr>
                             </tbody>
                         </table>
+                    </div>
+                    <div id="pagination" style="display:flex;justify-content:center;align-items:center;gap:8px;padding:12px;">
                     </div>
                 </div>
             </div>
@@ -151,6 +150,9 @@
     const hideErr = id => { const b = $(id); b.hidden = true; b.textContent = ''; };
 
     let allRows = [];
+    let filteredRows = [];
+    let currentPage = 1;
+    let pageSize = 100;
 
     function defaultDates() {
         const now = new Date();
@@ -169,12 +171,11 @@
         if (f > to) { showErr('orderError', 'Từ ngày phải ≤ đến ngày.'); return; }
         $('loadBtn').disabled = true; $('loadBtn').textContent = 'Đang tải...';
         try {
-            const url = '/api/ltkach/order-details?fromDate=' + f + '&toDate=' + to
-                + '&zaloOnly=' + ($('zaloOnly').checked ? 'true' : 'false')
-                + '&limit=500';
+            const url = '/api/ltkach/order-details?fromDate=' + f + '&toDate=' + to;
             const data = await fetchJson(url);
             allRows = data.orders || [];
-            renderTable();
+            currentPage = 1;
+            applyFiltersAndRender();
         } catch (e) {
             showErr('orderError', 'Không tải được: ' + e.message);
         } finally {
@@ -182,31 +183,28 @@
         }
     }
 
-    function renderTable() {
-        const tbody = $('orderTbody');
+    function applyFiltersAndRender() {
         const customer = ($('filterCustomer').value || '').toLowerCase().trim();
         const lt = $('filterLt').value;
-        const ltReal = $('filterLtReal').value;
-        let rows = allRows.slice();
+        
+        filteredRows = allRows.slice();
         if (customer) {
-            rows = rows.filter(o => (o.customerName && o.customerName.toLowerCase().includes(customer))
+            filteredRows = filteredRows.filter(o => 
+                (o.customerName && o.customerName.toLowerCase().includes(customer))
                 || (o.customerPhone && (o.customerPhone + '').includes(customer))
                 || (o.id + '').includes(customer)
-                || (o.orderCode && (o.orderCode + '').toLowerCase().includes(customer)));
+                || (o.orderCode && (o.orderCode + '').toLowerCase().includes(customer))
+            );
         }
         if (lt) {
-            // lt: '' = all, '1' = LT lẻ (true), '0' = LT chẵn (false)
-            if (lt === '1') rows = rows.filter(o => o.ltType === true);
-            else if (lt === '0') rows = rows.filter(o => !o.ltType);
+            if (lt === 'gt4') filteredRows = filteredRows.filter(o => (o.ltCount || 0) > 4);
+            else filteredRows = filteredRows.filter(o => (o.ltCount || 0) === Number(lt));
         }
-        if (ltReal) {
-            // ltReal: filter theo lt_count của customer
-            if (ltReal === '>4') rows = rows.filter(o => (o.ltCount || 0) > 4);
-            else rows = rows.filter(o => (o.ltCount || 0) === Number(ltReal));
-        }
+        
+        // Sort
         const col = $('sortColumn').value;
         const ord = $('sortOrder').value;
-        rows.sort((a, b) => {
+        filteredRows.sort((a, b) => {
             let av = a[col], bv = b[col];
             if (col === 'insertedAt') { av = av ? new Date(av).getTime() : 0; bv = bv ? new Date(bv).getTime() : 0; }
             if (typeof av === 'string') av = av.toLowerCase();
@@ -215,38 +213,119 @@
             if (av > bv) return ord === 'asc' ? 1 : -1;
             return 0;
         });
-        $('tableInfo').textContent = `Tổng ${allRows.length} đơn · Hiển thị ${rows.length}`;
-        if (rows.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="11" class="pk-empty">Không có đơn nào khớp bộ lọc.</td></tr>';
+        
+        renderTable();
+        renderPagination();
+    }
+
+    function renderTable() {
+        const tbody = $('orderTbody');
+        const totalPages = Math.ceil(filteredRows.length / pageSize);
+        const start = (currentPage - 1) * pageSize;
+        const end = start + pageSize;
+        const pageRows = filteredRows.slice(start, end);
+
+        $('tableInfo').textContent = `Tổng ${allRows.length} đơn · Đã lọc ${filteredRows.length} đơn · Trang ${currentPage}/${totalPages}`;
+        
+        if (pageRows.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="9" class="pk-empty">Không có đơn nào khớp bộ lọc.</td></tr>';
             return;
         }
-        tbody.innerHTML = rows.map(o => `<tr>
+        
+        tbody.innerHTML = pageRows.map(o => `<tr>
             <td class="od-cell od-id" title="ID: ${o.id}">${esc(o.orderCode || o.id)}</td>
             <td class="od-cell od-name">${esc(o.customerName || '-')}</td>
             <td class="od-cell od-phone">${esc(o.customerPhone || '-')}</td>
             <td class="od-cell">${esc(o.creatorName || '-')}</td>
-            <td class="od-cell">${o.ltType ? 'LT LẺ' : 'LT'}</td>
             <td class="od-cell">${o.ltCount != null ? o.ltCount : '-'}</td>
             <td class="od-cell od-money">${fmt(o.totalPrice)}</td>
-            <td class="od-cell od-money">${fmt(o.cod)}</td>
             <td class="od-cell">${esc(o.orderSourcesName || '-')}</td>
             <td class="od-cell od-time">${fmtDate(o.insertedAt)}</td>
             <td class="od-cell od-products" title="${esc(o.products || '')}">${esc(o.products || '-')}</td>
         </tr>`).join('');
     }
 
+    function renderPagination() {
+        const pagination = $('pagination');
+        const totalPages = Math.ceil(filteredRows.length / pageSize);
+        
+        if (totalPages <= 1) {
+            pagination.innerHTML = '';
+            return;
+        }
+
+        let html = '';
+        
+        // Prev button
+        if (currentPage > 1) {
+            html += `<button class="pk-btn" onclick="goToPage(${currentPage - 1})">← Trước</button>`;
+        } else {
+            html += `<button class="pk-btn" disabled>← Trước</button>`;
+        }
+
+        // Page numbers
+        const maxVisible = 5;
+        let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+        let endPage = Math.min(totalPages, startPage + maxVisible - 1);
+        if (endPage - startPage < maxVisible - 1) {
+            startPage = Math.max(1, endPage - maxVisible + 1);
+        }
+
+        if (startPage > 1) {
+            html += `<button class="pk-btn" onclick="goToPage(1)">1</button>`;
+            if (startPage > 2) html += `<span style="padding:0 4px;">...</span>`;
+        }
+
+        for (let i = startPage; i <= endPage; i++) {
+            if (i === currentPage) {
+                html += `<button class="pk-btn pk-btn--primary">${i}</button>`;
+            } else {
+                html += `<button class="pk-btn" onclick="goToPage(${i})">${i}</button>`;
+            }
+        }
+
+        if (endPage < totalPages) {
+            if (endPage < totalPages - 1) html += `<span style="padding:0 4px;">...</span>`;
+            html += `<button class="pk-btn" onclick="goToPage(${totalPages})">${totalPages}</button>`;
+        }
+
+        // Next button
+        if (currentPage < totalPages) {
+            html += `<button class="pk-btn" onclick="goToPage(${currentPage + 1})">Sau →</button>`;
+        } else {
+            html += `<button class="pk-btn" disabled>Sau →</button>`;
+        }
+
+        pagination.innerHTML = html;
+    }
+
+    window.goToPage = function(page) {
+        const totalPages = Math.ceil(filteredRows.length / pageSize);
+        if (page < 1) page = 1;
+        if (page > totalPages) page = totalPages;
+        currentPage = page;
+        renderTable();
+        renderPagination();
+    };
+
     defaultDates();
     $('loadBtn').addEventListener('click', loadOrders);
     $('clearBtn').addEventListener('click', () => {
         $('filterCustomer').value = '';
         $('filterLt').value = '';
-        $('filterLtReal').value = '';
-        renderTable();
+        currentPage = 1;
+        applyFiltersAndRender();
     });
-    ['filterCustomer', 'filterLt', 'filterLtReal', 'sortColumn', 'sortOrder'].forEach(id =>
-        $(id).addEventListener('input', renderTable));
-    $('sortColumn').addEventListener('change', renderTable);
-    $('sortOrder').addEventListener('change', renderTable);
+    $('pageSize').addEventListener('change', (e) => {
+        pageSize = Number(e.target.value);
+        currentPage = 1;
+        renderTable();
+        renderPagination();
+    });
+    ['filterCustomer', 'filterLt', 'sortColumn', 'sortOrder'].forEach(id =>
+        $(id).addEventListener('input', () => { currentPage = 1; applyFiltersAndRender(); }));
+    $('sortColumn').addEventListener('change', () => { currentPage = 1; applyFiltersAndRender(); });
+    $('sortOrder').addEventListener('change', () => { currentPage = 1; applyFiltersAndRender(); });
 
     window.addEventListener('DOMContentLoaded', () => $('loadBtn').click());
 })();
