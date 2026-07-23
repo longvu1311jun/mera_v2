@@ -69,6 +69,12 @@ public class LtKhachBackfillService {
                 Timestamp insertedAt = (Timestamp) row.get("inserted_at");
 
                 if (customerId == null || insertedAt == null) {
+                    // Vẫn phải ghi snapshot = 0, nếu để NULL thì vòng while sẽ
+                    // fetch lại đúng các dòng này mãi mãi và không bao giờ thoát
+                    jdbcTemplate.update(
+                        "UPDATE orders SET lt_count_snapshot = 0 WHERE id = ? AND lt_count_snapshot IS NULL",
+                        orderId
+                    );
                     skipped++;
                     continue;
                 }

@@ -97,10 +97,8 @@ public class WebhookPersistenceService {
                 result.setHistoriesSaved(historiesSaved);
 
                 // 6. Tinh LT (Liệu Trình) cho order vừa lưu
-                Integer orderStatus = orderWebhook.getStatus();
-                boolean isCompletedOrder = (orderStatus != null && orderStatus == 3);
                 try {
-                    LtCalculationService.LtResult ltResult = ltCalculationService.calculateForOrder(orderId, isCompletedOrder);
+                    LtCalculationService.LtResult ltResult = ltCalculationService.calculateForOrder(orderId);
                     result.setLtType(ltResult.ltType());
                     result.setLtCount(ltResult.ltCount());
                     log.info("   LT: order={}, lt_type={}, lt_count={}", orderId, ltResult.ltType(), ltResult.ltCount());

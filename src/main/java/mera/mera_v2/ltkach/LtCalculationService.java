@@ -36,14 +36,20 @@ public class LtCalculationService {
      * 2. Combo = {A, B, C}, Substitution = {A -> D}
      * 3. Đủ combo (D thay A) → lt_type = TRUE (chẵn)
      * 4. Không đủ combo → lt_type = FALSE (lẻ)
-     * 5. Nếu lt_type = TRUE VÀ status = 3 → +1 vào customers.lt_count
-     * 
+     * 5. lt_count của khách luôn được recalculate từ orders (idempotent —
+     *    sync chạy lại bao nhiêu lần cũng không cộng trùng)
+     *
      * @param orderId ID của order cần tính
-     * @param isCompletedOrder đã completed chưa (status = 3)
      * @return LtResult chứa ltType và ltCount
      */
     @Transactional
-    public LtResult calculateForOrder(Long orderId, boolean isCompletedOrder) {
+    public LtResult calculateForOrder(Long orderId) {
+        return calculateForOrder(orderId, loadComboGroups(), loadSubstitutionGroups());
+    }
+
+    private LtResult calculateForOrder(Long orderId,
+                                       Map<String, Set<String>> comboGroups,
+                                       Map<String, Set<String>> substitutionGroups) {
         // 1. Lấy order và customer
         Object[] orderRow = (Object[]) em.createNativeQuery(
             "SELECT o.id, o.customer_id, o.status, o.lt_type, c.lt_count " +
@@ -52,7 +58,6 @@ public class LtCalculationService {
         ).setParameter("orderId", orderId).getSingleResult();
 
         String customerId = (String) orderRow[1];
-        Integer status = ((Number) orderRow[2]).intValue();
         Boolean currentLtType = orderRow[3] != null ? (((Number) orderRow[3]).intValue() == 1) : null;
         Integer oldLtCount = orderRow[4] != null ? ((Number) orderRow[4]).intValue() : 0;
 
@@ -71,36 +76,34 @@ public class LtCalculationService {
             }
         }
 
-        // 3. Load combo groups và substitution groups (cache để tối ưu)
-        Map<String, Set<String>> comboGroups = loadComboGroups();
-        Map<String, Set<String>> substitutionGroups = loadSubstitutionGroups();
-
-        // 4. Check đơn có đủ combo không (có thể thay thế)
+        // 3. Check đơn có đủ combo không (có thể thay thế)
         boolean isFullCombo = checkIsFullCombo(orderProductMap, comboGroups, substitutionGroups);
+        boolean changed = !Objects.equals(currentLtType, isFullCombo);
 
-        // 5. Ghi orders.lt_type
-        em.createNativeQuery(
-            "UPDATE orders SET lt_type = :ltType WHERE id = :orderId"
-        ).setParameter("ltType", isFullCombo ? 1 : 0)
-         .setParameter("orderId", orderId).executeUpdate();
+        // 4. Ghi orders.lt_type (chỉ khi thay đổi)
+        if (changed) {
+            em.createNativeQuery(
+                "UPDATE orders SET lt_type = :ltType WHERE id = :orderId"
+            ).setParameter("ltType", isFullCombo ? 1 : 0)
+             .setParameter("orderId", orderId).executeUpdate();
+        }
 
-        // 6. Ghi orders.lt_count_snapshot = customers.lt_count HIỆN TẠI
-        // Đây là lt_count tại thời điểm đơn này được tạo, dùng cho báo cáo theo tháng
+        // 5. Ghi orders.lt_count_snapshot = customers.lt_count tại thời điểm đơn được tạo.
+        // Chỉ ghi MỘT LẦN (khi còn NULL) — re-sync không được ghi đè snapshot cũ.
         em.createNativeQuery(
-            "UPDATE orders SET lt_count_snapshot = :ltCount WHERE id = :orderId"
+            "UPDATE orders SET lt_count_snapshot = :ltCount WHERE id = :orderId AND lt_count_snapshot IS NULL"
         ).setParameter("ltCount", oldLtCount)
          .setParameter("orderId", orderId).executeUpdate();
 
-        // 7. Nếu lt_type = TRUE VÀ status = 3 → +1 vào lt_count
-        if (isFullCombo && status == 3 && customerId != null) {
-            em.createNativeQuery(
-                "UPDATE customers SET lt_count = lt_count + 1 WHERE id = :customerId"
-            ).setParameter("customerId", customerId).executeUpdate();
-            oldLtCount++;
-            log.info("Order {}: LT chẵn, +1 cho customer {}, lt_count={}", orderId, customerId, oldLtCount);
+        // 6. Recalculate lt_count từ orders thay vì cộng dồn +1 —
+        // tránh đếm trùng khi cùng một đơn được sync lại nhiều lần,
+        // và tự xử lý cả trường hợp đơn đổi status sau này.
+        int ltCount = oldLtCount;
+        if (customerId != null) {
+            ltCount = recalculateForCustomer(customerId);
         }
 
-        return new LtResult(isFullCombo, oldLtCount, !Objects.equals(currentLtType, isFullCombo));
+        return new LtResult(isFullCombo, ltCount, changed);
     }
 
     /**
@@ -163,14 +166,21 @@ public class LtCalculationService {
     /**
      * Batch calculate LT cho nhiều orders.
      * @param orderIds danh sách order IDs
-     * @param completedOrderIds set các order có status=3 (completed)
      */
     @Transactional
-    public List<LtResult> calculateForOrders(List<Long> orderIds, Set<Long> completedOrderIds) {
+    public List<LtResult> calculateForOrders(List<Long> orderIds) {
+        // Load combo/substitution một lần cho cả batch thay vì mỗi order một lần
+        Map<String, Set<String>> comboGroups = loadComboGroups();
+        Map<String, Set<String>> substitutionGroups = loadSubstitutionGroups();
+
         List<LtResult> results = new ArrayList<>();
         for (Long orderId : orderIds) {
-            boolean isCompleted = completedOrderIds != null && completedOrderIds.contains(orderId);
-            results.add(calculateForOrder(orderId, isCompleted));
+            try {
+                results.add(calculateForOrder(orderId, comboGroups, substitutionGroups));
+            } catch (Exception e) {
+                // Một order lỗi không được làm gãy cả batch sync
+                log.warn("Lỗi khi tính LT cho order {}: {}", orderId, e.getMessage());
+            }
         }
         return results;
     }
@@ -190,7 +200,7 @@ public class LtCalculationService {
         ).setParameter("count", count)
          .setParameter("cid", customerId).executeUpdate();
 
-        log.info("Recalculated customer {}: lt_count = {}", customerId, count);
+        log.debug("Recalculated customer {}: lt_count = {}", customerId, count);
         return count;
     }
 

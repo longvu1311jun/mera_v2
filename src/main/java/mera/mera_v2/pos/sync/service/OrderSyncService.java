@@ -47,7 +47,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -215,25 +214,20 @@ public class OrderSyncService {
       skippedOrderIds.addAll(batchResult.skippedOrderIds);
       totalSynced += orders.size();
 
-      // Tính LT cho các đơn hàng mới (order mới)
+      // Tính LT cho các đơn hàng vừa sync (idempotent — re-sync không cộng trùng)
       if (!orders.isEmpty()) {
         List<Long> orderIds = orders.stream()
             .map(o -> parseOrderId(o.getId()))
             .filter(id -> id != null)
             .toList();
-        
-        // Xác định đơn nào có status = 3 (completed)
-        Set<Long> completedOrderIds = orders.stream()
-            .filter(o -> {
-                Integer orderStatus = o.getStatus();
-                return orderStatus != null && orderStatus == 3;
-            })
-            .map(o -> parseOrderId(o.getId()))
-            .filter(id -> id != null)
-            .collect(Collectors.toSet());
-        
+
         if (!orderIds.isEmpty()) {
-          ltCalculationService.calculateForOrders(orderIds, completedOrderIds);
+          try {
+            ltCalculationService.calculateForOrders(orderIds);
+          } catch (Exception e) {
+            // Lỗi tính LT không được làm gãy job sync đơn hàng
+            log.warn("Loi tinh LT cho batch {} orders: {}", orderIds.size(), e.getMessage());
+          }
         }
       }
 

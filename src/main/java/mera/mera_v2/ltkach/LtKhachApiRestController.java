@@ -19,7 +19,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -32,6 +31,7 @@ public class LtKhachApiRestController {
 
     private final LtKhachApiService ltKhachApiService;
     private final LtCalculationService ltCalculationService;
+    private final LtKhachBackfillService ltKhachBackfillService;
 
     @PersistenceContext
     private EntityManager em;
@@ -147,10 +147,6 @@ public class LtKhachApiRestController {
                 .map(row -> ((Number) row[0]).longValue())
                 .collect(Collectors.toList());
 
-            Set<Long> completedOrderIds = orderRows.stream()
-                .map(row -> ((Number) row[0]).longValue())
-                .collect(Collectors.toSet());
-
             int total = orderIds.size();
             int success = 0;
             int failed = 0;
@@ -158,7 +154,7 @@ public class LtKhachApiRestController {
 
             for (Long orderId : orderIds) {
                 try {
-                    ltCalculationService.calculateForOrder(orderId, true);
+                    ltCalculationService.calculateForOrder(orderId);
                     success++;
                 } catch (Exception e) {
                     failed++;
@@ -213,6 +209,23 @@ public class LtKhachApiRestController {
     }
 
     /**
+     * Backfill lt_count_snapshot cho các đơn cũ chưa có snapshot (chạy một lần sau deploy).
+     * POST /api/ltkach/backfill-snapshot
+     */
+    @PostMapping("/backfill-snapshot")
+    public ResponseEntity<Map<String, Object>> backfillSnapshot() {
+        log.info("[LtKhachApiRest] POST /backfill-snapshot");
+        try {
+            return ResponseEntity.ok(ltKhachBackfillService.backfillSnapshot());
+        } catch (Exception e) {
+            log.error("[LtKhachApiRest] Error during backfill: {}", e.getMessage(), e);
+            return ResponseEntity.internalServerError().body(Map.of(
+                "error", "Lỗi khi backfill: " + e.getMessage()
+            ));
+        }
+    }
+
+    /**
      * Recalculate LT cho một order cụ thể.
      * POST /api/ltkach/recalculate/order/{orderId}
      */
@@ -221,14 +234,7 @@ public class LtKhachApiRestController {
         log.info("[LtKhachApiRest] POST /recalculate/order/{} - recalculating order LT", orderId);
 
         try {
-            // Lấy status hiện tại của order
-            Object[] orderRow = (Object[]) em.createNativeQuery(
-                "SELECT id, status FROM orders WHERE id = :orderId"
-            ).setParameter("orderId", orderId).getSingleResult();
-
-            boolean isCompleted = orderRow != null && ((Number) orderRow[1]).intValue() == 3;
-
-            LtCalculationService.LtResult result = ltCalculationService.calculateForOrder(orderId, isCompleted);
+            LtCalculationService.LtResult result = ltCalculationService.calculateForOrder(orderId);
 
             return ResponseEntity.ok(Map.of(
                 "orderId", orderId,
