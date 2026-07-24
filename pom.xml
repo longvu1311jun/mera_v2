@@ -59,6 +59,12 @@
       <artifactId>spring-boot-starter-webmvc</artifactId>
     </dependency>
 
+    <!-- Caffeine Cache -->
+    <dependency>
+      <groupId>com.github.ben-manes.caffeine</groupId>
+      <artifactId>caffeine</artifactId>
+    </dependency>
+
     <!-- Apache POI — xuất báo cáo Excel (meraGroup) -->
     <dependency>
       <groupId>org.apache.poi</groupId>
