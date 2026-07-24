@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <link rel="icon" type="image/jpeg" href="/meraicon.ico">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DT ADS - Báo Cáo Quảng Cáo</title>
+  <script th:replace="~{fragments/mera-layout :: themeInit}"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/mera-ui.css">
+  <style>
+    .section { margin: 20px 0; }
+
+    .mr-btn:disabled {
+      background: var(--mr-border);
+      color: var(--mr-muted);
+      cursor: not-allowed;
+    }
+
+    .btn-save {
+      padding: 4px 10px;
+      background: var(--mr-accent);
+      color: #ffffff;
+      border: none;
+      border-radius: var(--mr-radius-control);
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+      font-family: inherit;
+    }
+    .btn-save:hover { background: var(--mr-accent-hover); }
+    .btn-save:disabled { background: var(--mr-border); color: var(--mr-muted); cursor: not-allowed; }
+
+    .loading { opacity: 0.5; pointer-events: none; }
+
+    /* ADS Report specific styles */
+    .controls {
+      padding: 16px;
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 12px;
+      align-items: end;
+    }
+    @media(max-width:1000px){
+      .controls{grid-template-columns:1fr 1fr}
+    }
+    @media(max-width:520px){
+      .controls{grid-template-columns:1fr}
+    }
+
+    label{font-size:12px;color:var(--mr-muted);display:block;margin-bottom:6px}
+    input,select{
+      width:100%;
+      padding:10px 12px;
+      border-radius:8px;
+      border:1px solid var(--mr-border);
+      font-size:14px;
+      outline:none;
+      background:white;
+    }
+    input:focus,select:focus{
+      border-color:var(--mr-accent);
+      box-shadow:0 0 0 3px rgba(37,99,235,.15);
+    }
+
+    .actions{
+      display:flex;
+      gap:10px;
+      align-items:flex-end;
+      justify-content:flex-end;
+    }
+
+    .btn{
+      border:none;
+      border-radius:8px;
+      padding:10px 14px;
+      font-weight:600;
+      cursor:pointer;
+      display:flex;
+      align-items:center;
+      gap:8px;
+      white-space:nowrap;
+    }
+    .btn-primary{background:var(--mr-accent);color:white}
+    .btn-primary:hover{background:var(--mr-accent-hover)}
+    .btn-ghost{
+      background:white;
+      border:1px solid var(--mr-border);
+      color:var(--mr-text);
+    }
+    .btn-ghost:hover{background:#f3f4f6}
+
+    .status{
+      padding:12px 16px;
+      border-top:1px solid var(--mr-border);
+      display:flex;
+      gap:16px;
+      flex-wrap:wrap;
+      font-size:13px;
+      color:var(--mr-muted);
+    }
+    .status b{color:var(--mr-text)}
+    .status .hint{margin-left:auto}
+
+    .table-wrap{
+      margin-top:16px;
+      background:white;
+      border:1px solid var(--mr-border);
+      border-radius:12px;
+      overflow:hidden;
+      box-shadow:0 10px 30px rgba(0,0,0,.06);
+    }
+    table{width:100%;border-collapse:collapse}
+    thead{background:#f9fafb}
+    th,td{
+      padding:12px;
+      border-bottom:1px solid var(--mr-border);
+      text-align:left;
+      font-size:14px;
+      vertical-align:middle;
+    }
+    th{
+      font-size:12px;
+      text-transform:uppercase;
+      color:var(--mr-muted);
+      letter-spacing:.02em;
+    }
+    tbody tr:hover{background:#f9fafb}
+    .right{text-align:right}
+
+    .badge{
+      display:inline-block;
+      padding:4px 8px;
+      border-radius:999px;
+      font-size:12px;
+      background:#eef2ff;
+      color:#1e40af;
+      font-variant-numeric: tabular-nums;
+    }
+    .badge-green{
+      background:#dcfce7;
+      color:#166534;
+      font-variant-numeric: tabular-nums;
+    }
+    .badge-orange{
+      background:#ffedd5;
+      color:#9a3412;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .link{
+      color:var(--mr-accent);
+      text-decoration:none;
+      font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+    .link:hover{text-decoration:underline}
+
+    .empty{text-align:center;color:var(--mr-muted);padding:20px}
+
+    .row-muted{
+      color: var(--mr-muted);
+      font-size: 12px;
+      margin-top: 6px;
+    }
+
+    /* Modal */
+    .modal-overlay{
+      display:none;
+      position:fixed;inset:0;
+      background:rgba(0,0,0,.45);
+      z-index:100;
+      align-items:center;justify-content:center;
+      padding:24px;
+    }
+    .modal-overlay.open{display:flex}
+    .modal{
+      background:white;
+      border-radius:12px;
+      width:100%;
+      max-width:1100px;
+      max-height:90vh;
+      overflow:auto;
+      box-shadow:0 20px 60px rgba(0,0,0,.2);
+    }
+    .modal-header{
+      display:flex;justify-content:space-between;align-items:center;
+      padding:16px 20px;
+      border-bottom:1px solid var(--mr-border);
+    }
+    .modal-header h2{margin:0;font-size:18px}
+    .modal-close{
+      border:none;background:#f3f4f6;width:32px;height:32px;
+      border-radius:8px;cursor:pointer;font-size:18px;
+      display:flex;align-items:center;justify-content:center;
+    }
+    .modal-close:hover{background:#e5e7eb}
+    .modal-body{padding:20px}
+
+    /* Bar chart */
+    .chart-wrap{
+      position:relative;
+      width:100%;
+      height:480px;
+      border:1px solid var(--mr-border);
+      border-radius:8px;
+      padding:16px;
+      background:#fafbfc;
+      overflow-x:auto;
+      overflow-y:hidden;
+    }
+    .chart{
+      display:flex;
+      align-items:flex-end;
+      gap:14px;
+      min-width:max-content;
+      height:380px;
+      padding-bottom:30px;
+      border-bottom:1px solid var(--mr-border);
+      position:relative;
+    }
+    .bar{
+      width:56px;
+      background:linear-gradient(180deg,#3b82f6,#2563eb);
+      border-radius:6px 6px 0 0;
+      position:relative;
+      cursor:pointer;
+      transition:filter .15s ease, transform .15s ease;
+    }
+    .bar:hover{
+      filter:brightness(1.15);
+      transform:translateY(-2px);
+    }
+    .bar-label{
+      position:absolute;
+      bottom:-26px;
+      left:50%;
+      transform:translateX(-50%);
+      font-size:11px;
+      color:var(--mr-muted);
+      white-space:nowrap;
+      max-width:80px;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .chart-empty{
+      text-align:center;color:var(--mr-muted);
+      padding:60px 0;
+    }
+
+    /* Tooltip */
+    .tooltip{
+      position:fixed;
+      background:#111827;
+      color:white;
+      padding:8px 12px;
+      border-radius:8px;
+      font-size:13px;
+      pointer-events:none;
+      z-index:200;
+      display:none;
+      box-shadow:0 6px 20px rgba(0,0,0,.25);
+      white-space:nowrap;
+    }
+    .tooltip.show{display:block}
+    .tooltip b{display:block;font-size:14px;margin-bottom:2px}
+    .tooltip small{color:#9ca3af}
+  </style>
+</head>
+<body class="mera-page">
+<div class="mr-shell">
+  <th:block th:replace="~{fragments/mera-layout :: sidebar('dtAds')}"></th:block>
+  <div class="mr-shell-main">
+    <th:block th:replace="~{fragments/mera-layout :: topbar('DT ADS')}"></th:block>
+    <main class="mr-shell-content">
+    <div class="mr-page-header">
+      <div>
+        <h1 class="mr-page-title">DT ADS - Báo Cáo Quảng Cáo</h1>
+        <p class="mr-page-subtitle">Report theo post_id • Cột ADS lấy từ marketer.name • Click post_id mở Facebook</p>
+      </div>
+    </div>
+
+    <div class="mr-card section">
+      <div class="controls">
+        <div>
+          <label>Từ ngày</label>
+          <input type="date" id="fromDate">
+        </div>
+
+        <div>
+          <label>Đến ngày</label>
+          <input type="date" id="toDate">
+        </div>
+
+        <div>
+          <label>Sắp xếp</label>
+          <select id="sort">
+            <option value="cod_desc">COD ↓</option>
+            <option value="cod_asc">COD ↑</option>
+            <option value="total_desc">Tổng đơn ↓</option>
+            <option value="total_asc">Tổng đơn ↑</option>
+            <option value="done_desc">Đơn nhận ↓</option>
+            <option value="done_asc">Đơn nhận ↑</option>
+            <option value="cr_desc">CR ↓</option>
+            <option value="cr_asc">CR ↑</option>
+          </select>
+        </div>
+
+        <div>
+          <label>Search ADS</label>
+          <input id="adsSearch" type="text" placeholder="Ví dụ: Name ADS..." autocomplete="off"/>
+        </div>
+
+        <div class="actions">
+          <button class="btn btn-primary" id="loadBtn">Load</button>
+          <button class="btn btn-ghost" id="refreshBtn">Dashboard</button>
+        </div>
+      </div>
+
+      <div class="status">
+        <div>Range: <b id="rangeText">—</b></div>
+        <div>Orders pulled: <b id="ordersPulled">0</b></div>
+        <div>Rows: <b id="rowsCount">0</b></div>
+        <div class="hint">Đang hiển thị: <b id="showingCount">0</b></div>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+        <tr>
+          <th>Tháng</th>
+          <th>ADS</th>
+          <th>Post ID</th>
+          <th class="right">Tổng đơn</th>
+          <th class="right">Đơn nhận</th>
+          <th class="right">Đơn hoàn</th>
+          <th class="right">COD</th>
+          <th class="right">CR</th>
+        </tr>
+        </thead>
+        <tbody id="tbody">
+        <tr><td colspan="8" class="empty">Chưa có dữ liệu</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    </main>
+  </div>
+</div>
+
+<!-- Modal Dashboard -->
+<div class="modal-overlay" id="dashboardModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>Dashboard — Doanh thu theo Marketer</h2>
+      <button class="modal-close" id="closeModal">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="chart-wrap">
+        <div class="chart" id="chart"></div>
+      </div>
+      <div class="row-muted">Tip: dí chuột vào cột để xem chi tiết tổng doanh thu + danh sách bài.</div>
+    </div>
+  </div>
+</div>
+
+<!-- Tooltip -->
+<div class="tooltip" id="tooltip"></div>
+
+<script th:replace="~{fragments/mera-layout :: shellScript}"></script>
+
+<script>
+  let lastData = null;
+
+  function fbPostUrl(postId){
+    return `https://www.facebook.com/${encodeURIComponent(postId)}`;
+  }
+
+  function fmtVnd(x){
+    return new Intl.NumberFormat('vi-VN').format(x||0)+' ₫';
+  }
+
+  function normalize(s){
+    return (s ?? '').toString().trim().toLowerCase();
+  }
+
+  function sortRows(rows, sortKey) {
+    const arr = [...rows];
+    switch (sortKey) {
+      case 'cod_desc':  arr.sort((a,b) => (b.totalCod||0) - (a.totalCod||0)); break;
+      case 'cod_asc':   arr.sort((a,b) => (a.totalCod||0) - (b.totalCod||0)); break;
+      case 'total_desc':arr.sort((a,b) => (b.totalOrders||0) - (a.totalOrders||0)); break;
+      case 'total_asc': arr.sort((a,b) => (a.totalOrders||0) - (b.totalOrders||0)); break;
+      case 'done_desc': arr.sort((a,b) => (b.doneOrders||0) - (a.doneOrders||0)); break;
+      case 'done_asc':  arr.sort((a,b) => (a.doneOrders||0) - (b.doneOrders||0)); break;
+      case 'cr_desc':   arr.sort((a,b) => (b.conversionRate||0) - (a.conversionRate||0)); break;
+      case 'cr_asc':    arr.sort((a,b) => (a.conversionRate||0) - (b.conversionRate||0)); break;
+    }
+    return arr;
+  }
+
+  function render(data){
+    const tbody = document.getElementById('tbody');
+    tbody.innerHTML='';
+
+    const q = normalize(document.getElementById('adsSearch').value);
+    const sortKey = document.getElementById('sort').value;
+
+    const filtered = (data.rows || []).filter(r => {
+      if(!q) return true;
+      return normalize(r.adsName).includes(q);
+    });
+
+    const rows = sortRows(filtered, sortKey);
+
+    document.getElementById('showingCount').textContent = rows.length;
+
+    if(!rows.length){
+      tbody.innerHTML=`<tr><td colspan="8" class="empty">Không có dữ liệu (do filter)</td></tr>`;
+      return;
+    }
+
+    rows.forEach(r=>{
+      const tr=document.createElement('tr');
+      tr.innerHTML=`
+        <td>${data.range.from}</td>
+        <td>${r.adsName||'—'}</td>
+        <td><a class="link" target="_blank" href="${fbPostUrl(r.postId)}">${r.postId}</a></td>
+        <td class="right"><span class="badge">${r.totalOrders ?? 0}</span></td>
+        <td class="right"><span class="badge-green">${r.doneOrders ?? 0}</span></td>
+        <td class="right"><span class="badge-orange">${r.returnOrders ?? 0}</span></td>
+        <td class="right">${fmtVnd(r.totalCod)}</td>
+        <td class="right">${((r.conversionRate||0)*100).toFixed(2)}%</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  function setLoading(loading) {
+    const loadBtn = document.getElementById('loadBtn');
+    const refreshBtn = document.getElementById('refreshBtn');
+    loadBtn.disabled = loading;
+    refreshBtn.disabled = loading;
+    loadBtn.style.opacity = loading ? '0.5' : '1';
+    refreshBtn.style.opacity = loading ? '0.5' : '1';
+    loadBtn.style.cursor = loading ? 'not-allowed' : 'pointer';
+    refreshBtn.style.cursor = loading ? 'not-allowed' : 'pointer';
+  }
+
+  async function load(from,to,sort,refresh){
+    setLoading(true);
+    try {
+      const qs = new URLSearchParams({from,to,sort});
+      const url = refresh ? `/api/dt-ads/report/refresh?${qs}` : `/api/dt-ads/report?${qs}`;
+      const res = await fetch(url);
+      const data = await res.json();
+
+      if(!res.ok){
+        throw new Error(data.message || 'Request failed');
+      }
+
+      lastData = data;
+
+      document.getElementById('rangeText').textContent = `${data.range.from} → ${data.range.to}`;
+      document.getElementById('ordersPulled').textContent = data.meta.ordersPulled ?? 0;
+      document.getElementById('rowsCount').textContent = data.meta.rows ?? 0;
+
+      render(data);
+    } catch(e) {
+      alert(e.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // default date: tháng hiện tại
+  const today=new Date();
+  const first=new Date(today.getFullYear(),today.getMonth(),1);
+  fromDate.value=first.toISOString().slice(0,10);
+  toDate.value=today.toISOString().slice(0,10);
+
+  loadBtn.onclick=async ()=>{
+    if(loadBtn.disabled) return;
+    try{
+      await load(fromDate.value,toDate.value,sort.value,false);
+    }catch(e){
+      alert(e.message);
+    }
+  };
+
+  refreshBtn.onclick=()=>{
+    if(refreshBtn.disabled) return;
+    if(!lastData){
+      alert('Chưa có dữ liệu. Bấm Load trước.');
+      return;
+    }
+    openDashboard();
+  };
+
+  document.getElementById('closeModal').onclick=closeDashboard;
+  document.getElementById('dashboardModal').addEventListener('click', (e)=>{
+    if(e.target.id === 'dashboardModal') closeDashboard();
+  });
+
+  function openDashboard(){
+    buildChart();
+    document.getElementById('dashboardModal').classList.add('open');
+  }
+
+  function closeDashboard(){
+    document.getElementById('dashboardModal').classList.remove('open');
+    hideTooltip();
+  }
+
+  function buildChart(){
+    const chart = document.getElementById('chart');
+    chart.innerHTML='';
+
+    if(!lastData || !lastData.rows || !lastData.rows.length){
+      chart.innerHTML='<div class="chart-empty">Chưa có dữ liệu</div>';
+      return;
+    }
+
+    const byMarketer = new Map();
+    lastData.rows.forEach(r => {
+      const key = (r.adsName || '—').trim() || '—';
+      if(!byMarketer.has(key)){
+        byMarketer.set(key, { name: key, totalCod: 0, posts: [] });
+      }
+      const m = byMarketer.get(key);
+      m.totalCod += (r.totalCod || 0);
+      m.posts.push({ postId: r.postId, cod: r.totalCod || 0, orders: r.totalOrders || 0, done: r.doneOrders || 0 });
+    });
+
+    const arr = Array.from(byMarketer.values()).sort((a,b)=>b.totalCod - a.totalCod);
+    const max = Math.max(...arr.map(m => m.totalCod), 1);
+
+    arr.forEach(m => {
+      const bar = document.createElement('div');
+      bar.className = 'bar';
+      const h = Math.max(2, Math.round((m.totalCod / max) * 350));
+      bar.style.height = h + 'px';
+      bar.dataset.name = m.name;
+      bar.dataset.cod = m.totalCod;
+      bar.dataset.posts = JSON.stringify(m.posts);
+
+      const label = document.createElement('div');
+      label.className = 'bar-label';
+      label.textContent = m.name.length > 10 ? m.name.slice(0,9)+'…' : m.name;
+      bar.appendChild(label);
+
+      bar.addEventListener('mouseenter', showTooltip);
+      bar.addEventListener('mousemove', moveTooltip);
+      bar.addEventListener('mouseleave', hideTooltip);
+
+      chart.appendChild(bar);
+    });
+  }
+
+  function showTooltip(e){
+    const bar = e.currentTarget;
+    const tip = document.getElementById('tooltip');
+    const name = bar.dataset.name;
+    const cod = parseInt(bar.dataset.cod || '0');
+    const posts = JSON.parse(bar.dataset.posts || '[]');
+
+    const postList = posts
+      .sort((a,b)=>b.cod - a.cod)
+      .slice(0,5)
+      .map(p => `• ${p.postId}: ${fmtVnd(p.cod)}`)
+      .join('<br>');
+    const more = posts.length > 5 ? `<br><small>+${posts.length-5} bài khác</small>` : '';
+
+    tip.innerHTML = `<b>${name}</b>Tổng: ${fmtVnd(cod)}<br>${posts.length} bài${posts.length?`<br><small>${postList}${more}</small>`:''}`;
+    tip.classList.add('show');
+    moveTooltip(e);
+  }
+
+  function moveTooltip(e){
+    const tip = document.getElementById('tooltip');
+    tip.style.left = (e.clientX + 14) + 'px';
+    tip.style.top = (e.clientY + 14) + 'px';
+  }
+
+  function hideTooltip(){
+    document.getElementById('tooltip').classList.remove('show');
+  }
+
+  sort.addEventListener('change', ()=>{
+    if(lastData) render(lastData);
+  });
+
+  let t = null;
+  adsSearch.addEventListener('input', ()=>{
+    clearTimeout(t);
+    t = setTimeout(()=>{
+      if(lastData) render(lastData);
+    }, 120);
+  });
+
+  adsSearch.addEventListener('keydown', (e)=>{
+    if(e.key === 'Enter'){
+      e.preventDefault();
+      if(lastData) render(lastData);
+    }
+  });
+</script>
+</body>
+</html>
