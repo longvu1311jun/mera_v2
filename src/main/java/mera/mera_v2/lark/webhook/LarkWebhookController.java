@@ -231,32 +231,18 @@ public class LarkWebhookController {
         PosOrderWebhook.AssigningSeller cskh = posToBitableMapper.getAssigningCare(orderWebhook);
         String cskhName = (cskh != null && cskh.getName() != null) ? cskh.getName().trim() : null;
 
-        String cskhPhone = posToBitableMapper.getCskhPhoneNumber(orderWebhook);
-        if (cskhPhone == null) {
-            cskhPhone = extractPhoneFromName(cskhName);
-        }
-
-        if (cskhPhone == null) {
-            log.error("Khong xac dinh duoc SDT CSKH (name='{}'), khong tao duoc ban ghi", cskhName);
+        CskhMapping mapping = resolveMapping(orderWebhook, cskhName);
+        if (mapping == null) {
             return;
         }
-
-        Optional<CskhMapping> mappingOpt = cskhMappingService.findByPhone(cskhPhone);
-        if (mappingOpt.isEmpty()) {
-            log.error("Khong tim thay mapping cho CSKH '{}' (phone={}) trong file mapping. "
-                    + "Them entry roi goi POST /api/lark/cskh-mapping/reload", cskhName, cskhPhone);
-            return;
-        }
-
-        CskhMapping mapping = mappingOpt.get();
         String appToken = mapping.getBaseId();
         String targetTableId = mapping.getKhachHangTableId();
         String viewId = (mapping.getKhachHangViewId() != null && !mapping.getKhachHangViewId().isBlank())
                 ? mapping.getKhachHangViewId()
                 : DEFAULT_VIEW_ID;
 
-        log.info("Mapping CSKH '{}' (phone={}): baseId={}, tableId={}, viewId={}, baseName={}",
-                cskhName, cskhPhone, appToken, targetTableId, viewId, mapping.getBaseName());
+        log.info("Mapping CSKH '{}' -> posPhone={}: baseId={}, tableId={}, viewId={}, baseName={}",
+                cskhName, mapping.getPosPhone(), appToken, targetTableId, viewId, mapping.getBaseName());
 
         String userAccessToken = getUserAccessToken();
         if (userAccessToken == null || userAccessToken.isBlank()) {
@@ -294,6 +280,45 @@ public class LarkWebhookController {
             throw new RuntimeException(String.format("Bitable error: code=%d, msg=%s",
                     response.getCode(), response.getMsg()));
         }
+    }
+
+    /**
+     * Tra mapping cua CSKH theo thu tu:
+     *   1. SDT nam trong TEN CSKH — day la SDT dung trong bang mapping/Base
+     *   2. assigning_care.phone_number — SDT dang ky tai khoan POS, thuong khac SDT o (1)
+     *   3. Ten CSKH da chuan hoa (bo dau, bo so)
+     *
+     * @return mapping tim duoc, hoac null neu khong tra ra (da log ly do)
+     */
+    private CskhMapping resolveMapping(PosOrderWebhook orderWebhook, String cskhName) {
+        String phoneInName = extractPhoneFromName(cskhName);
+        if (phoneInName != null) {
+            Optional<CskhMapping> byPhoneInName = cskhMappingService.findByPhone(phoneInName);
+            if (byPhoneInName.isPresent()) {
+                return byPhoneInName.get();
+            }
+            log.warn("Khong co mapping theo SDT trong ten CSKH ({}), thu cac cach khac", phoneInName);
+        }
+
+        String accountPhone = posToBitableMapper.getCskhPhoneNumber(orderWebhook);
+        if (accountPhone != null) {
+            Optional<CskhMapping> byAccountPhone = cskhMappingService.findByPhone(accountPhone);
+            if (byAccountPhone.isPresent()) {
+                log.info("Tra mapping theo SDT tai khoan POS ({}) cho CSKH '{}'", accountPhone, cskhName);
+                return byAccountPhone.get();
+            }
+        }
+
+        Optional<CskhMapping> byName = cskhMappingService.findByName(cskhName);
+        if (byName.isPresent()) {
+            log.info("Tra mapping theo TEN CSKH '{}' (khong khop duoc SDT nao)", cskhName);
+            return byName.get();
+        }
+
+        log.error("Khong tim thay mapping cho CSKH '{}' (SDT trong ten={}, SDT tai khoan POS={}). "
+                        + "Them entry vao file mapping roi goi POST /api/lark/cskh-mapping/reload",
+                cskhName, phoneInName, accountPhone);
+        return null;
     }
 
     private String getUserAccessToken() {

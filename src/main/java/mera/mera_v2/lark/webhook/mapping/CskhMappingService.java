@@ -12,12 +12,15 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * Nguon mapping CSKH -> Base/Table cua nhanh chi-Lark: doc tu file JSON, KHONG dung database.
@@ -40,6 +43,9 @@ public class CskhMappingService {
     /** key = 9 so cuoi cua SDT CSKH */
     private volatile Map<String, CskhMapping> byPhone = Collections.emptyMap();
 
+    /** key = ten CSKH da chuan hoa (bo dau, bo so, chi giu chu cai) */
+    private volatile Map<String, CskhMapping> byName = Collections.emptyMap();
+
     private volatile String loadedFrom = "(chua load)";
 
     @PostConstruct
@@ -54,7 +60,9 @@ public class CskhMappingService {
      */
     public synchronized int reload() {
         List<CskhMapping> mappings = readMappings();
-        Map<String, CskhMapping> index = new LinkedHashMap<>();
+        Map<String, CskhMapping> phoneIndex = new LinkedHashMap<>();
+        Map<String, CskhMapping> nameIndex = new LinkedHashMap<>();
+        Set<String> ambiguousNames = new HashSet<>();
 
         for (CskhMapping m : mappings) {
             String key = normalizePhone(m.getPosPhone());
@@ -68,15 +76,29 @@ public class CskhMappingService {
                 log.warn("[CskhMapping] Bo qua entry thieu baseId/khachHangTableId: posPhone={}", m.getPosPhone());
                 continue;
             }
-            CskhMapping old = index.put(key, m);
+            CskhMapping old = phoneIndex.put(key, m);
             if (old != null) {
                 log.warn("[CskhMapping] Trung posPhone={}, dung entry cuoi cung (baseId={})", m.getPosPhone(), m.getBaseId());
             }
-        }
 
-        this.byPhone = index;
-        log.info("[CskhMapping] Da nap {} mapping tu {}", index.size(), loadedFrom);
-        return index.size();
+            String nameKey = normalizeName(m.getCskhName());
+            if (nameKey != null) {
+                CskhMapping oldByName = nameIndex.put(nameKey, m);
+                if (oldByName != null && !oldByName.getBaseId().equals(m.getBaseId())) {
+                    // Hai CSKH trung ten nhung khac Base -> khong dung ten de tra cuu nua
+                    ambiguousNames.add(nameKey);
+                    log.warn("[CskhMapping] Trung ten CSKH '{}' o 2 Base khac nhau, se khong tra cuu theo ten cho ten nay",
+                            m.getCskhName());
+                }
+            }
+        }
+        ambiguousNames.forEach(nameIndex::remove);
+
+        this.byPhone = phoneIndex;
+        this.byName = nameIndex;
+        log.info("[CskhMapping] Da nap {} mapping tu {} ({} tra cuu duoc theo ten)",
+                phoneIndex.size(), loadedFrom, nameIndex.size());
+        return phoneIndex.size();
     }
 
     /**
@@ -86,6 +108,16 @@ public class CskhMappingService {
         String key = normalizePhone(phone);
         if (key == null) return Optional.empty();
         return Optional.ofNullable(byPhone.get(key));
+    }
+
+    /**
+     * Tim mapping theo ten CSKH (bo dau, bo so, bo ky tu dac biet).
+     * Dung lam phuong an cuoi khi khong tra duoc theo SDT.
+     */
+    public Optional<CskhMapping> findByName(String name) {
+        String key = normalizeName(name);
+        if (key == null) return Optional.empty();
+        return Optional.ofNullable(byName.get(key));
     }
 
     public List<CskhMapping> getAll() {
@@ -151,5 +183,19 @@ public class CskhMappingService {
         String digits = phone.replaceAll("[^0-9]", "");
         if (digits.length() < 9) return null;
         return digits.substring(digits.length() - 9);
+    }
+
+    /**
+     * Chuan hoa ten CSKH de so khop: bo dau tieng Viet, bo so va ky tu dac biet, ve chu thuong.
+     * "Nguyễn Thị Hiền - 0362205714" -> "nguyenthihien"
+     */
+    static String normalizeName(String name) {
+        if (name == null) return null;
+        String s = Normalizer.normalize(name, Normalizer.Form.NFD)
+                .replaceAll("\\p{M}", "")
+                .replace('đ', 'd').replace('Đ', 'D')
+                .toLowerCase()
+                .replaceAll("[^a-z]", "");
+        return s.isBlank() ? null : s;
     }
 }
