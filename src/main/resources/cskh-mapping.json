@@ -1,0 +1,13 @@
+{
+  "_comment": "Mapping CSKH -> Lark Base/Table, thay cho bang search_config trong DB. Sua file config/cskh-mapping.json canh file jar roi goi POST /api/lark/cskh-mapping/reload de nap lai.",
+  "mappings": [
+    {
+      "cskhName": "Ha Quang Vuong Sale 2 NT",
+      "posPhone": "0968420624",
+      "baseName": "Base mau - thay bang du lieu that",
+      "baseId": "XusHwhacQiVeXFkdfIVlQcu3gHb",
+      "khachHangTableId": "tbltnSA9RaLR91Qc",
+      "khachHangViewId": "vew5Ou4Kee"
+    }
+  ]
+}

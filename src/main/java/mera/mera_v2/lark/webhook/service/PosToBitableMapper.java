@@ -14,12 +14,7 @@ import java.util.Map;
 @Service
 @RequiredArgsConstructor
 public class PosToBitableMapper {
-    
-    private final SellerBaseMappingService sellerBaseMappingService;
-    
-    @Value("${lark.default.user-id:ou_4cf48041bec4170651def0c025217097}")
-    private String defaultUserId;
-    
+
     public Map<String, Object> mapToBitableFields(PosOrderWebhook webhookData) {
         Map<String, Object> fields = new HashMap<>();
         
@@ -277,46 +272,6 @@ public class PosToBitableMapper {
         if (cskh != null && cskh.getPhoneNumber() != null && !cskh.getPhoneNumber().isBlank()) {
             return cskh.getPhoneNumber();
         }
-        return null;
-    }
-    
-    public String findBaseIdFromWebhook(PosOrderWebhook webhookData) {
-        String sellerName = null;
-        String source = null;
-        
-        // Ưu tiên 1: ROOT assigning_care
-        if (webhookData.getAssigningCare() != null 
-                && webhookData.getAssigningCare().getName() != null) {
-            sellerName = webhookData.getAssigningCare().getName();
-            source = "root.assigning_care";
-        }
-        // Ưu tiên 2: ROOT assigning_seller
-        else if (webhookData.getAssigningSeller() != null 
-                && webhookData.getAssigningSeller().getName() != null) {
-            sellerName = webhookData.getAssigningSeller().getName();
-            source = "root.assigning_seller";
-        }
-        // Ưu tiên 3: data.assigning_care
-        else if (webhookData.getData() != null 
-                && webhookData.getData().getAssigningCare() != null
-                && webhookData.getData().getAssigningCare().getName() != null) {
-            sellerName = webhookData.getData().getAssigningCare().getName();
-            source = "data.assigning_care";
-        }
-        // Ưu tiên 4: data.assigning_seller
-        else if (webhookData.getData() != null 
-                && webhookData.getData().getAssigningSeller() != null
-                && webhookData.getData().getAssigningSeller().getName() != null) {
-            sellerName = webhookData.getData().getAssigningSeller().getName();
-            source = "data.assigning_seller";
-        }
-        
-        if (sellerName != null && !sellerName.isBlank()) {
-            log.info("🔍 Tìm Base ID cho seller '{}' (từ {})", sellerName, source);
-            return sellerBaseMappingService.findBaseIdBySellerName(sellerName)
-                    .orElse(null);
-        }
-        
         return null;
     }
     
