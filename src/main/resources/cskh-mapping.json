@@ -1,12 +1,436 @@
 {
-  "_comment": "Mapping CSKH -> Lark Base/Table, thay cho bang search_config trong DB. Sua file config/cskh-mapping.json canh file jar roi goi POST /api/lark/cskh-mapping/reload de nap lai.",
+  "_comment": "Mapping CSKH -> Lark Base/Table. Nguon: trang Mapping CSKH - Base (Mera V2), xuat ngay 2026-08-30. Sua file config/cskh-mapping.json canh jar roi goi POST /api/lark/cskh-mapping/reload de nap lai.",
   "mappings": [
     {
-      "cskhName": "Ha Quang Vuong Sale 2 NT",
+      "cskhName": "Nguyễn Kiều Linh- 0862474096",
+      "posPhone": "0862474096",
+      "baseName": "Nguyễn Kiều Linh team 5 0862474096",
+      "baseId": "CzsFb3tNaaek1jsenlvlfK9Pgdh",
+      "khachHangTableId": "tbl5sOxrWjpUWRIg",
+      "khachHangViewId": "vew5Ou4Kee"
+    },
+    {
+      "cskhName": "Vũ Thị Yên 0344937572",
+      "posPhone": "0344937572",
+      "baseName": "Vũ Thị Yên 0344937572",
+      "baseId": "FgP4bEUJhagI3LsIvCKlfcvYgYf",
+      "khachHangTableId": "tblcpsULnLVz4e7A",
+      "khachHangViewId": "vew5Ou4Kee"
+    },
+    {
+      "cskhName": "Trần Thị Thùy Dung NT 0862209506",
+      "posPhone": "0862209506",
+      "baseName": "Trần thị Thùy Dung_NT_0862209506",
+      "baseId": "WJkfbQ9xxavbyXs4EGelnlJLg5g",
+      "khachHangTableId": "tblgbFkPzOJggP7l",
+      "khachHangViewId": "vew5Ou4Kee"
+    },
+    {
+      "cskhName": "Nguyễn Thị Phương 0365943745",
+      "posPhone": "0365943745",
+      "baseName": "Nguyễn Thị Phương 0365943745",
+      "baseId": "QkiRbMWgcaeGt0sz38Kllkavgbc",
+      "khachHangTableId": "tbliMs97wLq1obpC",
+      "khachHangViewId": "vew5Ou4Kee"
+    },
+    {
+      "cskhName": "Hà Phương Anh 0385084441",
+      "posPhone": "0385084441",
+      "baseName": "Hà Phương Anh 0385084441",
+      "baseId": "Ss25bicA9aSZmKs6HcRlvZKAgqf",
+      "khachHangTableId": "tblGmCVzNv2WGWjS",
+      "khachHangViewId": "vew5Ou4Kee"
+    },
+    {
+      "cskhName": "Lưu Văn Ngọc Sale 2 OCP 0385550587",
+      "posPhone": "0385550587",
+      "baseName": "Lưu Văn Ngọc 0385550587",
+      "baseId": "AukubVHSza40fRsYMUolD3MYg9c",
+      "khachHangTableId": "tbl6Xv5KhFt9yDT3",
+      "khachHangViewId": "vew5Ou4Kee"
+    },
+    {
+      "cskhName": "Vũ Thị Lan Anh - 0386806934",
+      "posPhone": "0386806934",
+      "baseName": "Vũ Thị Lan Anh - 0386806934",
+      "baseId": "MhTgbDBe3aSquvsBp3al26tvgwf",
+      "khachHangTableId": "tblJLGJczaeqZXRA",
+      "khachHangViewId": "vew5Ou4Kee"
+    },
+    {
+      "cskhName": "Lê Thu Phương - NT - 0326795129",
+      "posPhone": "0326795129",
+      "baseName": "Lê Thu Phương NT - 0326795129",
+      "baseId": "QN8KbvHMCaZX68smSqvlKqhegLf",
+      "khachHangTableId": "tbl5MoMUias4YhvH",
+      "khachHangViewId": "vew5Ou4Kee"
+    },
+    {
+      "cskhName": "Đỗ Thị Phi Quỳnh 0394407732",
+      "posPhone": "0394407732",
+      "baseName": "Đỗ Thị Phi Quỳnh 0394407732",
+      "baseId": "S3nubTMdkaw13Js60LMly78Ggoe",
+      "khachHangTableId": "tblaTHseEIIiXizX",
+      "khachHangViewId": "vew5Ou4Kee"
+    },
+    {
+      "cskhName": "Trịnh Thị Linh NT 0866908397",
+      "posPhone": "0866908397",
+      "baseName": "Trịnh Thị Linh NT 0866908397",
+      "baseId": "GHkrblGaxaqx1GsNRI8ljXXHgE9",
+      "khachHangTableId": "tbl1I3cERRrInuSZ",
+      "khachHangViewId": "vew5Ou4Kee"
+    },
+    {
+      "cskhName": "Bùi Minh Thúy 0338465833",
+      "posPhone": "0338465833",
+      "baseName": "Bùi Minh Thúy 0338465833",
+      "baseId": "R9uzbayXJaCuPMswMEOltsD2gXd",
+      "khachHangTableId": "tblIUbtDVYCaGzhY",
+      "khachHangViewId": "vew5Ou4Kee"
+    },
+    {
+      "cskhName": "Dương Minh Giang- 0328524650",
+      "posPhone": "0328524650",
+      "baseName": "Dương Minh Giang- 0328524650",
+      "baseId": "CKDnbOlfmahxxSsAzGllFHz5gog",
+      "khachHangTableId": "tblHOV1GIeGa9zPq",
+      "khachHangViewId": "vew5Ou4Kee"
+    },
+    {
+      "cskhName": "Ngô Thị Hương 0383526301",
+      "posPhone": "0383526301",
+      "baseName": "Ngô Thị Hương 0383526301",
+      "baseId": "H5ZMbVG2zaJ79xs3iYulBdL6gSd",
+      "khachHangTableId": "tblc1wUI3glu3iOD",
+      "khachHangViewId": "vew5Ou4Kee"
+    },
+    {
+      "cskhName": "Nguyễn Thị Lan Anh 0333058439",
+      "posPhone": "0333058439",
+      "baseName": "Nguyễn Thị Lan Anh 0333058439",
+      "baseId": "HSiybdWcVaGJUnsvyuzljICfgWb",
+      "khachHangTableId": "tblm3XDMGB8Yzv0R",
+      "khachHangViewId": "vew5Ou4Kee"
+    },
+    {
+      "cskhName": "Nguyễn Thị Hiền - 0362205714",
+      "posPhone": "0362205714",
+      "baseName": "Nguyễn Thị Hiền - 0362205714",
+      "baseId": "FwTzb7ueqaVkaKsMj4hlxrW1gnI",
+      "khachHangTableId": "tblXD0KrQe92MNir",
+      "khachHangViewId": "vew5Ou4Kee"
+    },
+    {
+      "cskhName": "Phạm Thu Trang 0386841620",
+      "posPhone": "0386841620",
+      "baseName": "Phạm Thu Trang 0386841620",
+      "baseId": "GYQRbAjpgaYReSstkB9lMP1jgcg",
+      "khachHangTableId": "tbliV8mkaEfQ1eRY",
+      "khachHangViewId": "vew5Ou4Kee"
+    },
+    {
+      "cskhName": "Phạm Diệu Linh 0364666265",
+      "posPhone": "0364666265",
+      "baseName": "Phạm Diệu Linh 0364666265",
+      "baseId": "Sdv3bmN89aYshcs5rjQlpOEig3e",
+      "khachHangTableId": "tblJJMK4PKP5ZKww",
+      "khachHangViewId": "vew5Ou4Kee"
+    },
+    {
+      "cskhName": "Đỗ Bình Hương Trang 0364193370",
+      "posPhone": "0364193370",
+      "baseName": "Đỗ Bình Hương Trang 0364193370",
+      "baseId": "NmEMbTewiaEsyvsWvBOlJIZQgmf",
+      "khachHangTableId": "tblao8jrQLAaz6hV",
+      "khachHangViewId": "vew5Ou4Kee"
+    },
+    {
+      "cskhName": "Nghiêm Minh Toàn - NT - 0353781330",
+      "posPhone": "0353781330",
+      "baseName": "Nghiêm Minh Toàn Team 1 NT - 0353781330",
+      "baseId": "BgVBbnOKBa7OzvsR6ttlQ05WgTf",
+      "khachHangTableId": "tblaQL8CXC8dMLE5",
+      "khachHangViewId": "vew5Ou4Kee"
+    },
+    {
+      "cskhName": "Nguyễn Nhật Thiên NT 0366989749",
+      "posPhone": "0366989749",
+      "baseName": "Nguyễn Nhật Thiên NT 0366989749",
+      "baseId": "LeNibIbwAad09Wsq0OtlV7M1gBb",
+      "khachHangTableId": "tbledN6bbAtOJe1L",
+      "khachHangViewId": "vewPJSKlfe"
+    },
+    {
+      "cskhName": "Nguyễn Thị Anh Thu - 0377910458",
+      "posPhone": "0377910458",
+      "baseName": "Nguyễn Thị Anh Thu TEAM5 - 0377910458",
+      "baseId": "PRfwbEVtwaktDusasQyli5sog6c",
+      "khachHangTableId": "tbl0i7P89Zh3Yh7l",
+      "khachHangViewId": "vew5Ou4Kee"
+    },
+    {
+      "cskhName": "Lê Hà Vy - 0325597280",
+      "posPhone": "0325597280",
+      "baseName": "Lê Hà Vy OCP 0325597280",
+      "baseId": "EX7FbIanJaMAYIsiOfvlPCZ0gqb",
+      "khachHangTableId": "tblnQbmH42e0uJyX",
+      "khachHangViewId": "vew5Ou4Kee"
+    },
+    {
+      "cskhName": "Nguyễn Vân Anh - 0369895624",
+      "posPhone": "0369895624",
+      "baseName": "Nguyễn Vân Anh - 0369895624",
+      "baseId": "FtrzbnSfkajsSfsjHMXlGdlpgLf",
+      "khachHangTableId": "tbl8NNLE2CTbkZ7p",
+      "khachHangViewId": "vew5Ou4Kee"
+    },
+    {
+      "cskhName": "Nguyễn Thị Quyên 0862048268",
+      "posPhone": "0862048268",
+      "baseName": "Nguyễn Thị Quyên - 0862048268",
+      "baseId": "KmGibOundaMONHsmGqkl7cgqgie",
+      "khachHangTableId": "tblAYM5wHW8WxM9n",
+      "khachHangViewId": "vew5Ou4Kee"
+    },
+    {
+      "cskhName": "Nguyễn Quỳnh Phương 0368841260",
+      "posPhone": "0368841260",
+      "baseName": "Nguyễn Quỳnh Phương 0368841260",
+      "baseId": "WUF4bilKGazcpBsRhVcluF6Dgff",
+      "khachHangTableId": "tbltzPrsBpjDIlUA",
+      "khachHangViewId": "vew5Ou4Kee"
+    },
+    {
+      "cskhName": "Lê Thúy Kiều - 0333074239",
+      "posPhone": "0333074239",
+      "baseName": "Lê Thúy Kiều - 0333074239",
+      "baseId": "SJ2RbTyZdawBhbsMtOclNdDZgNh",
+      "khachHangTableId": "tblur970JGG6DIAr",
+      "khachHangViewId": "vew5Ou4Kee"
+    },
+    {
+      "cskhName": "Bùi Thị Ngọc 0362259761",
+      "posPhone": "0362259761",
+      "baseName": "Bùi Thị Ngọc 0362259761",
+      "baseId": "AKjBbtC5PaAGYksbzSjlG3vigdd",
+      "khachHangTableId": "tblKsDhPmEhlfGbh",
+      "khachHangViewId": "vew5Ou4Kee"
+    },
+    {
+      "cskhName": "Nguyễn Thị Quyên NT 0357521545",
+      "posPhone": "0357521545",
+      "baseName": "Nguyễn Thị Quyên NT 0357521545",
+      "baseId": "EusmbB89na81SIs2aBRlqpd8g8d",
+      "khachHangTableId": "tblaNBvAgVvWZbau",
+      "khachHangViewId": "vew5Ou4Kee"
+    },
+    {
+      "cskhName": "Hà Quang Vượng Sale 2 NT 0968420624",
       "posPhone": "0968420624",
-      "baseName": "Base mau - thay bang du lieu that",
-      "baseId": "XusHwhacQiVeXFkdfIVlQcu3gHb",
-      "khachHangTableId": "tbltnSA9RaLR91Qc",
+      "baseName": "Hà Quang Vượng Sale 2 - NT - 0968420624",
+      "baseId": "SP5lbpUlNaM3dTsL0PKl7YT0gsc",
+      "khachHangTableId": "tblrl9FBi0Z1J7Fi",
+      "khachHangViewId": "vew5Ou4Kee"
+    },
+    {
+      "cskhName": "Phạm Thị Huyên ocp 0385149483",
+      "posPhone": "0385149483",
+      "baseName": "Phạm Thị Huyên OCP - 0385149483",
+      "baseId": "FChdbkp0kaTNfEs8Pi3lkREGgLe",
+      "khachHangTableId": "tbl54evqYoxONYow",
+      "khachHangViewId": "vew5Ou4Kee"
+    },
+    {
+      "cskhName": "Dương Thị Ngọc Khanh NT 0376504994",
+      "posPhone": "0376504994",
+      "baseName": "Dương Thị Ngọc Khanh sale 2 NT 0376504994",
+      "baseId": "SfWNbwRVNaJKCAsRaM6l7dbggkc",
+      "khachHangTableId": "tblA5mKlqjeV32BJ",
+      "khachHangViewId": "vew5Ou4Kee"
+    },
+    {
+      "cskhName": "Nguyễn Thị Hải Nhi NT 0362270564",
+      "posPhone": "0362270564",
+      "baseName": "Nguyễn Thị Hải Nhi NT 0362270564",
+      "baseId": "X3e7barnPaXog5sSIeclejtMg16",
+      "khachHangTableId": "tblPBMxNy2IeAokJ",
+      "khachHangViewId": "vew5Ou4Kee"
+    },
+    {
+      "cskhName": "Đào Hồng Linh - 0345283365",
+      "posPhone": "0345283365",
+      "baseName": "Đào Hồng Linh 0345283365",
+      "baseId": "JxyvbIdAeaAuMls0qc7lKOLig6c",
+      "khachHangTableId": "tblkDOGEw005uDbe",
+      "khachHangViewId": "vew5Ou4Kee"
+    },
+    {
+      "cskhName": "Phạm Hải Anh - 0353981496",
+      "posPhone": "0353981496",
+      "baseName": "Phạm Thị Hải Anh Team 5 - 0353981496",
+      "baseId": "DmRabnNv1aTbJdsTiz7lEAWzgdd",
+      "khachHangTableId": "tblaW4x3m9FB5zqn",
+      "khachHangViewId": "vew5Ou4Kee"
+    },
+    {
+      "cskhName": "Nguyễn Hương Giang 0383249341",
+      "posPhone": "0383249341",
+      "baseName": "Nguyễn Hương Giang 0383249341",
+      "baseId": "T7Qvb1DLvayaLpskQdAl8Ungg3e",
+      "khachHangTableId": "tbl5xjch0pDNA315",
+      "khachHangViewId": "vew5Ou4Kee"
+    },
+    {
+      "cskhName": "Vũ Hoàng Anh - 0337787629",
+      "posPhone": "0337787629",
+      "baseName": "Vũ Hoàng Anh",
+      "baseId": "XcmybVZTFaOciZsnDtGlzZbIg3g",
+      "khachHangTableId": "tblC5l5GFIWrRKMB",
+      "khachHangViewId": "vew5Ou4Kee"
+    },
+    {
+      "cskhName": "Trương Đoàn Phương Thảo - 0336923095",
+      "posPhone": "0336923095",
+      "baseName": "Trương Đoàn Phương Thảo TEAM 5- 0336923095",
+      "baseId": "BShKbSnI0a1JHOsZkMql6hNDgab",
+      "khachHangTableId": "tblvGzakDesYeKiU",
+      "khachHangViewId": "vew5Ou4Kee"
+    },
+    {
+      "cskhName": "Đinh Thị Xuân 0366544903",
+      "posPhone": "0366544903",
+      "baseName": "Đinh Thị Xuân 0366544903",
+      "baseId": "LJPvbBNGfaqrdfsjGColQeLsgYc",
+      "khachHangTableId": "tbl4QCHB6LtNBWLH",
+      "khachHangViewId": "vew5Ou4Kee"
+    },
+    {
+      "cskhName": "Phan Nguyễn Mai An - 0868450031",
+      "posPhone": "0868450031",
+      "baseName": "Phan Nguyễn Mai An - 0868450031",
+      "baseId": "JGd7bDH2la0nuRsf8IqlKUidguy",
+      "khachHangTableId": "tbldOarrTIQFjqbn",
+      "khachHangViewId": "vew5Ou4Kee"
+    },
+    {
+      "cskhName": "Nguyễn Đăng Khánh 0356479514",
+      "posPhone": "0356479514",
+      "baseName": "Nguyễn Đăng Khánh OCP 0356479514",
+      "baseId": "PsdUbg55ba3BRHs2vXIls6t4gnf",
+      "khachHangTableId": "tbloxSfcL0s70M33",
+      "khachHangViewId": "vew5Ou4Kee"
+    },
+    {
+      "cskhName": "Nguyễn Thị Thùy Linh 0343912253",
+      "posPhone": "0343912253",
+      "baseName": "Nguyễn Thị Thùy Linh 0343912253",
+      "baseId": "ZBp6bWxEMaPTVZsnI2plN2pvg1g",
+      "khachHangTableId": "tblC3zJhhNRo5PuT",
+      "khachHangViewId": "vew5Ou4Kee"
+    },
+    {
+      "cskhName": "Trần Ngọc Sơn - NT - 0373687403",
+      "posPhone": "0373687403",
+      "baseName": "Trần Ngọc Sơn NT - 0373687403",
+      "baseId": "Aj51bMz5iasJ8Qsz7lwliwgigcc",
+      "khachHangTableId": "tbltPi6WljLGObO6",
+      "khachHangViewId": "vew5Ou4Kee"
+    },
+    {
+      "cskhName": "Tô Thị Dung - 0356722165",
+      "posPhone": "0356722165",
+      "baseName": "Tô Thị Dung - 0356722165",
+      "baseId": "D8evbwClVa08SksjtyCl4sZzgRb",
+      "khachHangTableId": "tbljTSeUn3PN6Hq6",
+      "khachHangViewId": "vew5Ou4Kee"
+    },
+    {
+      "cskhName": "Phạm Huyền Trang-NT-0367294360",
+      "posPhone": "0367294360",
+      "baseName": "Phạm Huyền Trang NT 0367294360",
+      "baseId": "KYXTbMonqawBfjsG9RxleGc1gfb",
+      "khachHangTableId": "tblzXUSfDTC5GlMF",
+      "khachHangViewId": "vew5Ou4Kee"
+    },
+    {
+      "cskhName": "Phùng Thị Thúy An - 0344864985",
+      "posPhone": "0344864985",
+      "baseName": "Phùng Thị Thuý An - 0344864985",
+      "baseId": "Isn6bW6xiavmaYscJ4elDBl6g5b",
+      "khachHangTableId": "tbl5FpCcL5OVrv6x",
+      "khachHangViewId": "vew5Ou4Kee"
+    },
+    {
+      "cskhName": "Hoàng Thị Huệ - 0869565461",
+      "posPhone": "0869565461",
+      "baseName": "Hoàng Thị Huệ OCP 0869565461",
+      "baseId": "LqT1bZILKahzbesOIIkln01Qgcd",
+      "khachHangTableId": "tblZwuCLdekVgZ3M",
+      "khachHangViewId": "vew5Ou4Kee"
+    },
+    {
+      "cskhName": "Nguyễn Thị Huyền Trang - 0396077285",
+      "posPhone": "0396077285",
+      "baseName": "Bạn Nguyễn Thị Huyền Trang OCP",
+      "baseId": "Yk2ibgkSCaGy11sBDHBlDA4LgBh",
+      "khachHangTableId": "tbl2V3rXJ1WqeeNu",
+      "khachHangViewId": "vew5Ou4Kee"
+    },
+    {
+      "cskhName": "Ngô Ngọc Hà - 0362246873",
+      "posPhone": "0362246873",
+      "baseName": "Ngô Ngọc Hà - 0362246873",
+      "baseId": "CbArb49N6aQSrOsACZ0lJInSggg",
+      "khachHangTableId": "tblPjHaT8p4AEKg5",
+      "khachHangViewId": "vew5Ou4Kee"
+    },
+    {
+      "cskhName": "Bùi Thị Thanh Thanh team 5 0363026833",
+      "posPhone": "0363026833",
+      "baseName": "Bùi Thị Thanh Thanh team 5 0363026833",
+      "baseId": "PyVgbQ373a5hEcsENRalQEkkgNe",
+      "khachHangTableId": "tblFBhUIv2RYCRLT",
+      "khachHangViewId": "vew5Ou4Kee"
+    },
+    {
+      "cskhName": "Đỗ Trà My 0397837064",
+      "posPhone": "0397837064",
+      "baseName": "Đỗ Trà My 0397837064",
+      "baseId": "Sn6LbiAexaeg1MsPx0LlJRfxghd",
+      "khachHangTableId": "tblNPotoCarLDrR2",
+      "khachHangViewId": "vew5Ou4Kee"
+    },
+    {
+      "cskhName": "Trần Lan Anh 0365641969",
+      "posPhone": "0365641969",
+      "baseName": "Trần Lan Anh 0365641969",
+      "baseId": "O8ywbzfkXaszhPsJTTglWOBogpg",
+      "khachHangTableId": "tblPoPHlKuUQNSeD",
+      "khachHangViewId": "vewfarFzqE"
+    },
+    {
+      "cskhName": "Nguyễn Quỳnh Anh-0356338575",
+      "posPhone": "0356338575",
+      "baseName": "Nguyễn Quỳnh Anh-0356338575",
+      "baseId": "W9ldbgM3qaIdk8sDcTelpulXgli",
+      "khachHangTableId": "tblQWmBQHgI3T3P0",
+      "khachHangViewId": "vew5Ou4Kee"
+    },
+    {
+      "cskhName": "Ngô Thùy Linh 0868842293",
+      "posPhone": "0868842293",
+      "baseName": "Ngô Thị Thùy Linh 0868842293",
+      "baseId": "OqrVbWFywaZmYQsXkAglPRxDgnc",
+      "khachHangTableId": "tbldTMDvNpRYu1pc",
+      "khachHangViewId": "vew5Ou4Kee"
+    },
+    {
+      "cskhName": "Nguyễn Vũ Huyền Thanh - 0814747251",
+      "posPhone": "0814747251",
+      "baseName": "Nguyễn Vũ Huyền Thanh - 0814747251",
+      "baseId": "STQsbnjzsaexUasFjU0lsCQ2gze",
+      "khachHangTableId": "tblvgA92WR0wMpUk",
       "khachHangViewId": "vew5Ou4Kee"
     }
   ]
