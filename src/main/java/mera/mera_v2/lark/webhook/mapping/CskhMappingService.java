@@ -46,6 +46,9 @@ public class CskhMappingService {
     /** key = ten CSKH da chuan hoa (bo dau, bo so, chi giu chu cai) */
     private volatile Map<String, CskhMapping> byName = Collections.emptyMap();
 
+    /** Toan bo entry co baseId, ke ca base he thong khong gan CSKH — dung cho /search-info */
+    private volatile List<CskhMapping> all = Collections.emptyList();
+
     private volatile String loadedFrom = "(chua load)";
 
     @PostConstruct
@@ -60,20 +63,31 @@ public class CskhMappingService {
      */
     public synchronized int reload() {
         List<CskhMapping> mappings = readMappings();
+        List<CskhMapping> all = new ArrayList<>();
         Map<String, CskhMapping> phoneIndex = new LinkedHashMap<>();
         Map<String, CskhMapping> nameIndex = new LinkedHashMap<>();
         Set<String> ambiguousNames = new HashSet<>();
+        int systemBases = 0;
 
         for (CskhMapping m : mappings) {
-            String key = normalizePhone(m.getPosPhone());
-            if (key == null) {
-                log.warn("[CskhMapping] Bo qua entry khong co posPhone hop le: cskhName={}, baseId={}",
-                        m.getCskhName(), m.getBaseId());
+            if (m.getBaseId() == null || m.getBaseId().isBlank()) {
+                log.warn("[CskhMapping] Bo qua entry khong co baseId: cskhName={}, baseName={}",
+                        m.getCskhName(), m.getBaseName());
                 continue;
             }
-            if (m.getBaseId() == null || m.getBaseId().isBlank()
-                    || m.getKhachHangTableId() == null || m.getKhachHangTableId().isBlank()) {
-                log.warn("[CskhMapping] Bo qua entry thieu baseId/khachHangTableId: posPhone={}", m.getPosPhone());
+
+            // Entry khong co SDT (base he thong) van duoc giu cho trang /search-info,
+            // chi khong tra cuu duoc tu webhook.
+            all.add(m);
+
+            String key = normalizePhone(m.getPosPhone());
+            if (key == null) {
+                systemBases++;
+                continue;
+            }
+            if (m.getKhachHangTableId() == null || m.getKhachHangTableId().isBlank()) {
+                log.warn("[CskhMapping] Entry posPhone={} thieu khachHangTableId, webhook se khong tao duoc ban ghi",
+                        m.getPosPhone());
                 continue;
             }
             CskhMapping old = phoneIndex.put(key, m);
@@ -94,10 +108,11 @@ public class CskhMappingService {
         }
         ambiguousNames.forEach(nameIndex::remove);
 
+        this.all = all;
         this.byPhone = phoneIndex;
         this.byName = nameIndex;
-        log.info("[CskhMapping] Da nap {} mapping tu {} ({} tra cuu duoc theo ten)",
-                phoneIndex.size(), loadedFrom, nameIndex.size());
+        log.info("[CskhMapping] Da nap {} entry tu {} ({} tra duoc theo SDT, {} theo ten, {} base he thong)",
+                all.size(), loadedFrom, phoneIndex.size(), nameIndex.size(), systemBases);
         return phoneIndex.size();
     }
 
@@ -120,12 +135,22 @@ public class CskhMappingService {
         return Optional.ofNullable(byName.get(key));
     }
 
+    /** Cac mapping tra cuu duoc theo SDT (dung cho webhook) */
     public List<CskhMapping> getAll() {
         return new ArrayList<>(byPhone.values());
     }
 
+    /** Toan bo entry, ke ca base he thong khong co SDT (dung cho /search-info) */
+    public List<CskhMapping> getAllIncludingSystemBases() {
+        return new ArrayList<>(all);
+    }
+
     public int size() {
         return byPhone.size();
+    }
+
+    public int totalEntries() {
+        return all.size();
     }
 
     public String getLoadedFrom() {

@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <link rel="icon" type="image/jpeg" href="/meraicon.ico">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MeraGroup - Tra cứu thông tin khách hàng 360</title>
+    <script>
+        (function () {
+            try {
+                var t = localStorage.getItem('mera-theme');
+                if (t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                    document.documentElement.setAttribute('data-theme', 'dark');
+                }
+            } catch (e) { /* ignore */ }
+        })();
+    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/mera-ui.css">
+
+    <style>
+        body { font-family: var(--mr-font); background-color: var(--mr-canvas); }
+        .timeline-line::before {
+            content: '';
+            position: absolute;
+            top: 15px; bottom: 0; left: 15px; width: 2px; background: var(--mr-border); z-index: 0;
+        }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        .loading-overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px);
+            display: none; align-items: center; justify-content: center; z-index: 9999;
+        }
+        
+        /* Mobile Responsive */
+        @media (max-width: 640px) {
+            body {
+                overflow-y: auto !important;
+                -webkit-overflow-scrolling: touch;
+            }
+            
+            main {
+                overflow-y: auto !important;
+                -webkit-overflow-scrolling: touch;
+            }
+            
+            /* Welcome message - smaller on mobile */
+            #welcomeMessage {
+                min-height: calc(100vh - 80px);
+            }
+            
+            /* Stack columns vertically on mobile */
+            #dashboardContent {
+                display: flex !important;
+                flex-direction: column !important;
+                gap: 12px !important;
+                height: auto !important;
+                min-height: 0 !important;
+            }
+            
+            /* Each column takes its natural height on mobile */
+            #dashboardContent > div {
+                height: auto !important;
+                min-height: 0 !important;
+                flex: none !important;
+            }
+            
+            /* Profile card - compact on mobile */
+            .bg-gradient-to-r {
+                height: 60px !important;
+            }
+            .w-20 {
+                width: 60px !important;
+                height: 60px !important;
+                margin-top: -30px !important;
+            }
+            
+            /* Profile stats - smaller on mobile */
+            .grid-cols-2 > div .text-2xl {
+                font-size: 18px !important;
+            }
+            
+            /* Profile section - allow scroll if too long */
+            #dashboardContent > div:nth-child(1) {
+                max-height: none !important;
+                overflow: visible !important;
+            }
+            
+            /* Orders section - fixed min-height */
+            #dashboardContent > div:nth-child(2) {
+                min-height: 180px;
+                height: auto !important;
+            }
+            
+            /* Column 3: Notes - back to column layout */
+            #dashboardContent > div:nth-child(3) {
+                height: auto !important;
+                min-height: 0 !important;
+                display: flex !important;
+                flex-direction: column !important;
+                gap: 10px !important;
+            }
+            
+            /* Each note card takes half width */
+            #dashboardContent > div:nth-child(3) > div {
+                height: 180px !important;
+                min-height: 100px !important;
+            }
+            
+            /* POS Notes card */
+            #dashboardContent > div:nth-child(3) > div:first-child {
+                height: auto !important;
+                min-height: 120px !important;
+            }
+            
+            /* Exchange history card */
+            #dashboardContent > div:nth-child(3) > div:last-child {
+                height: auto !important;
+                min-height: 120px !important;
+            }
+            
+            /* Timeline content must be visible */
+            #exchangeHistoryWrap, #timelineContent {
+                height: auto !important;
+                min-height: 80px !important;
+                max-height: none !important;
+                overflow: visible !important;
+            }
+            
+            /* Status filter - smaller text */
+            #statusFilter, #orderCountText {
+                font-size: 10px;
+            }
+        }
+
+        /* Dark mode: map các utility Tailwind (tĩnh + do JS render) về token mera-ui.
+           GIỮ Tailwind CDN vì search-info.js render class động; chỉ đè màu, không đổi layout. */
+        [data-theme="dark"] .bg-white { background-color: var(--mr-surface); }
+        [data-theme="dark"] .focus\:bg-white:focus { background-color: var(--mr-surface); }
+        [data-theme="dark"] .bg-slate-50, [data-theme="dark"] .bg-slate-50\/50,
+        [data-theme="dark"] .bg-slate-50\/40, [data-theme="dark"] .bg-slate-50\/20,
+        [data-theme="dark"] .bg-slate-100 { background-color: var(--mr-surface-2); }
+        [data-theme="dark"] .bg-slate-200, [data-theme="dark"] .hover\:bg-slate-200:hover { background-color: var(--mr-border); }
+        [data-theme="dark"] .text-slate-800, [data-theme="dark"] .text-slate-700 { color: var(--mr-text); }
+        [data-theme="dark"] .text-slate-600, [data-theme="dark"] .text-slate-500 { color: var(--mr-text-2); }
+        [data-theme="dark"] .text-slate-400 { color: var(--mr-muted); }
+        [data-theme="dark"] .border-slate-200, [data-theme="dark"] .border-slate-300 { border-color: var(--mr-border); }
+        [data-theme="dark"] .border-slate-100, [data-theme="dark"] .border-slate-50,
+        [data-theme="dark"] .border-slate-100\/50 { border-color: var(--mr-border-soft); }
+        [data-theme="dark"] .bg-blue-50, [data-theme="dark"] .bg-blue-50\/50 { background-color: var(--mr-accent-soft); }
+        [data-theme="dark"] .text-blue-500, [data-theme="dark"] .text-blue-600,
+        [data-theme="dark"] .text-blue-700, [data-theme="dark"] .hover\:text-blue-600:hover { color: var(--mr-accent); }
+        [data-theme="dark"] .border-blue-100, [data-theme="dark"] .border-blue-100\/50 { border-color: #2b3c66; }
+        [data-theme="dark"] .hover\:border-blue-300:hover { border-color: var(--mr-accent); }
+        [data-theme="dark"] .bg-emerald-50, [data-theme="dark"] .bg-emerald-50\/50 { background-color: var(--mr-success-bg); }
+        [data-theme="dark"] .text-emerald-500, [data-theme="dark"] .text-emerald-600 { color: var(--mr-success); }
+        [data-theme="dark"] .border-emerald-100, [data-theme="dark"] .border-emerald-100\/50 { border-color: #1d5c37; }
+        [data-theme="dark"] .bg-amber-50 { background-color: var(--mr-warn-bg); }
+        [data-theme="dark"] .text-amber-600, [data-theme="dark"] .text-amber-700 { color: var(--mr-warn); }
+        [data-theme="dark"] .border-amber-100, [data-theme="dark"] .border-amber-300 { border-color: #6b5416; }
+        [data-theme="dark"] .bg-rose-50, [data-theme="dark"] .bg-red-50,
+        [data-theme="dark"] .bg-red-100, [data-theme="dark"] .hover\:bg-red-100:hover { background-color: var(--mr-danger-bg); }
+        [data-theme="dark"] .text-rose-600, [data-theme="dark"] .text-rose-700,
+        [data-theme="dark"] .text-red-700, [data-theme="dark"] .hover\:text-red-500:hover { color: var(--mr-danger); }
+        [data-theme="dark"] .border-rose-100, [data-theme="dark"] .border-rose-300,
+        [data-theme="dark"] .border-red-200, [data-theme="dark"] .border-red-300 { border-color: #6e2727; }
+    </style>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: { 50: '#eef3ff', 100: '#dbe6ff', 500: '#1456f0', 600: '#1456f0', 700: '#0f45c4' },
+                        /* Đưa accent xanh về token mera (#1456f0) - JS render class blue-* động nên override tại đây */
+                        blue: { 500: '#1456f0', 600: '#1456f0', 700: '#0f45c4' }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="mera-page text-slate-600 h-screen flex flex-col sm:overflow-hidden">
+
+    <!-- Header - workspace layout (giữ search bar chức năng của trang) -->
+    <header class="mr-workspace-header flex-none z-50">
+        <div class="mr-sidebar-logo">M</div>
+        <h1 class="mr-workspace-title hidden sm:block">Tra Cứu thông tin khách hàng</h1>
+
+        <!-- Search Bar - Always visible, compact on mobile -->
+        <div class="flex-1 max-w-2xl">
+            <div class="relative flex gap-2">
+                <div class="relative flex-1">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <i class="fa-solid fa-phone text-slate-400 text-xs"></i>
+                    </div>
+                    <input id="phoneInput" type="text" class="block w-full pl-8 pr-3 py-1.5 border border-slate-200 rounded-lg bg-slate-100 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition text-sm" placeholder="Nhập SĐT...">
+                </div>
+                <button id="searchBtn" class="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-sm font-bold hover:bg-blue-700 transition shadow-md whitespace-nowrap">Tra cứu</button>
+            </div>
+        </div>
+
+        <div class="mr-workspace-spacer"></div>
+
+        <!-- Actions -->
+        <a href="/home" class="mr-btn mr-btn--ghost hidden lg:inline-flex" style="padding:6px 12px; font-size:13px;">← Về Dashboard</a>
+        <a href="/search-config" class="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-400 hover:bg-slate-200 hover:text-blue-600 transition" title="Cấu hình">
+            <i class="fa-solid fa-gear"></i>
+        </a>
+        <a href="/lark/logout" id="logoutBtn"
+           class="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-400 hover:bg-red-100 hover:text-red-500 transition"
+           title="Đăng xuất"
+           onclick="return confirm('Bạn có chắc muốn đăng xuất không?')"
+           style="display: none;">
+            <i class="fa-solid fa-right-from-bracket"></i>
+        </a>
+        <button class="mr-icon-btn mr-theme-toggle flex-none" type="button" onclick="mrToggleTheme()"
+                aria-label="Đổi giao diện sáng/tối" data-mr-tip="Sáng / Tối">
+            <span class="ico-moon">🌙</span><span class="ico-sun">☀️</span>
+        </button>
+        <div class="w-8 h-8 rounded-full bg-slate-200 overflow-hidden border border-slate-300 flex-none">
+            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Admin" alt="Admin">
+        </div>
+    </header>
+
+    <main class="flex-1 w-full h-full p-4 overflow-hidden">
+        <div id="welcomeMessage" class="h-full flex items-center justify-center text-slate-400 flex-col gap-4">
+            <i class="fa-solid fa-magnifying-glass text-6xl opacity-20"></i>
+            <p class="text-lg">Nhập số điện thoại để bắt đầu tra cứu thông tin 360</p>
+        </div>
+
+        <div id="dashboardContent" class="grid grid-cols-1 xl:grid-cols-[330px_1fr_400px] gap-4 h-full min-h-0 opacity-0 transition-opacity duration-300 hidden">
+            <!-- CỘT 1: PROFILE & TỔNG HỢP -->
+            <div class="flex flex-col gap-4 overflow-y-auto no-scrollbar min-h-0">
+                <!-- Profile Card -->
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex-none">
+                    <div class="h-24 bg-gradient-to-r from-blue-600 to-blue-400"></div>
+                    <div class="px-5 pb-5 text-center relative">
+                        <div class="w-20 h-20 mx-auto -mt-10 bg-white rounded-full p-1 shadow-md">
+                            <img id="profileAvatar" src="https://api.dicebear.com/7.x/initials/svg?seed=U&backgroundColor=e5e7eb&textColor=374151" alt="Avatar" class="w-full h-full rounded-full bg-slate-100">
+                        </div>
+                        <h2 id="profileName" class="mt-3 text-xl font-bold text-slate-800">Khách hàng</h2>
+                        <div class="flex justify-center items-center gap-2 text-slate-500 mt-1 mb-4">
+                            <span id="profilePhone" class="font-bold text-slate-700 text-lg">---</span>
+                        </div>
+                        
+                        <div class="grid grid-cols-2 gap-3 mb-4">
+                            <div class="bg-emerald-50/50 p-2 rounded-xl border border-emerald-100/50">
+                                <span class="block text-[10px] text-emerald-500 uppercase font-bold tracking-wider">Thành công</span>
+                                <span id="profileSucceedCount" class="block text-2xl font-bold text-emerald-600">0</span>
+                            </div>
+                            <div class="bg-blue-50/50 p-2 rounded-xl border border-blue-100/50">
+                                <span class="block text-[10px] text-blue-500 uppercase font-bold tracking-wider">Hạng</span>
+                                <span id="profileStatus" class="block text-sm font-bold text-slate-700 mt-1">Khách mới</span>
+                            </div>
+                        </div>
+
+                        <div class="text-left space-y-4 border-t border-slate-100 pt-4">
+                            <div>
+                                <span class="text-[10px] text-slate-400 font-bold uppercase block mb-1">Customer ID</span>
+                                <div id="profileCustomerId" class="bg-slate-100 text-slate-600 text-[11px] p-2 rounded-lg font-mono truncate">---</div>
+                            </div>
+                            <div>
+                                <span class="text-[10px] text-slate-400 font-bold uppercase block mb-1">Địa chỉ</span>
+                                <p id="profileAddress" class="text-[13px] text-slate-500 leading-relaxed font-medium">---</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Product Summary Card -->
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
+                    <h3 class="font-bold text-slate-800 text-sm mb-4 border-b border-slate-100 pb-2 flex items-center gap-2">
+                        <i class="fa-solid fa-list-check text-blue-500"></i>
+                        Tổng hợp sản phẩm đã mua
+                    </h3>
+                    <ul id="productSummaryWrap" class="space-y-1">
+                        <!-- Data from JS -->
+                    </ul>
+                </div>
+            </div>
+
+            <!-- CỘT 2: LỊCH SỬ ĐƠN HÀNG -->
+          <div class="flex flex-col bg-white rounded-2xl shadow-sm border border-slate-200 h-full overflow-hidden min-h-0">
+                <div class="px-6 py-4 border-b border-slate-100 bg-white sticky top-0 z-10 flex justify-between items-center gap-4">
+                    <h3 class="font-bold text-lg text-slate-800 flex items-center gap-2">
+                        <i class="fa-solid fa-clock-rotate-left text-blue-500"></i>
+                        Lịch sử mua hàng
+                    </h3>
+                    <div class="flex items-center gap-3">
+                        <select id="statusFilter" class="text-xs border border-slate-200 rounded-lg px-2 py-1 bg-slate-50 focus:outline-none focus:ring-1 focus:ring-blue-500 transition cursor-pointer">
+                            <option value="all">Tất cả trạng thái</option>
+                        </select>
+                        <span id="orderCountText" class="text-xs bg-slate-100 text-slate-500 px-3 py-1 rounded-full font-bold uppercase shrink-0">0 đơn hàng</span>
+                    </div>
+                </div>
+
+                <div id="ordersWrap" class="p-4 space-y-4 overflow-y-auto no-scrollbar flex-1 bg-slate-50/40">
+                    <!-- Data from JS -->
+                </div>
+            </div>
+
+            <!-- CỘT 3: NHẬT KÝ CHĂM SÓC -->
+          <div class="flex flex-col h-full gap-5 min-h-0">
+                <!-- POS Notes (Ghi chú POS) -->
+                <div class="flex flex-col bg-white rounded-2xl shadow-sm border border-slate-200 h-[350px] overflow-hidden flex-none">
+                    <div class="px-5 py-3 border-b border-slate-100 flex justify-between items-center">
+                        <h3 class="font-bold text-sm text-slate-800 flex items-center gap-2">
+                            <i class="fa-solid fa-note-sticky text-blue-500"></i>
+                            Ghi chú (POS)
+                        </h3>
+                    </div>
+                    <div id="posNotesWrap" class="p-4 overflow-y-auto no-scrollbar flex-1 space-y-3 bg-slate-50/20">
+                        <!-- Data from JS -->
+                    </div>
+                </div>
+
+                <!-- Nhật ký trao đổi -->
+            <div class="flex flex-col bg-white rounded-2xl shadow-sm border border-slate-200 h-full overflow-hidden min-h-0">
+                    <div class="px-5 py-4 border-b border-slate-100 bg-white sticky top-0 z-10">
+                        <h3 class="font-bold text-sm text-slate-800 flex items-center gap-2">
+                            <i class="fa-solid fa-comments text-blue-500"></i>
+                            Nhật ký trao đổi 
+                        </h3>
+                    </div>
+
+              <div id="exchangeHistoryWrap" class="p-5 overflow-y-auto no-scrollbar flex-1 bg-slate-50/20 min-h-0">
+                        <div class="relative timeline-line">
+                            <!-- Data from JS -->
+                             <div id="timelineContent"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="bg-white p-8 rounded-3xl shadow-2xl flex flex-col items-center gap-4 text-center">
+            <div class="w-12 h-12 border-4 border-slate-100 border-t-blue-500 rounded-full animate-spin"></div>
+            <div>
+                <p id="loadingTitle" class="font-bold text-slate-800 text-lg">Đang tổng hợp dữ liệu 360...</p>
+                <p id="loadingSubtitle" class="text-sm text-slate-400 mt-1">Kết nối Pancake POS & Lark Bitable</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function mrToggleSidebar() {
+            var sb = document.getElementById('mrSidebar');
+            var ov = document.getElementById('mrShellOverlay');
+            if (sb) sb.classList.toggle('open');
+            if (ov) ov.classList.toggle('show');
+        }
+        function mrToggleTheme() {
+            var root = document.documentElement;
+            var next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+            if (next === 'dark') { root.setAttribute('data-theme', 'dark'); }
+            else { root.removeAttribute('data-theme'); }
+            try { localStorage.setItem('mera-theme', next); } catch (e) { /* ignore */ }
+        }
+    </script>
+    <script src="/js/search-info.js"></script>
+    <script>
+        // Sync mobile and desktop search inputs
+        const phoneInputDesktop = document.getElementById('phoneInput');
+        const phoneInputMobile = document.getElementById('phoneInputMobile');
+        
+        if (phoneInputDesktop && phoneInputMobile) {
+            phoneInputDesktop.addEventListener('input', (e) => {
+                phoneInputMobile.value = e.target.value;
+            });
+            phoneInputMobile.addEventListener('input', (e) => {
+                phoneInputDesktop.value = e.target.value;
+            });
+        }
+        
+        // Mobile search button handler
+        document.getElementById('searchBtnMobile')?.addEventListener('click', function() {
+            const phone = phoneInputMobile.value.trim();
+            if (phone && typeof window.doSearch === 'function') {
+                window.doSearch(phone);
+            }
+        });
+        
+        // Enter key on mobile input
+        phoneInputMobile?.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                const phone = this.value.trim();
+                if (phone && typeof window.doSearch === 'function') {
+                    window.doSearch(phone);
+                }
+            }
+        });
+        
+        // UI Helpers for smooth transition
+        const originalDashboard = renderDashboard;
+        window.renderDashboard = function(data) {
+            document.getElementById('welcomeMessage').classList.add('hidden');
+            const dashboard = document.getElementById('dashboardContent');
+            dashboard.classList.remove('hidden');
+            setTimeout(() => {
+                dashboard.classList.add('opacity-100');
+            }, 50);
+            originalDashboard(data);
+        }
+    </script>
+</body>
+</html>

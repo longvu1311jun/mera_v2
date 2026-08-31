@@ -1,8 +1,13 @@
-# Nhánh `feat/lark-only-webhook` — chỉ tạo bản ghi Lark từ data POS
+# Nhánh `feat/lark-only-webhook` — POS → Lark, không cần database
 
-Nhánh rút gọn để chạy khi database `pos_db` đang lỗi. App **không kết nối database**: nhận webhook đơn hàng từ POS (Pancake) và tạo bản ghi trong Lark Bitable.
+Nhánh rút gọn để chạy khi database `pos_db` đang lỗi. App **không kết nối database**, giữ 2 chức năng:
 
-Mọi thứ khác trên `master` (báo cáo, khách hàng, chấm công, LT khách, DT ADS, đồng bộ POS...) đã bị loại khỏi nhánh này.
+1. **Webhook POS → tạo bản ghi Lark Bitable** (`POST /api/lark/orders`)
+2. **Trang tra cứu khách hàng 360** (`/search-info`) — gộp dữ liệu POS + các Base Lark
+
+Cả hai dùng chung một nguồn cấu hình duy nhất: file `cskh-mapping.json`.
+
+Mọi thứ khác trên `master` (báo cáo, chấm công, LT khách, DT ADS, đồng bộ POS...) đã bị loại khỏi nhánh này.
 
 ## Khác biệt so với `master`
 
@@ -13,10 +18,11 @@ Mọi thứ khác trên `master` (báo cáo, khách hàng, chấm công, LT khá
 | Mapping CSKH → Base/Table | bảng `search_config` | file JSON |
 | Nhắc follow-up 30 phút (`pending_followup_notifications`) | có | bỏ |
 | Thông báo Lark IM khi đổi account | có | bỏ |
-| Thymeleaf / templates / static | có | bỏ |
+| Trang `/search-info` | đọc bảng `search_config` | đọc file JSON, trang tĩnh (bỏ Thymeleaf) |
+| Các trang khác + Thymeleaf layout | có | bỏ |
 | Token Lark | in-memory (giữ nguyên) | in-memory |
 
-## Luồng xử lý
+## Luồng webhook
 
 `POST /api/lark/orders` → kiểm tra `X-Pancake-Secret` → parse JSON → quyết định có tạo bản ghi không:
 
@@ -25,8 +31,9 @@ Mọi thứ khác trên `master` (báo cáo, khách hàng, chấm công, LT khá
 
 Khi tạo bản ghi:
 
-1. Lấy SĐT CSKH từ `assigning_care.phone_number`, nếu trống thì tách SĐT từ tên CSKH.
-2. Tra file mapping → `baseId`, `khachHangTableId`, `khachHangViewId`.
+1. Tra mapping của CSKH theo thứ tự: **SĐT trong tên CSKH** → SĐT tài khoản POS (`assigning_care.phone_number`) → tên CSKH đã chuẩn hóa.
+   SĐT tài khoản POS thường **khác** SĐT dùng trong bảng mapping nên không được ưu tiên.
+2. Lấy `baseId`, `khachHangTableId`, `khachHangViewId` từ entry tra được.
 3. Lấy user access token (fallback: tenant token từ `app-id`/`app-secret`).
 4. Kiểm tra SĐT khách đã tồn tại trong bảng Lark chưa → nếu có thì bỏ qua.
 5. Tạo bản ghi qua Bitable API.
@@ -40,24 +47,44 @@ Thay cho bảng `search_config`. Thứ tự tìm file:
 1. `cskh.mapping.file` — mặc định `config/cskh-mapping.json` (đường dẫn tương đối thư mục chạy app)
 2. `classpath:cskh-mapping.json` (bản mẫu trong `src/main/resources`)
 
+Bản đang dùng có 63 entry: **54 CSKH** + **9 base hệ thống**.
+
 ```json
 {
   "mappings": [
     {
       "cskhName": "Tên CSKH trên POS",
       "posPhone": "0968420624",
-      "baseName": "Tên Base (chỉ để đối soát)",
+      "baseName": "Tên Base",
       "baseId": "bascnXXXXXXXX",
       "khachHangTableId": "tblXXXXXXXX",
-      "khachHangViewId": "vew5Ou4Kee"
+      "khachHangViewId": "vew5Ou4Kee",
+      "traoDoiTableId": "tblYYYYYYYY",
+      "lichHenTableId": "tblZZZZZZZZ"
+    },
+    {
+      "baseName": "TỪ CHỐI CHĂM",
+      "baseId": "bascnWWWWWWWW",
+      "khachHangTableId": "tblWWWWWWWW",
+      "specialWarningName": "TỪ CHỐI CHĂM"
     }
   ]
 }
 ```
 
-- Khóa tra cứu là `posPhone`, so khớp theo **9 số cuối** (bỏ qua khác biệt `0` / `+84`).
-- Entry thiếu `baseId` hoặc `khachHangTableId` sẽ bị bỏ qua kèm cảnh báo trong log.
-- `khachHangViewId` để trống → dùng mặc định `vew5Ou4Kee`.
+| Trường | Webhook | /search-info |
+|---|---|---|
+| `posPhone` | **bắt buộc** — khóa tra cứu (khớp 9 số cuối) | không dùng |
+| `cskhName` | dự phòng khi không khớp SĐT | phân biệt base CSKH / base hệ thống |
+| `baseId` | **bắt buộc** | **bắt buộc** |
+| `khachHangTableId` | **bắt buộc** | dùng nếu có, không thì tự liệt kê bảng |
+| `khachHangViewId` | mặc định `vew5Ou4Kee` | — |
+| `traoDoiTableId` / `lichHenTableId` | không dùng | đọc lịch sử trao đổi |
+| `specialWarningName` | không dùng | hiện cảnh báo "Khách hàng nằm trong bảng X" |
+
+- **Entry không có `posPhone`** = base hệ thống dùng chung (Từ chối chăm, Đơn hoàn, Hủy, Đang chăm, Thống kê...). Webhook bỏ qua chúng; `/search-info` vẫn quét và tự liệt kê bảng qua Lark API (cache 10 phút).
+- `specialWarningName` hiện đang bật cho 4 base: **TỪ CHỐI CHĂM, Đơn hoàn, Hủy, ĐANG CHĂM**. Thêm/bớt bằng cách sửa trường này trong file.
+- Entry không có `baseId` bị bỏ qua kèm cảnh báo trong log.
 
 Sửa file xong nạp lại không cần restart:
 
@@ -74,13 +101,17 @@ SELECT JSON_OBJECT('mappings', JSON_ARRAYAGG(JSON_OBJECT(
          'baseName', lark_base_name,
          'baseId', lark_base_id,
          'khachHangTableId', khach_hang_table_id,
-         'khachHangViewId', khach_hang_view_id)))
+         'khachHangViewId', khach_hang_view_id,
+         'traoDoiTableId', trao_doi_table_id,
+         'traoDoiViewId', trao_doi_view_id,
+         'lichHenTableId', lich_hen_table_id,
+         'lichHenViewId', lich_hen_view_id)))
 FROM search_config
 WHERE sync_status = 2
-  AND pos_phone IS NOT NULL
-  AND lark_base_id IS NOT NULL
-  AND khach_hang_table_id IS NOT NULL;
+  AND lark_base_id IS NOT NULL;
 ```
+
+Câu này giữ cả base hệ thống (`pos_phone` null) vì `/search-info` cần chúng.
 
 Lưu kết quả vào `config/cskh-mapping.json` cạnh file jar rồi gọi endpoint reload.
 
@@ -92,6 +123,8 @@ Lưu kết quả vào `config/cskh-mapping.json` cạnh file jar rồi gọi end
 | GET | `/api/lark/health` | Trạng thái app, token, số mapping đang nạp |
 | GET | `/api/lark/cskh-mapping` | Danh sách mapping đang dùng |
 | POST | `/api/lark/cskh-mapping/reload` | Nạp lại mapping từ file |
+| GET | `/search-info` | Trang tra cứu khách hàng 360 |
+| GET | `/api/search-info?phone=...` | API tra cứu: khách + đơn POS + trao đổi Lark |
 | GET | `/lark` | Trang đăng nhập Lark (OAuth) |
 | GET | `/oauth/callback`, `/lark/oauth/callback` | Callback OAuth |
 | GET | `/lark/token`, `/token` | Trạng thái token |
@@ -105,6 +138,7 @@ Lưu kết quả vào `config/cskh-mapping.json` cạnh file jar rồi gọi end
 | `lark.bitable.auto-create` | `false` = chỉ log, không ghi sang Lark |
 | `pancake.webhook.secret` | Header `X-Pancake-Secret`; để trống là tắt kiểm tra |
 | `cskh.mapping.file` | Đường dẫn file mapping |
+| `pos.api.base-url`, `pos.api.shop-id`, `pos.api.api-key` | POS API cho trang `/search-info` |
 | `lark.http.connect-timeout`, `lark.http.read-timeout` | Timeout gọi API Lark |
 
 ## Chạy
@@ -114,6 +148,14 @@ Lưu kết quả vào `config/cskh-mapping.json` cạnh file jar rồi gọi end
 ```
 
 Sau khi app chạy, vào `http://localhost:8080/lark` đăng nhập Lark để lấy user access token (token giữ trong bộ nhớ, tự làm mới mỗi giờ; **restart app phải đăng nhập lại**). Nếu chưa đăng nhập, app fallback sang tenant token lấy từ `app-id`/`app-secret`.
+
+## Trang /search-info
+
+Tra cứu 360 theo SĐT khách: thông tin khách + đơn hàng + ghi chú từ POS API, cộng lịch sử trao đổi quét song song qua tất cả Base trong file mapping.
+
+- Trang là file tĩnh `static/search-info.html` (đã bỏ layout Thymeleaf), JS/CSS giữ nguyên như `master`.
+- Base của CSKH cần **user access token** — chưa đăng nhập `/lark` thì các base này trả `RolePermNotAllow` và kết quả chỉ còn dữ liệu POS + base hệ thống (bot token đọc được).
+- Base hệ thống được tự liệt kê bảng qua Lark API, cache 10 phút.
 
 ## Lưu ý khi deploy
 
