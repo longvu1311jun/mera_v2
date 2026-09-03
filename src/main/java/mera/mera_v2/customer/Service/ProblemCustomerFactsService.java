@@ -15,6 +15,7 @@ import javax.sql.DataSource;
 import jakarta.annotation.PreDestroy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -271,6 +272,14 @@ public class ProblemCustomerFactsService {
         }
     }
 
+    /**
+     * Chỉ MỘT instance được chạy job nền (2 instance cùng trỏ pos_db). Instance còn lại đặt
+     * {@code mera.jobs.enabled=false} — nếu cả hai cùng chạy thì DELETE/INSERT facts chạy chồng
+     * nhau và nhân đôi tải đọc orders/customer_notes.
+     */
+    @Value("${mera.jobs.enabled:true}")
+    private boolean jobsEnabled;
+
     /** Lần đầu sau boot (30s để cột phone9 kịp tạo): catch-up incremental; nếu chưa từng chạy → full. */
     @Scheduled(initialDelayString = "30000", fixedDelayString = "300000")
     public void incrementalTick() {
@@ -287,6 +296,10 @@ public class ProblemCustomerFactsService {
     }
 
     private void submit(Runnable task) {
+        if (!jobsEnabled) {
+            log.debug("Bỏ qua cập nhật facts: mera.jobs.enabled=false trên instance này.");
+            return;
+        }
         if (!running.compareAndSet(false, true)) {
             log.info("Bỏ qua lượt cập nhật facts: lượt trước chưa hoàn tất.");
             return;

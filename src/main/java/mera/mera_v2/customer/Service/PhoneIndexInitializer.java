@@ -77,9 +77,20 @@ public class PhoneIndexInitializer {
         t.start();
     }
 
+    /** Cột/index cần có, theo đúng thứ tự COLUMN_DDL / INDEX_DDL: {table, name}. */
+    private static final String[][] COLUMN_TARGETS = {
+        {"orders", "phone9"},
+        {"customer_phone_numbers", "phone9"}
+    };
+    private static final String[][] INDEX_TARGETS = {
+        {"orders", "idx_orders_phone9"},
+        {"customer_phone_numbers", "idx_cpn_phone9"},
+        {"customer_notes", "idx_cn_updated"}
+    };
+
     private void run() {
         // 1) Cột trước — mỗi lệnh độc lập, log rõ để chẩn đoán nếu DB không hỗ trợ generated column.
-        int cols = exec(COLUMN_DDL, "cột");
+        int cols = exec(COLUMN_DDL, COLUMN_TARGETS, "cột");
         if (cols == COLUMN_DDL.length) {
             log.info("Cột phone9 (khớp SĐT 9 số) trên orders & customer_phone_numbers đã sẵn sàng.");
         } else {
@@ -88,23 +99,51 @@ public class PhoneIndexInitializer {
             return; // Không build index nếu thiếu cột.
         }
         // 2) Index sau — best-effort, có thể lâu trên bảng orders lớn.
-        int idx = exec(INDEX_DDL, "index");
+        int idx = exec(INDEX_DDL, INDEX_TARGETS, "index");
         log.info("Index phone9: {}/{} đã sẵn sàng (query dùng được ngay cả khi index chưa xong).",
                 idx, INDEX_DDL.length);
     }
 
-    /** Chạy từng câu DDL độc lập, trả về số câu thành công. */
-    private int exec(String[] statements, String kind) {
+    /**
+     * Chạy từng câu DDL độc lập, trả về số câu đã có/thành công.
+     *
+     * <p><b>Tra information_schema trước, chỉ ALTER khi thực sự thiếu.</b> `ADD ... IF NOT EXISTS`
+     * dù không đổi gì vẫn phải xin metadata lock (MDL) EXCLUSIVE trên bảng: với 2 instance cùng boot
+     * trỏ chung pos_db, hai ALTER xếp hàng MDL và mọi INSERT/UPDATE vào {@code orders} đứng sau bị
+     * chặn tới {@code lock_wait_timeout} (mặc định 24 giờ) — đúng dấu hiệu 5/5 thread webhook kẹt.</p>
+     */
+    private int exec(String[] statements, String[][] targets, String kind) {
         int ok = 0;
-        for (String ddl : statements) {
+        for (int i = 0; i < statements.length; i++) {
+            String table = targets[i][0];
+            String name = targets[i][1];
             try {
-                jdbcTemplate.execute(ddl);
+                boolean isIndex = "index".equals(kind);
+                if (isIndex ? indexExists(table, name) : columnExists(table, name)) {
+                    ok++;
+                    continue;
+                }
+                log.info("Tạo {} phone9 {}.{} (chưa có trong information_schema)...", kind, table, name);
+                jdbcTemplate.execute(statements[i]);
                 ok++;
             } catch (Exception e) {
-                log.error("Không tạo được {} phone9 [{}]: {}",
-                        kind, ddl.strip().split("\\s+", 4)[2], e.getMessage());
+                log.error("Không tạo được {} phone9 {}.{}: {}", kind, table, name, e.getMessage());
             }
         }
         return ok;
+    }
+
+    private boolean columnExists(String table, String column) {
+        Integer n = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM information_schema.COLUMNS WHERE table_schema = DATABASE() "
+                        + "AND table_name = ? AND column_name = ?", Integer.class, table, column);
+        return n != null && n > 0;
+    }
+
+    private boolean indexExists(String table, String index) {
+        Integer n = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM information_schema.STATISTICS WHERE table_schema = DATABASE() "
+                        + "AND table_name = ? AND index_name = ?", Integer.class, table, index);
+        return n != null && n > 0;
     }
 }

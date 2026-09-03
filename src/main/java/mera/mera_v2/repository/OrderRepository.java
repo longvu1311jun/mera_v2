@@ -130,7 +130,8 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
           customer_phone = VALUES(customer_phone), last_editor_name = VALUES(last_editor_name),
           order_id = VALUES(order_id), partner_delivery_name = VALUES(partner_delivery_name),
           partner_tracking_id = VALUES(partner_tracking_id), account = VALUES(account),
-          account_name = VALUES(account_name), order_link = VALUES(order_link), raw_data = VALUES(raw_data)
+          account_name = VALUES(account_name), order_link = VALUES(order_link),
+          raw_data = COALESCE(raw_data, VALUES(raw_data))
       """, nativeQuery = true)
   void upsertOrder(@Param("id") Long id, @Param("order_code") String orderCode,
       @Param("shop_id") Long shopId, @Param("page_id") String pageId,

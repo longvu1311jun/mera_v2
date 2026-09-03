@@ -26,6 +26,7 @@ import mera.mera_v2.repository.ProblemCustomerRepository;
 import mera.mera_v2.repository.ProblemCustomerTrackingRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -128,12 +129,20 @@ public class OptimizedCustomerService {
         }
     }
 
+    /** Chỉ một instance chạy job nền — xem ProblemCustomerFactsService#jobsEnabled. */
+    @Value("${mera.jobs.enabled:true}")
+    private boolean jobsEnabled;
+
     /**
      * Kích hoạt đối soát định kỳ (mỗi 1 giờ, lần đầu sau 90 giây để cache kịp hâm nóng).
      * Chỉ đẩy việc sang luồng nền rồi trả về ngay — không giữ luồng scheduler.
      */
     @Scheduled(fixedDelayString = "3600000", initialDelayString = "90000")
     public void scheduleReconcile() {
+        if (!jobsEnabled) {
+            log.debug("Bỏ qua đối soát khách tối ưu: mera.jobs.enabled=false trên instance này.");
+            return;
+        }
         if (!running.compareAndSet(false, true)) {
             log.info("Bỏ qua lượt đối soát khách tối ưu: lượt trước chưa hoàn tất.");
             return;

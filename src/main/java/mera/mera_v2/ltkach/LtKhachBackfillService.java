@@ -1,15 +1,11 @@
 package mera.mera_v2.ltkach;
 
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.CannotAcquireLockException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
-import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.List;
 import java.util.Map;
@@ -18,21 +14,24 @@ import java.util.Map;
 @Service
 public class LtKhachBackfillService {
 
-    @PersistenceContext
-    private EntityManager em;
-
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
-    @Transactional(timeout = 3600)
+    /**
+     * KHÔNG bọc @Transactional ở mức method. Trước đây `@Transactional(timeout = 3600)` gom toàn bộ
+     * vòng lặp (hàng trăm nghìn UPDATE orders) vào MỘT transaction: undo log phình, X-lock giữ trên
+     * mọi dòng đã update suốt cả giờ, mọi webhook/sync đụng orders đều "Lock wait timeout", và nếu
+     * DB bị kill giữa chừng thì InnoDB phải rollback rất lâu lúc khởi động lại.
+     * Mỗi UPDATE giờ tự commit (autocommit) — idempotent nhờ điều kiện `lt_count_snapshot IS NULL`
+     * nên chạy dở rồi chạy lại vẫn đúng.
+     */
     public Map<String, Object> backfillSnapshot() {
         log.info("=== BẮT ĐẦU BACKFILL lt_count_snapshot ===");
 
         // 1. Đếm đơn chưa có snapshot
-        Object countObj = em.createNativeQuery(
-            "SELECT COUNT(*) FROM orders WHERE lt_count_snapshot IS NULL"
-        ).getSingleResult();
-        Long totalOrders = (countObj instanceof Number) ? ((Number) countObj).longValue() : (Long) countObj;
+        Long totalOrders = jdbcTemplate.queryForObject(
+            "SELECT COUNT(*) FROM orders WHERE lt_count_snapshot IS NULL", Long.class);
+        if (totalOrders == null) totalOrders = 0L;
         log.info("Tổng orders cần backfill: {}", totalOrders);
 
         if (totalOrders == 0) {
@@ -61,6 +60,7 @@ public class LtKhachBackfillService {
             }
 
             log.info("Xử lý batch {} orders...", batch.size());
+            long progressBefore = updated + skipped;
 
             // Với mỗi order trong batch: đếm số đơn combo thành công của cùng khách
             for (Map<String, Object> row : batch) {
@@ -114,6 +114,13 @@ public class LtKhachBackfillService {
             }
 
             log.info("Đã xử lý {} orders, tổng updated: {}, skipped: {}, errors: {}", batch.size(), updated, skipped, errors);
+
+            // Cả batch không ghi được dòng nào (lỗi lặp lại) → query kế tiếp sẽ trả về đúng
+            // các dòng này mãi mãi. Dừng thay vì lặp vô hạn; gọi lại endpoint sau khi DB ổn.
+            if (updated + skipped == progressBefore) {
+                log.error("Batch không tiến triển (errors={}), dừng backfill để tránh lặp vô hạn.", errors);
+                break;
+            }
         }
 
         log.info("=== HOÀN THÀNH BACKFILL ===");

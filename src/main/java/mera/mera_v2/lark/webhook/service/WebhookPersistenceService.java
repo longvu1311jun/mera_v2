@@ -24,6 +24,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
@@ -480,10 +481,14 @@ public class WebhookPersistenceService {
             order.setPostId(webhook.getPostId());
 
             // === Raw data ===
-            try {
-                order.setRawData(objectMapper.writeValueAsString(webhook));
-            } catch (Exception e) {
-                log.warn("Không thể lưu raw data: {}", e.getMessage());
+            // Chi ghi raw_data (LONGTEXT ~2.5KB/don, 1.5GB toan bang) luc tao moi. Moi webhook cua
+            // don cu deu ghi de LONGTEXT nay -> undo/redo lon, giu X-lock lau hon, ma khong ai doc lai.
+            if (result.isSaved()) {
+                try {
+                    order.setRawData(objectMapper.writeValueAsString(webhook));
+                } catch (Exception e) {
+                    log.warn("Không thể lưu raw data: {}", e.getMessage());
+                }
             }
 
             orderRepository.save(order);
@@ -580,12 +585,23 @@ public class WebhookPersistenceService {
             }
 
             Long orderId = webhook.getId();
+            // Payment cua don nay da co trong DB — de chong tao trung khi payload khong co "id".
+            // Truoc day moi webhook cua cung don (POS ban lai moi lan sua) tao them mot dong moi.
+            List<OrderPayment> existingPayments = orderPaymentRepository.findAllByOrderId(orderId);
 
             for (JsonNode paymentNode : paymentsNode) {
                 try {
                     Long paymentId = parseLongId(paymentNode.has("id") ? paymentNode.get("id").asText() : null);
-                    OrderPayment payment;
+                    String method = getTextField(paymentNode, "method");
+                    BigDecimal amount = BigDecimal.ZERO;
+                    String amountStr = paymentNode.has("amount") ? paymentNode.get("amount").asText() : null;
+                    if (amountStr != null) {
+                        try {
+                            amount = new BigDecimal(amountStr);
+                        } catch (Exception ignored) {}
+                    }
 
+                    OrderPayment payment;
                     if (paymentId != null) {
                         Optional<OrderPayment> existing = orderPaymentRepository.findById(paymentId);
                         if (existing.isPresent()) {
@@ -595,25 +611,23 @@ public class WebhookPersistenceService {
                             payment.setId(paymentId);
                         }
                     } else {
-                        payment = new OrderPayment();
-                    }
-
-                    payment.setOrderId(orderId);
-                    payment.setMethod(getTextField(paymentNode, "method"));
-                    payment.setBankName(getTextField(paymentNode, "bank_name"));
-                    payment.setAccountNumber(getTextField(paymentNode, "account_number"));
-                    payment.setAccountName(getTextField(paymentNode, "account_name"));
-
-                    String amountStr = paymentNode.has("amount") ? paymentNode.get("amount").asText() : null;
-                    if (amountStr != null) {
-                        try {
-                            payment.setAmount(new BigDecimal(amountStr));
-                        } catch (Exception e) {
-                            payment.setAmount(BigDecimal.ZERO);
+                        payment = findMatchingPayment(existingPayments, method, amount);
+                        if (payment == null) {
+                            payment = new OrderPayment();
+                            existingPayments.add(payment);
                         }
                     }
 
-                    payment.setCreatedAt(LocalDateTime.now());
+                    payment.setOrderId(orderId);
+                    payment.setMethod(method);
+                    payment.setBankName(getTextField(paymentNode, "bank_name"));
+                    payment.setAccountNumber(getTextField(paymentNode, "account_number"));
+                    payment.setAccountName(getTextField(paymentNode, "account_name"));
+                    payment.setAmount(amount);
+
+                    if (payment.getCreatedAt() == null) {
+                        payment.setCreatedAt(LocalDateTime.now());
+                    }
 
                     orderPaymentRepository.save(payment);
                     savedCount++;
@@ -639,29 +653,33 @@ public class WebhookPersistenceService {
         try {
             Long orderId = webhook.getId();
 
-            // Lay cac status history da ton tai trong DB
+            // Lay cac status history da ton tai trong DB.
+            // Key so theo GIAY (cot updated_at la DATETIME khong co phan le) — neu giu mili-giay tu
+            // payload thi khong bao gio khop, moi webhook lai INSERT trung -> vi pham UNIQUE
+            // uk_status_history_order_status_time va ton mot round-trip DB vo ich cho tung dong.
             Set<String> existingKeys = new HashSet<>();
+            Set<Integer> existingStatuses = new HashSet<>();
             List<OrderStatusHistory> existingHistories = orderStatusHistoryRepository.findAllByOrder_IdIn(List.of(orderId));
             for (OrderStatusHistory h : existingHistories) {
                 if (h.getNewStatus() != null && h.getUpdatedAt() != null) {
-                    String key = orderId + "_" + h.getNewStatus() + "_" + h.getUpdatedAt().toString();
-                    existingKeys.add(key);
+                    existingKeys.add(historyKey(orderId, h.getNewStatus(), h.getUpdatedAt()));
+                    existingStatuses.add(h.getNewStatus());
                 }
             }
 
             List<PosOrderWebhook.HistoryItem> histories = webhook.getHistories();
             if (histories == null || histories.isEmpty()) {
-                // Neu khong co history, tao mot ban ghi tu status hien tai
-                if (webhook.getStatus() != null) {
-                    String key = orderId + "_" + webhook.getStatus() + "_" + LocalDateTime.now().toString();
-                    if (!existingKeys.contains(key)) {
-                        OrderStatusHistory history = new OrderStatusHistory();
-                        history.setOrder(orderRepository.findById(orderId).orElse(null));
-                        history.setNewStatus(webhook.getStatus());
-                        history.setUpdatedAt(LocalDateTime.now());
-                        orderStatusHistoryRepository.save(history);
-                        savedCount = 1;
-                    }
+                // Khong co history trong payload: chi ghi nhan status hien tai neu don CHUA TUNG o
+                // status do. Truoc day key dung LocalDateTime.now() nen khong bao gio trung -> moi
+                // webhook them mot dong history moi cho cung mot status.
+                Integer status = webhook.getStatus();
+                if (status != null && !existingStatuses.contains(status)) {
+                    OrderStatusHistory history = new OrderStatusHistory();
+                    history.setOrder(orderRepository.findById(orderId).orElse(null));
+                    history.setNewStatus(status);
+                    history.setUpdatedAt(LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS));
+                    orderStatusHistoryRepository.save(history);
+                    savedCount = 1;
                 }
                 return savedCount;
             }
@@ -676,6 +694,7 @@ public class WebhookPersistenceService {
                     } else {
                         updatedAt = LocalDateTime.now();
                     }
+                    updatedAt = updatedAt.truncatedTo(ChronoUnit.SECONDS);
 
                     Integer newStatus = null;
                     if (histItem.getStatus().getNewValue() != null) {
@@ -684,7 +703,7 @@ public class WebhookPersistenceService {
 
                     // Check trung lap
                     if (newStatus != null) {
-                        String key = orderId + "_" + newStatus + "_" + updatedAt.toString();
+                        String key = historyKey(orderId, newStatus, updatedAt);
                         if (existingKeys.contains(key)) {
                             log.debug("   StatusHistory: Da ton tai, bo qua status={}, time={}", newStatus, updatedAt);
                             continue;
@@ -721,6 +740,25 @@ public class WebhookPersistenceService {
     }
 
     // ============== HELPER METHODS ==============
+
+    /** Key chong trung status history: order + status + thoi diem lam tron GIAY (khop DATETIME trong DB). */
+    private String historyKey(Long orderId, Integer newStatus, LocalDateTime updatedAt) {
+        return orderId + "_" + newStatus + "_" + updatedAt.truncatedTo(ChronoUnit.SECONDS);
+    }
+
+    /** Tim payment cung don da co san (khi payload khong co id) theo method + amount. */
+    private OrderPayment findMatchingPayment(List<OrderPayment> existing, String method, BigDecimal amount) {
+        for (OrderPayment p : existing) {
+            boolean sameMethod = (p.getMethod() == null && method == null)
+                    || (p.getMethod() != null && p.getMethod().equals(method));
+            boolean sameAmount = p.getAmount() != null && amount != null
+                    && p.getAmount().compareTo(amount) == 0;
+            if (sameMethod && sameAmount) {
+                return p;
+            }
+        }
+        return null;
+    }
 
     /**
      * Get valid user ID from CreatorInfo by checking if user exists in pos_users table.

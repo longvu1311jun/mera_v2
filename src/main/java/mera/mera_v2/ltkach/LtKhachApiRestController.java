@@ -19,6 +19,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -128,19 +130,51 @@ public class LtKhachApiRestController {
         return ResponseEntity.ok(Map.of("orders", orders));
     }
 
+    /** Chống chạy chồng recalculate toàn bộ (mỗi lượt đi qua hàng trăm nghìn đơn). */
+    private final AtomicBoolean recalculating = new AtomicBoolean(false);
+    private final Map<String, Object> lastRecalculateResult = new ConcurrentHashMap<>();
+
     /**
-     * Recalculate LT cho tất cả orders.
-     * POST /api/ltkach/recalculate
+     * Recalculate LT cho tất cả orders. POST /api/ltkach/recalculate
+     *
+     * Chạy NỀN và trả về 202 ngay: đi qua toàn bộ đơn thành công mất nhiều phút, giữ thread HTTP
+     * suốt thời gian đó vừa dễ bị proxy/timeout cắt giữa chừng vừa chiếm connection. Mỗi đơn vẫn là
+     * một transaction ngắn ({@code calculateForOrder} qua proxy) nên không giữ khoá dài.
+     * Theo dõi tiến độ qua GET /api/ltkach/recalculate/status.
      */
     @PostMapping("/recalculate")
     public ResponseEntity<Map<String, Object>> recalculateAllLT() {
         log.info("[LtKhachApiRest] POST /recalculate - recalculating all LT");
 
+        if (!recalculating.compareAndSet(false, true)) {
+            return ResponseEntity.status(409).body(Map.of(
+                "error", "Đang có lượt recalculate chạy, xem /api/ltkach/recalculate/status"
+            ));
+        }
+
+        Thread worker = new Thread(this::runRecalculateAll, "lt-recalculate-all");
+        worker.setDaemon(true);
+        worker.start();
+
+        return ResponseEntity.accepted().body(Map.of(
+            "message", "Đã bắt đầu recalculate LT chạy nền, theo dõi tại /api/ltkach/recalculate/status"
+        ));
+    }
+
+    @GetMapping("/recalculate/status")
+    public ResponseEntity<Map<String, Object>> recalculateStatus() {
+        Map<String, Object> status = new HashMap<>(lastRecalculateResult);
+        status.put("running", recalculating.get());
+        return ResponseEntity.ok(status);
+    }
+
+    private void runRecalculateAll() {
+        Map<String, Object> result = new HashMap<>();
         try {
-            // Lấy tất cả orders có status = 3 (completed)
+            // Đơn thành công theo đúng luật LT (status 3 hoặc 16 — xem LtCalculationService#recalculateForCustomer)
             @SuppressWarnings("unchecked")
             List<Object[]> orderRows = em.createNativeQuery(
-                "SELECT o.id, o.status FROM orders o WHERE o.status = 3 ORDER BY o.inserted_at"
+                "SELECT o.id, o.status FROM orders o WHERE o.status IN (3, 16) ORDER BY o.inserted_at"
             ).getResultList();
 
             List<Long> orderIds = orderRows.stream()
@@ -151,6 +185,8 @@ public class LtKhachApiRestController {
             int success = 0;
             int failed = 0;
             List<Map<String, Object>> errors = new ArrayList<>();
+            result.put("totalOrders", total);
+            lastRecalculateResult.putAll(result);
 
             for (Long orderId : orderIds) {
                 try {
@@ -159,27 +195,28 @@ public class LtKhachApiRestController {
                 } catch (Exception e) {
                     failed++;
                     if (errors.size() < 10) {
-                        errors.add(Map.of("orderId", orderId, "error", e.getMessage()));
+                        errors.add(Map.of("orderId", orderId, "error", String.valueOf(e.getMessage())));
                     }
                     log.warn("Failed to calculate LT for order {}: {}", orderId, e.getMessage());
                 }
+                if ((success + failed) % 5000 == 0) {
+                    lastRecalculateResult.put("processed", success + failed);
+                }
             }
 
-            Map<String, Object> result = new HashMap<>();
-            result.put("totalOrders", total);
             result.put("success", success);
             result.put("failed", failed);
             result.put("errors", errors);
             result.put("message", String.format("Đã recalculate %d/%d orders", success, total));
-
             log.info("[LtKhachApiRest] Recalculate completed: total={}, success={}, failed={}", total, success, failed);
-            return ResponseEntity.ok(result);
-
         } catch (Exception e) {
             log.error("[LtKhachApiRest] Error during recalculate: {}", e.getMessage(), e);
-            return ResponseEntity.internalServerError().body(Map.of(
-                "error", "Lỗi khi recalculate: " + e.getMessage()
-            ));
+            result.put("error", "Lỗi khi recalculate: " + e.getMessage());
+        } finally {
+            result.put("finishedAt", LocalDateTime.now().toString());
+            lastRecalculateResult.clear();
+            lastRecalculateResult.putAll(result);
+            recalculating.set(false);
         }
     }
 

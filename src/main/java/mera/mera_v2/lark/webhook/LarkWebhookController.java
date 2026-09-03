@@ -152,7 +152,8 @@ public class LarkWebhookController {
             @RequestHeader(value = "Content-Type", required = false) String contentType,
             @RequestBody String rawBody
     ) {
-        log.info("data: " + rawBody);
+        // Body webhook (~2-5KB/lan, moi lan sua don POS ban lai) chi log o DEBUG de file log khong phinh.
+        log.debug("data: {}", rawBody);
 
         if (expectedSecret != null && !expectedSecret.isBlank()
                 && !expectedSecret.equals(secret)) {

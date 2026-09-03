@@ -10,6 +10,7 @@ import mera.mera_v2.lark.sync.service.LarkAttendanceSyncService;
 import mera.mera_v2.repository.LarkAttendancePunchRepository;
 import mera.mera_v2.repository.LarkEmployeeRepository;
 import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -36,8 +37,15 @@ public class AttendanceSyncScheduler {
     private static final Set<String> syncedTodayEmployeeIds = Collections.synchronizedSet(new HashSet<>());
     private static final Object syncLock = new Object();
 
+    /** Chỉ một instance chạy job nền — xem ProblemCustomerFactsService#jobsEnabled. */
+    @Value("${mera.jobs.enabled:true}")
+    private boolean jobsEnabled;
+
     @Scheduled(cron = "0 59 7 * * *", zone = "Asia/Ho_Chi_Minh")
     public void dailyFullSync() {
+        if (!jobsEnabled) {
+            return;
+        }
         if (!featureToggle.isAttendanceSyncEnabled()) {
             log.info("[scheduler] Skipping daily full sync - feature DISABLED via toggle");
             return;
@@ -55,6 +63,9 @@ public class AttendanceSyncScheduler {
 
     @Scheduled(fixedRate = 60000)
     public void incrementalSyncMissingEmployees() {
+        if (!jobsEnabled) {
+            return;
+        }
         if (!featureToggle.isAttendanceSyncEnabled()) {
             log.debug("[scheduler] Skipping incremental sync - feature DISABLED via toggle");
             return;
