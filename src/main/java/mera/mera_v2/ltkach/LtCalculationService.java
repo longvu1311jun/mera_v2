@@ -304,14 +304,21 @@ public class LtCalculationService {
     /**
      * Đọc giá trị TINYINT(1)/BOOLEAN từ native query — tuỳ driver trả về Boolean hoặc Number.
      */
-    private Boolean toBoolean(Object value) {
+    Boolean toBoolean(Object value) {
         if (value == null) {
             return null;
         }
         if (value instanceof Boolean b) {
             return b;
         }
-        return ((Number) value).intValue() == 1;
+        if (value instanceof Number n) {
+            return n.intValue() == 1;
+        }
+        // DB khôi phục từ dump cũ còn để orders.lt_type là VARCHAR: driver trả String ("1"/"0"
+        // do code ghi, hoặc chuỗi cũ như "LT chẵn"). Chuỗi lạ coi như chưa tính (false) để
+        // recalculate ghi đè lại đúng giá trị.
+        String s = value.toString().trim();
+        return "1".equals(s) || "true".equalsIgnoreCase(s);
     }
 
     /**
