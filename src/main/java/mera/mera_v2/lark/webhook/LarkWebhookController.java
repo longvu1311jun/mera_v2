@@ -38,6 +38,9 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.ArrayList;
 
 @Slf4j
@@ -99,7 +102,36 @@ public class LarkWebhookController {
     @Autowired(required = false)
     private SearchConfigService searchConfigService;
 
-    private final ExecutorService executorService = Executors.newFixedThreadPool(5);
+    /**
+     * Hai pool TACH RIENG, co chu dich: neu dung chung mot pool thi khi DB ket khoa,
+     * cac task luu DB se chiem het thread va bit luon duong tao ban ghi Lark.
+     * Hang doi co gioi han + CallerRunsPolicy: qua tai that su thi tra nguoc ap luc
+     * ve thread HTTP thay vi phinh queue vo han roi OOM.
+     */
+    private final ExecutorService dbExecutor = newBoundedPool(4, "webhook-db");
+    private final ExecutorService larkExecutor = newBoundedPool(5, "webhook-lark");
+
+    private static ExecutorService newBoundedPool(int size, String namePrefix) {
+        java.util.concurrent.atomic.AtomicInteger counter = new java.util.concurrent.atomic.AtomicInteger();
+        ThreadPoolExecutor pool = new ThreadPoolExecutor(
+                size, size,
+                0L, TimeUnit.MILLISECONDS,
+                new LinkedBlockingQueue<>(500),
+                r -> {
+                    Thread t = new Thread(r, namePrefix + "-" + counter.incrementAndGet());
+                    t.setDaemon(true);
+                    return t;
+                },
+                new ThreadPoolExecutor.CallerRunsPolicy()
+        );
+        return pool;
+    }
+
+    @jakarta.annotation.PreDestroy
+    void shutdownExecutors() {
+        dbExecutor.shutdown();
+        larkExecutor.shutdown();
+    }
 
     @Value("${pancake.webhook.secret:}")
     private String expectedSecret;
@@ -132,94 +164,105 @@ public class LarkWebhookController {
             JsonNode root = mapper.readTree(rawBody);
             PosOrderWebhook orderWebhook = mapper.treeToValue(root, PosOrderWebhook.class);
 
-            // ============ LUU DATA VAO DATABASE ============
-            try {
-                if (webhookPersistenceService != null) {
-                    log.info("=== BAT DAU LUU DATA VAO DB ===");
-                    WebhookPersistenceService.PersistenceResult dbResult = 
-                            webhookPersistenceService.saveFromWebhook(root);
-                    if (dbResult.isSuccess()) {
-                        log.info("=== HOAN THANH LUU DB ===");
-                        log.info("   Order: saved={}, updated={}", 
-                                dbResult.isOrderSaved(), dbResult.isOrderUpdated());
-                        log.info("   Customer: saved={}, updated={}", 
-                                dbResult.isCustomerSaved(), dbResult.isCustomerUpdated());
-                        log.info("   Items: {}, Payments: {}, Histories: {}", 
-                                dbResult.getItemsSaved(), dbResult.getPaymentsSaved(), 
-                                dbResult.getHistoriesSaved());
-                    } else {
-                        log.warn("=== LUU DB THAT BAI: {} ===", dbResult.getErrorMessage());
-                    }
-                } else {
-                    log.warn("WebhookPersistenceService khong kha dung, bo qua luu DB");
-                }
-            } catch (Exception e) {
-                log.error("Loi khi luu data vao DB: {}", e.getMessage(), e);
-            }
+            // Hai nhanh nay KHONG phu thuoc nhau (nhanh Lark chi doc payload + search_config),
+            // nen chay song song tren 2 pool rieng: DB ket khoa cung khong chan viec tao ban ghi Lark,
+            // va Lark API cham cung khong giu thread HTTP.
+            dbExecutor.execute(() -> persistToDatabase(root));
+            larkExecutor.execute(() -> processLarkFlow(root, orderWebhook));
 
-            // ============ CHUC NANG 1: CHECK LICH SU ACCOUNT ============
-            try {
-                logLatestAccountHistory(orderWebhook);
-                if (orderWebhook.hasAccountChanged()) {
-                    log.info("Account da thay doi - gui thong bao");
-                    try {
-                        sendAccountChangeNotification(orderWebhook);
-                    } catch (Exception ex) {
-                        log.error("Gui thong bao account change that bai: {}", ex.getMessage(), ex);
-                    }
-                }
-            } catch (Exception e) {
-                log.error("Loi khi check lich su account: {}", e.getMessage(), e);
-            }
-
-            // ============ CHUC NANG 2: CHECK STATUS ============
-            try {
-                Integer status = extractStatus(root);
-
-                if (status == null) {
-                    // Status khong tim thay
-                } else if (!webhookConfigService.shouldProcess(status)) {
-                    log.info("Status {} khong duoc bat trong config, bo qua", status);
-                } else {
-                    // Kiem tra nguon don hang phai la Facebook
-                    if (!isFacebookSource(orderWebhook)) {
-                        log.info("Bo qua: don hang khong phai nguon Facebook");
-                        return ResponseEntity.ok("ok");
-                    }
-
-                    // Kiem tra trang thai huy don
-                    if (isCancelledStatus(status)) {
-                        log.info("Bo qua: don hang co trang thai huy (status={})", status);
-                        return ResponseEntity.ok("ok");
-                    }
-
-                    // Chi xu ly khi status = 1 HOAC co trong lich su status = 1
-                    if (status == 1 || hasStatusInHistory(orderWebhook, 1)) {
-                        processStatusLogic(status, root, orderWebhook);
-                    } else {
-                        log.info("Bo qua: status hien tai = {} va khong co lich su status = 1", status);
-                    }
-                }
-            } catch (Exception e) {
-                log.error("Loi khi xu ly status: {}", e.getMessage(), e);
-            }
-
-            // ============ CHUC NANG 3: CHECK TAGS ============
-            try {
-                boolean hasDongBoDataTag = hasDongBoDataTag(root);
-                if (hasDongBoDataTag) {
-                    if (autoCreateRecord) {
-                        createBitableRecord(root);
-                    }
-                }
-            } catch (Exception e) {
-                log.error("Loi khi xu ly tags: {}", e.getMessage(), e);
-            }
-
+            // Tra 200 ngay de Pancake khong timeout roi ban lai webhook lam nang them he thong.
             return ResponseEntity.ok("ok");
         } catch (Exception e) {
             log.error("Failed to parse webhook JSON: {}", e.getMessage());
             return ResponseEntity.badRequest().body("bad request");
+        }
+    }
+
+    /** Nhanh 1: luu data vao pos_db. Loi o day khong duoc anh huong nhanh Lark. */
+    private void persistToDatabase(JsonNode root) {
+        try {
+            if (webhookPersistenceService == null) {
+                log.warn("WebhookPersistenceService khong kha dung, bo qua luu DB");
+                return;
+            }
+            log.info("=== BAT DAU LUU DATA VAO DB ===");
+            WebhookPersistenceService.PersistenceResult dbResult =
+                    webhookPersistenceService.saveFromWebhook(root);
+            if (dbResult.isSuccess()) {
+                log.info("=== HOAN THANH LUU DB ===");
+                log.info("   Order: saved={}, updated={}",
+                        dbResult.isOrderSaved(), dbResult.isOrderUpdated());
+                log.info("   Customer: saved={}, updated={}",
+                        dbResult.isCustomerSaved(), dbResult.isCustomerUpdated());
+                log.info("   Items: {}, Payments: {}, Histories: {}",
+                        dbResult.getItemsSaved(), dbResult.getPaymentsSaved(),
+                        dbResult.getHistoriesSaved());
+            } else {
+                log.warn("=== LUU DB THAT BAI: {} ===", dbResult.getErrorMessage());
+            }
+        } catch (Exception e) {
+            log.error("Loi khi luu data vao DB: {}", e.getMessage(), e);
+        }
+    }
+
+    /** Nhanh 2: thong bao doi nguon + tao ban ghi Lark Bitable. */
+    private void processLarkFlow(JsonNode root, PosOrderWebhook orderWebhook) {
+        // ============ CHUC NANG 1: CHECK LICH SU ACCOUNT ============
+        try {
+            logLatestAccountHistory(orderWebhook);
+            if (orderWebhook.hasAccountChanged()) {
+                log.info("Account da thay doi - gui thong bao");
+                try {
+                    sendAccountChangeNotification(orderWebhook);
+                } catch (Exception ex) {
+                    log.error("Gui thong bao account change that bai: {}", ex.getMessage(), ex);
+                }
+            }
+        } catch (Exception e) {
+            log.error("Loi khi check lich su account: {}", e.getMessage(), e);
+        }
+
+        // ============ CHUC NANG 2: CHECK STATUS ============
+        // stopAfterStatus giu nguyen hanh vi cu: don khong phai Facebook hoac don huy thi
+        // dung han, KHONG chay tiep chuc nang 3 (tranh tao ban ghi thua).
+        boolean stopAfterStatus = false;
+        try {
+            Integer status = extractStatus(root);
+
+            if (status == null) {
+                // Status khong tim thay
+            } else if (!webhookConfigService.shouldProcess(status)) {
+                log.info("Status {} khong duoc bat trong config, bo qua", status);
+            } else if (!isFacebookSource(orderWebhook)) {
+                log.info("Bo qua: don hang khong phai nguon Facebook");
+                stopAfterStatus = true;
+            } else if (isCancelledStatus(status)) {
+                log.info("Bo qua: don hang co trang thai huy (status={})", status);
+                stopAfterStatus = true;
+            } else if (status == 1 || hasStatusInHistory(orderWebhook, 1)) {
+                // Chi xu ly khi status = 1 HOAC co trong lich su status = 1
+                processStatusLogic(status, root, orderWebhook);
+            } else {
+                log.info("Bo qua: status hien tai = {} va khong co lich su status = 1", status);
+            }
+        } catch (Exception e) {
+            log.error("Loi khi xu ly status: {}", e.getMessage(), e);
+        }
+
+        if (stopAfterStatus) {
+            return;
+        }
+
+        // ============ CHUC NANG 3: CHECK TAGS ============
+        try {
+            boolean hasDongBoDataTag = hasDongBoDataTag(root);
+            if (hasDongBoDataTag) {
+                if (autoCreateRecord) {
+                    createBitableRecord(root);
+                }
+            }
+        } catch (Exception e) {
+            log.error("Loi khi xu ly tags: {}", e.getMessage(), e);
         }
     }
 
@@ -602,15 +645,11 @@ public class LarkWebhookController {
                     : "unknown";
             log.info("Created Bitable record successfully: recordId={}", recordId);
 
-            // === BƯỚC 2: Lưu SDT vào bảng pending_followup_notifications ===
-            // Scheduler sẽ tự động chạy sau 30 phút để thực hiện Bước 3–5
-            List<String> linkRecordIds = response.getLinkRecordIds();
-            if (linkRecordIds == null || linkRecordIds.isEmpty()) {
-                scheduleFollowupIfPossible(phoneNumber, appToken, targetTableId, viewId, recordId, orderWebhook);
-            } else {
-                log.info("Record {} da co link sang Bang Khach Hang (link_record_ids={}), bo qua schedule 30-phut",
-                        recordId, linkRecordIds.size());
-            }
+            // BUOC 2 (ghi pending_followup_notifications) DA BO.
+            // Ly do: INSERT vao bang nay treo >60s lam ket ca 5 thread webhook-lark, chan han
+            // viec tao ban ghi Lark — trong khi PendingFollowupScheduler (@Scheduled dang bi
+            // comment) khong he doc bang do, nen du lieu ghi ra khong duoc dung vao viec gi.
+            // Khi bat lai scheduler thi phai them lai loi goi scheduleFollowupIfPossible o day.
         } else {
             throw new RuntimeException(String.format("Bitable error: code=%d, msg=%s", 
                     response.getCode(), response.getMsg()));
@@ -969,6 +1008,11 @@ public class LarkWebhookController {
     /**
      * Bước 2: Tạo bản ghi trong pending_followup_notifications để scheduler check sau 30 phút.
      * Lưu: SĐT, baseId/tableId/viewId của Bảng Liệu trình, recordId vừa tạo, tên khách, scheduledAt.
+     *
+     * Buoc nay chi la bookkeeping — ban ghi Lark DA tao xong truoc khi vao day. Neu INSERT bi
+     * treo (khoa metadata / khoa dong) ma chay tren thread Lark thi ca 5 thread ket cung va
+     * KHONG con ban ghi Lark nao duoc tao nua. Vi vay day day sang dbExecutor: Lark chay tiep
+     * ngay lap tuc, cung lam bookkeeping cham chu khong mat ban ghi.
      */
     private void scheduleFollowupIfPossible(
             String phoneNumber,
@@ -988,32 +1032,35 @@ public class LarkWebhookController {
             return;
         }
 
-        try {
-            mera.mera_v2.entity.PendingFollowupNotification pending =
-                    new mera.mera_v2.entity.PendingFollowupNotification();
-            pending.setPhoneNumber(phoneNumber);
-            pending.setBaseId(baseId);
-            pending.setTableId(tableId);
-            pending.setViewId(viewId != null ? viewId : "vew5Ou4Kee");
-            pending.setCreatedRecordId(createdRecordId);
+        // Doc tu payload ngay tren thread hien tai (re, khong cham DB), chi day phan INSERT sang nen.
+        String customerName = posToBitableMapper.getTenKhach(orderWebhook);
+        String resolvedViewId = viewId != null ? viewId : "vew5Ou4Kee";
 
-            // Lay ten khach hang
-            String customerName = posToBitableMapper.getTenKhach(orderWebhook);
-            pending.setCustomerName(customerName);
+        dbExecutor.execute(() -> {
+            try {
+                mera.mera_v2.entity.PendingFollowupNotification pending =
+                        new mera.mera_v2.entity.PendingFollowupNotification();
+                pending.setPhoneNumber(phoneNumber);
+                pending.setBaseId(baseId);
+                pending.setTableId(tableId);
+                pending.setViewId(resolvedViewId);
+                pending.setCreatedRecordId(createdRecordId);
+                pending.setCustomerName(customerName);
 
-            // Dat thoi gian can check = 30 phut sau
-            pending.setScheduledAt(java.time.LocalDateTime.now().plusMinutes(30));
-            pending.setProcessed(false);
-            pending.setRetryCount(0);
-            pending.setCreatedAt(java.time.LocalDateTime.now());
+                // Dat thoi gian can check = 30 phut sau
+                pending.setScheduledAt(java.time.LocalDateTime.now().plusMinutes(30));
+                pending.setProcessed(false);
+                pending.setRetryCount(0);
+                pending.setCreatedAt(java.time.LocalDateTime.now());
 
-            pendingFollowupNotificationRepository.save(pending);
-            log.info("[PendingFollowup] Scheduled notification for phone={} at {} (recordId={})",
-                    phoneNumber, pending.getScheduledAt(), createdRecordId);
-        } catch (Exception e) {
-            log.error("[PendingFollowup] Failed to schedule notification for phone={}: {}",
-                    phoneNumber, e.getMessage());
-        }
+                pendingFollowupNotificationRepository.save(pending);
+                log.info("[PendingFollowup] Scheduled notification for phone={} at {} (recordId={})",
+                        phoneNumber, pending.getScheduledAt(), createdRecordId);
+            } catch (Exception e) {
+                log.error("[PendingFollowup] Failed to schedule notification for phone={}: {}",
+                        phoneNumber, e.getMessage());
+            }
+        });
     }
 
 }

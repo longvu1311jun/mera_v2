@@ -11,7 +11,6 @@ import mera.mera_v2.entity.OrderItem;
 import mera.mera_v2.entity.OrderPayment;
 import mera.mera_v2.entity.OrderStatusHistory;
 import mera.mera_v2.lark.webhook.dto.PosOrderWebhook;
-import mera.mera_v2.ltkach.LtCalculationService;
 import mera.mera_v2.repository.CustomerPhoneNumberRepository;
 import mera.mera_v2.repository.CustomerRepository;
 import mera.mera_v2.repository.OrderItemRepository;
@@ -20,7 +19,8 @@ import mera.mera_v2.repository.OrderRepository;
 import mera.mera_v2.repository.OrderStatusHistoryRepository;
 import mera.mera_v2.repository.PosUserRepository;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -48,8 +48,30 @@ public class WebhookPersistenceService {
     private final OrderStatusHistoryRepository orderStatusHistoryRepository;
     private final CustomerPhoneNumberRepository customerPhoneNumberRepository;
     private final PosUserRepository posUserRepository;
-    private final LtCalculationService ltCalculationService;
     private final ObjectMapper objectMapper;
+    private final PlatformTransactionManager transactionManager;
+
+    /** Giay toi da cho mot buoc ghi cua webhook. */
+    private static final int WRITE_TIMEOUT_SECONDS = 10;
+
+    /**
+     * Chan cung thoi gian moi buoc ghi. Spring ap timeout nay qua Statement.setQueryTimeout(),
+     * tuc driver JDBC huy cau lenh — KHONG phu thuoc innodb_lock_wait_timeout / lock_wait_timeout
+     * cua server. Can thiet vi neu sessionVariables trong JDBC URL khong duoc ap dung thi thread
+     * ket khoa se om connection rat lau roi can pool (xem log "[DbDiag]" luc khoi dong).
+     *
+     * Chi ap cho luong webhook — job sync/report co cau query nang van chay khong gioi han.
+     */
+    private TransactionTemplate boundedTx;
+
+    private TransactionTemplate boundedTx() {
+        if (boundedTx == null) {
+            TransactionTemplate t = new TransactionTemplate(transactionManager);
+            t.setTimeout(WRITE_TIMEOUT_SECONDS);
+            boundedTx = t;
+        }
+        return boundedTx;
+    }
 
     public PersistenceResult saveFromWebhook(JsonNode webhookData) {
         log.info("=== BẮT ĐẦU LƯU DATA TỪ WEBHOOK VÀO DB ===");
@@ -74,37 +96,35 @@ public class WebhookPersistenceService {
                 Long orderId = orderWebhook.getId();
                 log.info("Processing order ID: {} (attempt {}/{})", orderId, attempt, maxRetries);
 
+                // Moi buoc chay trong mot transaction rieng, bi chan cung o 10 giay.
                 // 1. Luu Customer
-                CustomerResult customerResult = saveCustomer(orderWebhook);
+                CustomerResult customerResult = boundedTx().execute(s -> saveCustomer(orderWebhook));
                 result.setCustomerSaved(customerResult.isSaved());
                 result.setCustomerUpdated(customerResult.isUpdated());
 
                 // 2. Luu Order
-                OrderResult orderResult = saveOrder(orderWebhook);
+                OrderResult orderResult = boundedTx().execute(s -> saveOrder(orderWebhook));
                 result.setOrderSaved(orderResult.isSaved());
                 result.setOrderUpdated(orderResult.isUpdated());
 
                 // 3. Luu OrderItems
-                int itemsSaved = saveOrderItems(orderWebhook, webhookData);
+                int itemsSaved = boundedTx().execute(s -> saveOrderItems(orderWebhook, webhookData));
                 result.setItemsSaved(itemsSaved);
 
                 // 4. Luu OrderPayments (neu co)
-                int paymentsSaved = saveOrderPayments(orderWebhook, webhookData);
+                int paymentsSaved = boundedTx().execute(s -> saveOrderPayments(orderWebhook, webhookData));
                 result.setPaymentsSaved(paymentsSaved);
 
                 // 5. Luu OrderStatusHistory
-                int historiesSaved = saveOrderStatusHistory(orderWebhook);
+                int historiesSaved = boundedTx().execute(s -> saveOrderStatusHistory(orderWebhook));
                 result.setHistoriesSaved(historiesSaved);
 
-                // 6. Tinh LT (Liệu Trình) cho order vừa lưu
-                try {
-                    LtCalculationService.LtResult ltResult = ltCalculationService.calculateForOrder(orderId);
-                    result.setLtType(ltResult.ltType());
-                    result.setLtCount(ltResult.ltCount());
-                    log.info("   LT: order={}, lt_type={}, lt_count={}", orderId, ltResult.ltType(), ltResult.ltCount());
-                } catch (Exception e) {
-                    log.warn("   LT: Loi khi tinh LT cho order {}: {}", orderId, e.getMessage());
-                }
+                // 6. KHONG tinh LT o day nua.
+                // calculateForOrder() chay `UPDATE customers SET lt_count` — dung chinh dong
+                // customers ma job sync dang giu khoa, gay "Lock wait timeout exceeded" roi keo
+                // theo can Hikari pool. LT khong can realtime: OrderSyncService da goi
+                // calculateForOrders() cho moi don sau khi sync, va ket qua la idempotent
+                // (recalculate tu orders) nen chay sau van ra dung so.
 
                 result.setSuccess(true);
                 log.info("=== HOÀN THÀNH LƯU DATA: Order #{} ===", orderId);
@@ -143,6 +163,12 @@ public class WebhookPersistenceService {
         if (msg != null) {
             String lower = msg.toLowerCase();
             if (lower.contains("deadlock")
+                || lower.contains("lock wait timeout")
+                || lower.contains("try restarting transaction")
+                // Bi boundedTx cat o 10 giay — lan sau khoa co the da duoc nha
+                || lower.contains("transaction timed out")
+                || lower.contains("query execution was interrupted")
+                || lower.contains("statement cancelled")
                 || lower.contains("rollback-only")
                 || lower.contains("record has changed since last read")
                 || lower.contains("could not execute statement")) {
@@ -157,9 +183,25 @@ public class WebhookPersistenceService {
     }
 
     /**
-     * Luu hoac cap nhat Customer
+     * Loi tam thoi (lock timeout / deadlock) phai bay len saveFromWebhook de retry ca luot ghi.
+     * Truoc day moi buoc deu nuot Exception nen vong retry 3 lan khong bao gio chay,
+     * va data cua webhook am tham bi mat trong khi controller van bao thanh cong.
+     * Loi khong retry duoc (data xau, FK...) thi van chi log — retry cung khong cuu duoc.
      */
-    @Transactional
+    private void rethrowIfRetryable(Exception e, String step) {
+        if (isRetryableError(e)) {
+            throw new IllegalStateException("Loi tam thoi khi luu " + step + ": " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Luu hoac cap nhat Customer.
+     *
+     * Luu y ve transaction: cac method saveXxx o day la private + duoc goi noi bo (this.xxx)
+     * nen @Transactional KHONG bao gio co hieu luc — Spring AOP khong proxy duoc.
+     * Chu y day la co y: moi buoc chay bang transaction rieng cua repository (ngan nhat co the),
+     * gom ca webhook vao mot transaction dai se lam tang manh xung dot khoa voi job sync.
+     */
     private CustomerResult saveCustomer(PosOrderWebhook webhook) {
         CustomerResult result = new CustomerResult();
 
@@ -178,36 +220,35 @@ public class WebhookPersistenceService {
                 return result;
             }
 
-            Optional<Customer> existingCustomer = customerRepository.findById(customerId);
-            Customer customer;
+            String name = getCustomerName(customerInfo, webhook);
+            Long shopId = customerInfo.getShopId() != null ? customerInfo.getShopId() : webhook.getShopId();
+            if (shopId == null) shopId = 1546758L;
 
-            if (existingCustomer.isPresent()) {
-                customer = existingCustomer.get();
+            // Uu tien UPDATE co muc tieu (chi 3 cot webhook thuc su biet) thay vi save(entity):
+            // tranh ghi de lt_count do job LT tinh song song, va rut ngan thoi gian giu X-lock.
+            int updated = customerRepository.updateBasicInfo(customerId, name, shopId, LocalDateTime.now());
+
+            if (updated > 0) {
                 result.setUpdated(true);
                 log.info("   Customer: Cap nhat customer ID={}", customerId);
             } else {
-                customer = new Customer();
+                Customer customer = new Customer();
                 customer.setId(customerId);
-                // Parse inserted_at from webhook data
                 customer.setInsertedAt(parseWebhookDateTime(webhook.getInsertedAt()));
+                customer.setName(name);
+                customer.setShopId(shopId);
+                customer.setUpdatedAt(LocalDateTime.now());
+                customerRepository.save(customer);
                 result.setSaved(true);
                 log.info("   Customer: Tao moi customer ID={}", customerId);
             }
-
-            // Map customer fields
-            customer.setName(getCustomerName(customerInfo, webhook));
-            Long shopId = customerInfo.getShopId() != null ? customerInfo.getShopId() : webhook.getShopId();
-            customer.setShopId(shopId != null ? shopId : 1546758L);
-            customer.setUpdatedAt(LocalDateTime.now());
-
-            // Luu customer
-            customer = customerRepository.save(customer);
 
             // Luu phone numbers
             saveCustomerPhoneNumbers(customerId, webhook);
 
         } catch (Exception e) {
             log.error("   Customer: Loi khi luu customer: {}", e.getMessage());
+            rethrowIfRetryable(e, "customer");
         }
 
         return result;
@@ -268,7 +309,7 @@ public class WebhookPersistenceService {
     /**
      * Luu hoac cap nhat Order
      */
-    @Transactional
+    // Chay ben trong boundedTx() cua saveFromWebhook (transaction rieng, timeout 10s).
     private OrderResult saveOrder(PosOrderWebhook webhook) {
         OrderResult result = new OrderResult();
 
@@ -449,6 +490,7 @@ public class WebhookPersistenceService {
 
         } catch (Exception e) {
             log.error("   Order: Lỗi khi lưu order: {}", e.getMessage());
+            rethrowIfRetryable(e, "order");
         }
 
         return result;
@@ -461,7 +503,7 @@ public class WebhookPersistenceService {
     /**
      * Luu Order Items
      */
-    @Transactional
+    // Chay ben trong boundedTx() cua saveFromWebhook (transaction rieng, timeout 10s).
     private int saveOrderItems(PosOrderWebhook webhook, JsonNode webhookData) {
         int savedCount = 0;
         try {
@@ -509,11 +551,13 @@ public class WebhookPersistenceService {
                     savedCount++;
                 } catch (Exception e) {
                     log.warn("   OrderItems: Loi khi luu item: {}", e.getMessage());
+                    rethrowIfRetryable(e, "order item");
                 }
             }
 
         } catch (Exception e) {
             log.error("   OrderItems: Loi khi luu items: {}", e.getMessage());
+            rethrowIfRetryable(e, "order items");
         }
         return savedCount;
     }
@@ -521,7 +565,7 @@ public class WebhookPersistenceService {
     /**
      * Luu Order Payments
      */
-    @Transactional
+    // Chay ben trong boundedTx() cua saveFromWebhook (transaction rieng, timeout 10s).
     private int saveOrderPayments(PosOrderWebhook webhook, JsonNode webhookData) {
         int savedCount = 0;
         try {
@@ -575,11 +619,13 @@ public class WebhookPersistenceService {
                     savedCount++;
                 } catch (Exception e) {
                     log.warn("   Payments: Lỗi khi lưu payment: {}", e.getMessage());
+                    rethrowIfRetryable(e, "payment");
                 }
             }
 
         } catch (Exception e) {
             log.error("   Payments: Lỗi khi lưu payments: {}", e.getMessage());
+            rethrowIfRetryable(e, "payments");
         }
         return savedCount;
     }
@@ -587,7 +633,7 @@ public class WebhookPersistenceService {
     /**
      * Luu Order Status History
      */
-    @Transactional
+    // Chay ben trong boundedTx() cua saveFromWebhook (transaction rieng, timeout 10s).
     private int saveOrderStatusHistory(PosOrderWebhook webhook) {
         int savedCount = 0;
         try {
@@ -663,11 +709,13 @@ public class WebhookPersistenceService {
                     savedCount++;
                 } catch (Exception e) {
                     log.warn("   StatusHistory: Loi khi luu history item: {}", e.getMessage());
+                    rethrowIfRetryable(e, "status history item");
                 }
             }
 
         } catch (Exception e) {
             log.error("   StatusHistory: Loi khi luu histories: {}", e.getMessage());
+            rethrowIfRetryable(e, "status histories");
         }
         return savedCount;
     }
@@ -886,8 +934,7 @@ public class WebhookPersistenceService {
         private int itemsSaved;
         private int paymentsSaved;
         private int historiesSaved;
-        private boolean ltType;
-        private int ltCount;
+        // Bo ltType/ltCount: webhook khong tinh LT nua (xem ghi chu o saveFromWebhook buoc 6)
     }
 
     @lombok.Data

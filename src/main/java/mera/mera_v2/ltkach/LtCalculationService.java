@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import mera.mera_v2.entity.Combo;
 import mera.mera_v2.entity.ProductSubstitution;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,6 +28,12 @@ public class LtCalculationService {
 
     @PersistenceContext
     private EntityManager em;
+
+    /**
+     * Proxy của chính bean này — cần để mỗi order trong batch chạy trong MỘT transaction riêng.
+     * Gọi thẳng this.method() sẽ bỏ qua proxy nên @Transactional không có hiệu lực.
+     */
+    private final ObjectProvider<LtCalculationService> selfProvider;
 
     /**
      * Tính LT cho một đơn hàng.
@@ -176,24 +183,41 @@ public class LtCalculationService {
 
     /**
      * Batch calculate LT cho nhiều orders.
+     *
+     * KHÔNG được @Transactional ở mức batch: mỗi order ghi `UPDATE customers SET lt_count`,
+     * gom cả trang (200 đơn) vào một transaction sẽ giữ X-lock trên tới 200 dòng customers
+     * suốt cả batch → webhook cập nhật cùng khách bị "Lock wait timeout exceeded", rồi
+     * thread bị chặn giữ luôn connection Hikari → cạn pool. Mỗi order = một transaction ngắn.
+     *
      * @param orderIds danh sách order IDs
      */
-    @Transactional
     public List<LtResult> calculateForOrders(List<Long> orderIds) {
         // Load combo/substitution một lần cho cả batch thay vì mỗi order một lần
         Map<String, Set<String>> comboGroups = loadComboGroups();
         Map<String, Set<String>> substitutionGroups = loadSubstitutionGroups();
 
+        LtCalculationService self = selfProvider.getObject();
         List<LtResult> results = new ArrayList<>();
         for (Long orderId : orderIds) {
             try {
-                results.add(calculateForOrder(orderId, comboGroups, substitutionGroups));
+                results.add(self.calculateOneInOwnTransaction(orderId, comboGroups, substitutionGroups));
             } catch (Exception e) {
                 // Một order lỗi không được làm gãy cả batch sync
                 log.warn("Lỗi khi tính LT cho order {}: {}", orderId, e.getMessage());
             }
         }
         return results;
+    }
+
+    /**
+     * Tính LT cho một order trong transaction riêng (dùng cho batch).
+     * Phải là public + gọi qua proxy thì @Transactional mới có hiệu lực.
+     */
+    @Transactional
+    public LtResult calculateOneInOwnTransaction(Long orderId,
+                                                 Map<String, Set<String>> comboGroups,
+                                                 Map<String, Set<String>> substitutionGroups) {
+        return calculateForOrder(orderId, comboGroups, substitutionGroups);
     }
 
     /**
