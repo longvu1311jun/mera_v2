@@ -76,14 +76,18 @@ class CskhWebhookMappingTest {
         verifyNoInteractions(configs, bitable);
     }
 
-    @Test void unmappedExplicitPhoneDoesNotFallBackToDifferentEmployeeInName() throws Exception {
+    // SĐT tài khoản POS chưa có mapping -> dùng SĐT trong tên (mapping CSKH lưu theo SĐT trong tên)
+    @Test void unmappedAccountPhoneFallsBackToPhoneInName() throws Exception {
         create("{\"assigning_care\":{\"name\":\"TEST 0900000000\",\"phone_number\":\"0900000002\"}}");
-        verifyNoInteractions(bitable);
-        verify(configs, never()).findByPosPhoneAndSyncStatusOrderByUpdatedAtDesc("0900000000", 2);
+        verifyDestination();
     }
 
     private WebhookCreationLogService.Entry process(int status, boolean tagged, boolean history) throws Exception {
-        var root = json.createObjectNode();
+        return process(status, tagged, history, json.createObjectNode());
+    }
+
+    private WebhookCreationLogService.Entry process(int status, boolean tagged, boolean history,
+            com.fasterxml.jackson.databind.node.ObjectNode root) throws Exception {
         root.put("status", status);
         root.put("phone_number", "0900000001");
         root.set("assigning_care", json.readTree("{\"phone_number\":\"0900000000\"}"));
@@ -107,7 +111,18 @@ class CskhWebhookMappingTest {
         verifyDestination();
     }
 
-    @Test void statusOneAloneNoLongerCreates() throws Exception {
+    @Test void statusOneFacebookCreatesWithoutTag() throws Exception {
+        ReflectionTestUtils.setField(controller, "webhookConfigService",
+                new mera.mera_v2.lark.webhook.service.WebhookConfigService());
+        var root = json.createObjectNode();
+        root.put("page_id", "pzl_123");
+        assertEquals("CREATED", process(1, false, true, root).getStatus());
+        verifyDestination();
+    }
+
+    @Test void statusOneNonFacebookWithoutTagSkips() throws Exception {
+        ReflectionTestUtils.setField(controller, "webhookConfigService",
+                new mera.mera_v2.lark.webhook.service.WebhookConfigService());
         assertEquals("SKIPPED", process(1, false, true).getStatus());
         verifyNoInteractions(bitable);
     }

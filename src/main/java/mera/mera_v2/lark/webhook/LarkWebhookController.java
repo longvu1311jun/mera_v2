@@ -242,8 +242,13 @@ public class LarkWebhookController {
         }
 
         try {
-            if (!hasDongBoDataTag(root)) {
-                attempt.finish("SKIPPED", "Không có tag Đồng bộ DATA (ID 32)");
+            // Kich hoat: tag Dong bo DATA, HOAC status hien tai = 1 (cong tac status 1 bat + nguon Facebook)
+            Integer status = extractStatus(root);
+            boolean byStatusOne = status != null && status == 1
+                    && webhookConfigService != null && webhookConfigService.shouldProcess(1)
+                    && isFacebookSource(orderWebhook);
+            if (!byStatusOne && !hasDongBoDataTag(root)) {
+                attempt.finish("SKIPPED", "Không có tag Đồng bộ DATA (ID 32) và không phải status = 1 nguồn Facebook");
                 return;
             }
             if (!autoCreateRecord) {
@@ -252,7 +257,6 @@ public class LarkWebhookController {
             }
             attempt.finish("PROCESSING", "Đang xử lý");
             if (creationLogs != null) creationLogs.append(attempt);
-            // Tag is the only business trigger. Status is used solely to resolve the date.
             createBitableRecord(root, attempt);
         } catch (Exception e) {
             String detail = e.getClass().getSimpleName();

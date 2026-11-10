@@ -2,8 +2,8 @@
 
 ## Điều kiện mới
 
-- Chỉ tag ID 32 hoặc tên `Đồng bộ DATA` kích hoạt tạo bản ghi. Status hiện tại, nguồn đơn và công tắc status 1 cũ không quyết định tạo nữa.
-- `lark.bitable.auto-create` vẫn là công tắc tổng. Đơn status 1 không có tag bị bỏ qua; đơn vừa status 1 vừa có tag chỉ đi qua nhánh tạo một lần.
+- Hai điều kiện kích hoạt tạo bản ghi: (1) tag ID 32 hoặc tên `Đồng bộ DATA`, bất kể status/nguồn; (2) status hiện tại = 1, đơn nguồn Facebook và công tắc status 1 (`/api/config/status1`, mặc định bật) đang bật.
+- `lark.bitable.auto-create` vẫn là công tắc tổng. Đơn vừa status 1 vừa có tag chỉ đi qua nhánh tạo một lần; webhook lặp lại của cùng đơn bị chặn bởi kiểm tra trùng SĐT.
 - Mapping CSKH và token phải hợp lệ. SĐT khách được lấy từ chính dữ liệu chuẩn bị gửi sang Lark để kiểm tra trùng trên toàn bảng đích. Lỗi tra cứu không còn được coi là chưa trùng.
 - Thay đổi này không bổ sung khóa chống hai webhook độc lập chạy đồng thời, cũng không phải hàng đợi retry bền vững.
 
@@ -29,7 +29,7 @@ Trang hiển thị tối đa 200 lượt trong 10.000 lượt gần nhất khớ
 
 - `CREATED`: tạo thành công, có record ID.
 - `DUPLICATE`: SĐT đã có trong bảng đích.
-- `SKIPPED`: không tag hoặc tắt auto-create.
+- `SKIPPED`: không tag và không phải status 1 nguồn Facebook, hoặc tắt auto-create.
 - `WAITING_MAPPING/DATE/FIELD/TOKEN/PHONE`: chưa tạo; xem lý do và bổ sung cấu hình/dữ liệu.
 - `FAILED`: lỗi xử lý, xem bước lỗi và log máy chủ.
 - `UNKNOWN`: API tạo không trả record ID; đối soát Lark trước khi gửi lại.
