@@ -12,7 +12,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class WebhookLogAndDateTest {
     @TempDir Path directory;
     private final ObjectMapper json = new ObjectMapper();
-    private final ZoneId zone = ZoneId.of("Asia/Ho_Chi_Minh");
+    private final ZoneId zone = ZoneId.of("UTC"); // Pancake: updated_at khong offset la UTC
 
     @Test void resolvesLatestTransitionAcrossPayloadShapesAndIgnoresUnchangedStatus() throws Exception {
         var root = json.readTree("""
@@ -23,7 +23,7 @@ class WebhookLogAndDateTest {
                   {"status":{"old":0,"new":"1"},"updated_at":"2026-10-06T08:00:00.123456"},
                   {"status":{"old":0,"new":1},"updated_at":"2026-10-02T08:00:00Z"}]}}
                 """);
-        assertEquals(Instant.parse("2026-10-06T01:00:00.123456Z"), WebhookStatusDate.latestStatusOne(root, zone));
+        assertEquals(Instant.parse("2026-10-06T08:00:00.123456Z"), WebhookStatusDate.latestStatusOne(root, zone));
         assertThrows(DateTimeException.class, () -> WebhookStatusDate.latestStatusOne(json.readTree(
                 "{\"histories\":[{\"status\":{\"new\":1},\"updated_at\":\"bad-date\"}]}"), zone));
     }

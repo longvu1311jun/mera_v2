@@ -11,7 +11,7 @@
 
 Đọc `histories[].status.new = 1` và `histories[].updated_at`, hỗ trợ cả root và `data.histories`. Bỏ qua lịch sử `old = new = 1`. Nếu có nhiều lần chuyển về 1, dùng timestamp lớn nhất, không phụ thuộc thứ tự mảng.
 
-Timestamp có offset/Z giữ đúng múi giờ. Timestamp không có múi giờ mặc định hiểu là giờ Việt Nam, có thể cấu hình bằng `pancake.webhook.history-zone`. Hỗ trợ ISO datetime và epoch giây/mili giây.
+Timestamp có offset/Z giữ đúng múi giờ. Timestamp không có múi giờ mặc định hiểu là **UTC** (Pancake gửi `updated_at` dạng UTC không kèm offset, VD `07:27` = 14:27 giờ VN), có thể cấu hình bằng `pancake.webhook.history-zone`. Hỗ trợ ISO datetime và epoch giây/mili giây.
 
 Gửi timestamp mili giây vào cột `Ngày tạo`, có thể đổi tên cột đích bằng `lark.bitable.status-one-date-field`. Cột phải là **Date (type 5)**. Nếu là **Created time (type 1001)**, log báo `WAITING_FIELD`; cần cấu hình một cột Date có thể ghi. Không tự sửa cấu trúc hoặc dữ liệu cũ của các Base.
 

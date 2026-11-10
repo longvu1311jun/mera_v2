@@ -139,8 +139,9 @@ public class LarkWebhookController {
     @Value("${lark.bitable.status-one-date-field:Ngày tạo}")
     private String statusOneDateField = "Ngày tạo";
 
-    @Value("${pancake.webhook.history-zone:Asia/Ho_Chi_Minh}")
-    private String historyZone = "Asia/Ho_Chi_Minh";
+    // Pancake gui histories[].updated_at dang UTC khong kem offset (VD 07:27 = 14:27 gio VN)
+    @Value("${pancake.webhook.history-zone:UTC}")
+    private String historyZone = "UTC";
 
     @Value("${pancake.webhook.secret:}")
     private String expectedSecret;
