@@ -377,6 +377,40 @@
                 </div>
             </div>
 
+            <div class="sync-card attendance">
+                <h3 class="font-bold text-lg">📋 Đồng Bộ Đơn Lark</h3>
+                <p class="text-sm text-gray-500 mb-4">Lấy đơn theo ngày tạo (giờ Việt Nam), tối đa 31 ngày mỗi lượt.</p>
+                <div class="mb-4 space-y-2">
+                    <form id="approval-add-form" class="flex gap-2">
+                        <input id="approval-code" type="text" required maxlength="2048"
+                               class="min-w-0 flex-1 rounded-lg border p-2 text-sm"
+                               aria-label="URL Lark / Approval Code" placeholder="URL Lark / Approval Code">
+                        <button type="submit" class="rounded-lg border p-2 text-sm">Th&#234;m m&#7851;u</button>
+                    </form>
+                    <p id="approval-catalog-status" role="status" class="text-xs"></p>
+                </div>
+                <form id="approval-sync-form">
+                    <label for="approval-template" class="block text-xs font-semibold mb-1">Mẫu phê duyệt</label>
+                    <select id="approval-template" class="w-full mb-3 rounded-lg border p-2">
+                        <option value="">Tất cả mẫu MERA và mẫu đã thêm</option>
+                    </select>
+                    <div class="grid grid-cols-2 gap-2">
+                        <label class="text-xs font-semibold">Từ ngày
+                            <input id="approval-from" type="date" required class="block w-full rounded-lg border p-2">
+                        </label>
+                        <label class="text-xs font-semibold">Đến ngày
+                            <input id="approval-to" type="date" required class="block w-full rounded-lg border p-2">
+                        </label>
+                    </div>
+                    <button id="approval-sync-button" type="submit" disabled
+                            class="w-full mt-4 rounded-lg bg-blue-600 p-2 font-semibold text-white disabled:opacity-50">
+                        Đồng bộ đơn
+                    </button>
+                </form>
+                <p id="approval-sync-status" role="status" class="mt-3 text-sm"></p>
+                <ul id="approval-sync-results" class="mt-2 text-xs space-y-1"></ul>
+            </div>
+
             <!-- Lark Attendance Sync -->
             <div class="sync-card attendance">
                 <div class="flex items-center gap-3 mb-4">
@@ -932,7 +966,7 @@
             .then(r => r.json())
             .then(data => {
                 if (!data.success) {
-                    showError('attendance-error', data.error || 'Sync failed');
+                    showError('attendance-error', data.error || data.message || 'Sync failed');
                 } else {
                     const stats = `
                         <div class="stat-item"><span class="stat-label">Trạng thái:</span><span class="stat-value text-${data.status === 'success' ? 'green' : 'yellow'}-400">${data.status ?? 'unknown'}</span></div>
@@ -1025,6 +1059,134 @@
             })
             .catch(err => showError('quick-error', 'Lỗi: ' + err.message));
         }
+        (() => {
+            const endpoint = '/api/lark/sync/approvals';
+            const form = document.getElementById('approval-sync-form');
+            const select = document.getElementById('approval-template');
+            const button = document.getElementById('approval-sync-button');
+            const status = document.getElementById('approval-sync-status');
+            const results = document.getElementById('approval-sync-results');
+            let configured = false;
+            let pollTimer;
+
+            function render(job) {
+                button.disabled = job.running || !configured;
+                if (job.total) {
+                    status.textContent = (job.running ? 'Đang xử lý' : 'Đã kết thúc')
+                        + ' · ' + job.results.length + '/' + job.total + ' mẫu';
+                }
+                const labels = { SUCCESS: 'Hoàn tất', PARTIAL: 'Có đơn lỗi', FAILED: 'Lỗi mẫu' };
+                results.replaceChildren(...job.results.map(item => {
+                    const line = document.createElement('li');
+                    line.textContent = item.name + ' · ' + labels[item.status] + ' · '
+                        + item.saved + '/' + item.listed + ' đơn đã lưu'
+                        + (item.failed ? ' · ' + item.failed + ' đơn lỗi' : '');
+                    return line;
+                }));
+            }
+
+            async function poll() {
+                clearTimeout(pollTimer);
+                try {
+                    const response = await fetch(endpoint);
+                    if (!response.ok) throw new Error();
+                    const job = await response.json();
+                    if (!job.running && job.total) await loadTemplates();
+                    render(job);
+                    if (job.running) pollTimer = setTimeout(poll, 2000);
+                } catch {
+                    status.textContent = 'Chưa đọc được tiến độ. Đang thử lại…';
+                    pollTimer = setTimeout(poll, 4000);
+                }
+            }
+
+            form.addEventListener('submit', async event => {
+                event.preventDefault();
+                const startDate = document.getElementById('approval-from').value;
+                const endDate = document.getElementById('approval-to').value;
+                const days = (Date.parse(endDate) - Date.parse(startDate)) / 86400000;
+                if (days < 0 || days > 30) {
+                    status.textContent = 'Chọn khoảng hợp lệ, tối đa 31 ngày.';
+                    return;
+                }
+                button.disabled = true;
+                const query = new URLSearchParams({ startDate, endDate });
+                if (select.value) query.set('templateId', select.value);
+                try {
+                    const response = await fetch(endpoint + '?' + query, { method: 'POST' });
+                    if (response.status === 400) {
+                        status.textContent = 'Kiểm tra ngày kết thúc và danh mục mẫu.';
+                        button.disabled = !configured;
+                        return;
+                    }
+                    if (!response.ok && response.status !== 409) throw new Error();
+                    if (response.ok) render(await response.json());
+                    await poll();
+                } catch {
+                    status.textContent = 'Chưa xác nhận được yêu cầu đồng bộ. Đang kiểm tra tiến độ…';
+                    await poll();
+                }
+            });
+
+            const addForm = document.getElementById('approval-add-form');
+            const codeInput = document.getElementById('approval-code');
+            const catalogStatus = document.getElementById('approval-catalog-status');
+            const addButton = addForm.querySelector('button');
+
+            async function loadTemplates() {
+                const response = await fetch(endpoint + '/templates');
+                if (!response.ok) throw new Error();
+                const templates = await response.json();
+                const selected = select.value;
+                select.options.length = 1;
+                for (const template of templates) select.add(new Option(template.name, template.id));
+                if (Array.from(select.options).some(option => option.value === selected)) {
+                    select.value = selected;
+                }
+                configured = true;
+            }
+
+            async function updateCatalog(path, success) {
+                addButton.disabled = true;
+                catalogStatus.textContent = 'Đang lưu danh mục…';
+                try {
+                    const response = await fetch(endpoint + path, { method: 'POST' });
+                    if (!response.ok) {
+                        catalogStatus.textContent = response.status === 502
+                            ? 'Lark không trả về mẫu. Kiểm tra mã và quyền của app.'
+                            : 'Không lưu được mẫu. Kiểm tra cấu hình và DB.';
+                        return;
+                    }
+                    await loadTemplates();
+                    catalogStatus.textContent = success;
+                    await poll();
+                } catch {
+                    catalogStatus.textContent = 'Không xác nhận được danh mục. Hãy thử lại.';
+                } finally {
+                    addButton.disabled = false;
+                }
+            }
+
+            addForm.addEventListener('submit', event => {
+                event.preventDefault();
+                let code = codeInput.value.trim();
+                if (/^https?:/i.test(code)) {
+                    try { code = new URL(code).searchParams.get('definitionCode') || ''; }
+                    catch { code = ''; }
+                }
+                if (!/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(code)) {
+                    catalogStatus.textContent = 'Nhập Approval Code hoặc URL có definitionCode.';
+                    return;
+                }
+                const query = new URLSearchParams({ approvalCode: code });
+                updateCatalog('/templates?' + query, 'Đã lưu mẫu Lark.');
+            });
+
+            loadTemplates().then(poll).catch(() => {
+                status.textContent = 'Không tải được mẫu. Kiểm tra kết nối và các bảng Lark Approval.';
+            });
+        })();
+
     </script>
 </body>
 </html>

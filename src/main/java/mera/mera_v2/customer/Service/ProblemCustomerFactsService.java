@@ -257,6 +257,7 @@ public class ProblemCustomerFactsService {
 
     @EventListener(ApplicationReadyEvent.class)
     public void ensureSchema() {
+        if (!jobsEnabled) return;
         try {
             refreshJdbc.execute(DDL_FACTS);
             for (String alter : DDL_FACTS_ALTER) {
@@ -274,10 +275,10 @@ public class ProblemCustomerFactsService {
 
     /**
      * Chỉ MỘT instance được chạy job nền (2 instance cùng trỏ pos_db). Instance còn lại đặt
-     * {@code mera.jobs.enabled=false} — nếu cả hai cùng chạy thì DELETE/INSERT facts chạy chồng
+     * {@code mera.customer.background.enabled=false} — nếu cả hai cùng chạy thì DELETE/INSERT facts chạy chồng
      * nhau và nhân đôi tải đọc orders/customer_notes.
      */
-    @Value("${mera.jobs.enabled:true}")
+    @Value("${mera.customer.background.enabled:false}")
     private boolean jobsEnabled;
 
     /** Lần đầu sau boot (30s để cột phone9 kịp tạo): catch-up incremental; nếu chưa từng chạy → full. */
@@ -297,7 +298,7 @@ public class ProblemCustomerFactsService {
 
     private void submit(Runnable task) {
         if (!jobsEnabled) {
-            log.debug("Bỏ qua cập nhật facts: mera.jobs.enabled=false trên instance này.");
+            log.debug("Bỏ qua cập nhật facts: mera.customer.background.enabled=false trên instance này.");
             return;
         }
         if (!running.compareAndSet(false, true)) {

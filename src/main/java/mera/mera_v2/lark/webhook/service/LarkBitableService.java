@@ -25,6 +25,36 @@ public class LarkBitableService {
     
     private static final String BASE_URL = "https://open.larksuite.com/open-apis/bitable/v1/apps";
     private final RestTemplate restTemplate;
+
+    /** A system Created-time column cannot be overwritten by the records API. */
+    public String checkWritableDateField(String appToken, String tableId, String token, String fieldName) throws Exception {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(token);
+        String pageToken = null;
+        Set<String> seen = new HashSet<>();
+        do {
+            var builder = org.springframework.web.util.UriComponentsBuilder.fromUriString(
+                    BASE_URL + "/" + appToken + "/tables/" + tableId + "/fields").queryParam("page_size", 100);
+            if (pageToken != null) builder.queryParam("page_token", pageToken);
+            var response = restTemplate.exchange(builder.build().encode().toUri(), HttpMethod.GET,
+                    new HttpEntity<>(headers), String.class);
+            var root = new ObjectMapper().readTree(response.getBody());
+            if (root.path("code").asInt(-1) != 0) {
+                return "Không đọc được cấu trúc bảng Lark (code=" + root.path("code").asText() + ")";
+            }
+            for (var field : root.path("data").path("items")) {
+                if (fieldName.equals(field.path("field_name").asText())) {
+                    return field.path("type").asInt() == 5 ? null
+                            : "Cột '" + fieldName + "' phải là Date (type 5), hiện type="
+                            + field.path("type").asText() + ". Created time không cho ghi ngày từ webhook.";
+                }
+            }
+            if (!root.path("data").path("has_more").asBoolean()) break;
+            pageToken = root.path("data").path("page_token").asText();
+            if (pageToken.isBlank() || !seen.add(pageToken)) throw new IllegalStateException("Invalid field pagination");
+        } while (true);
+        return "Chưa có cột Date tên '" + fieldName + "' trong bảng đích";
+    }
     
     public BitableRecordResponse createRecord(
             String appToken,
@@ -151,7 +181,7 @@ public class LarkBitableService {
                     : 0;
             log.info("✅ Found {} records (hasMore: {})", 
                     itemCount, 
-                    result.getData() != null ? result.getData().getHasMore() : false);
+                    result.getData() != null && Boolean.TRUE.equals(result.getData().getHasMore()));
             
             return result;
             
@@ -164,7 +194,7 @@ public class LarkBitableService {
     /**
      * Kiểm tra số điện thoại đã tồn tại trong bảng chưa (sử dụng filter API)
      * Sử dụng API search với filter để kiểm tra chính xác hơn
-     * @return true nếu số điện thoại đã tồn tại, false nếu chưa hoặc có lỗi
+     * @return true nếu số điện thoại đã tồn tại, false nếu chưa; lỗi tra cứu được truyền lên.
      */
     public boolean checkPhoneExistsWithFilter(
             String appToken,
@@ -212,7 +242,7 @@ public class LarkBitableService {
             // Kiểm tra response
             if (response.getData() != null) {
                 int total = response.getData().getTotal() != null ? response.getData().getTotal() : 0;
-                boolean exists = total > 0;
+                boolean exists = total > 0 || (response.getData().getItems() != null && !response.getData().getItems().isEmpty());
                 
                 if (exists) {
                     log.info("✅ Phone '{}' EXISTS in Bitable table (total: {})", phoneNumber, total);
@@ -223,12 +253,11 @@ public class LarkBitableService {
                 return exists;
             }
             
-            log.warn("⚠️ Empty response when checking phone: {}", phoneNumber);
-            return false;
+            throw new IllegalStateException("Missing phone search response data");
             
         } catch (Exception e) {
             log.error("❌ Error checking phone with filter: {}", e.getMessage(), e);
-            return false;
+            throw new IllegalStateException("Phone lookup failed", e);
         }
     }
     

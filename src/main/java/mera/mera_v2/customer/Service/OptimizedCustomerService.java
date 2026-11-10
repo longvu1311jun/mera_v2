@@ -120,6 +120,7 @@ public class OptimizedCustomerService {
 
     @EventListener(ApplicationReadyEvent.class)
     public void ensureSchema() {
+        if (!jobsEnabled) return;
         try {
             jdbcTemplate.execute(DDL_TRACKING);
             jdbcTemplate.execute(DDL_OPTIMIZED);
@@ -130,7 +131,7 @@ public class OptimizedCustomerService {
     }
 
     /** Chỉ một instance chạy job nền — xem ProblemCustomerFactsService#jobsEnabled. */
-    @Value("${mera.jobs.enabled:true}")
+    @Value("${mera.customer.background.enabled:false}")
     private boolean jobsEnabled;
 
     /**
@@ -140,7 +141,7 @@ public class OptimizedCustomerService {
     @Scheduled(fixedDelayString = "3600000", initialDelayString = "90000")
     public void scheduleReconcile() {
         if (!jobsEnabled) {
-            log.debug("Bỏ qua đối soát khách tối ưu: mera.jobs.enabled=false trên instance này.");
+            log.debug("Bỏ qua đối soát khách tối ưu: mera.customer.background.enabled=false trên instance này.");
             return;
         }
         if (!running.compareAndSet(false, true)) {

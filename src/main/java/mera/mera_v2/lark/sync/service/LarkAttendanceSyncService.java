@@ -1,6 +1,8 @@
 package mera.mera_v2.lark.sync.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import mera.mera_v2.entity.LarkAttendanceDay;
@@ -17,21 +19,32 @@ import mera.mera_v2.repository.LarkAttendanceDayRepository;
 import mera.mera_v2.repository.LarkAttendancePunchRepository;
 import mera.mera_v2.repository.LarkEmployeeRepository;
 import mera.mera_v2.repository.LarkSyncJobRepository;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.math.BigDecimal;
+import java.sql.Connection;
+import java.sql.SQLException;
+import javax.sql.DataSource;
+import java.sql.DriverManager;
+import com.zaxxer.hikari.HikariDataSource;
+import org.springframework.jdbc.core.JdbcTemplate;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
-@Transactional
 public class LarkAttendanceSyncService {
 
     private final LarkAttendanceClient attendanceClient;
@@ -40,24 +53,101 @@ public class LarkAttendanceSyncService {
     private final LarkAttendancePunchRepository attendancePunchRepository;
     private final LarkSyncJobRepository syncJobRepository;
     private final TenantTokenService tenantTokenService;
+    private final TransactionTemplate transaction;
+    private final DataSource dataSource;
+    private final JdbcTemplate jdbc;
+    private final ReentrantLock attendanceWriteLock = new ReentrantLock(true);
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyyMMdd");
 
+    @Value("${lark.attendance.manual-workers:2}")
+    private int manualWorkers;
+
+    private ExecutorService manualExecutor;
+    private ExecutorService coordinatorExecutor;
+
+    @PostConstruct
+    void startManualExecutor() {
+        if (manualWorkers < 1 || manualWorkers > 2) {
+            throw new IllegalArgumentException("lark.attendance.manual-workers must be 1 or 2");
+        }
+        AtomicInteger workerIds = new AtomicInteger();
+        manualExecutor = Executors.newFixedThreadPool(manualWorkers,
+                task -> new Thread(task, "lark-attendance-manual-" + workerIds.incrementAndGet()));
+        coordinatorExecutor = Executors.newFixedThreadPool(2,
+                task -> new Thread(task, "lark-attendance-coordinator"));
+    }
+
+    @PreDestroy
+    void stopManualExecutor() {
+        coordinatorExecutor.shutdown();
+        manualExecutor.shutdown();
+    }
+
     public AttendanceSyncResult syncAttendance(AttendanceSyncRequest request, String triggerSource, String createdBy) {
+        validateRequest(request);
+        if ("manual".equals(triggerSource)) {
+            // Repository calls run outside the HTTP OpenEntityManagerInView context.
+            return CompletableFuture.supplyAsync(
+                    () -> syncWithLock(request, triggerSource, createdBy), coordinatorExecutor).join();
+        }
+        return syncWithLock(request, triggerSource, createdBy);
+    }
+
+    private AttendanceSyncResult syncWithLock(AttendanceSyncRequest request, String triggerSource, String createdBy) {
         log.info("[lark-attendance] Starting sync: startDate={}, endDate={}, triggerSource={}",
                 request.getStartDate(), request.getEndDate(), triggerSource);
 
         validateRequest(request);
 
         String lockKey = buildLockKey(request);
-        if (!request.isForce() && isJobRunning(lockKey)) {
-            return AttendanceSyncResult.builder()
-                    .success(false)
-                    .message("Job is already running for this scope")
-                    .build();
+        // The lock belongs to this MariaDB session, so it disappears if the process stops.
+        try (Connection connection = openLockConnection()) {
+            if (!scopeLock(connection, "SELECT GET_LOCK(SHA2(?, 256), 0)", lockKey)) {
+                return AttendanceSyncResult.builder()
+                        .success(false)
+                        .message("Đang có lượt đồng bộ điểm danh chạy cho kỳ này.")
+                        .build();
+            }
+            try {
+                jdbc.update("""
+                        UPDATE lark_sync_jobs SET status='failed', finished_at=CURRENT_TIMESTAMP,
+                            error_message='Previous attendance sync stopped before recording its result'
+                        WHERE locked_key=? AND status='running'
+                        """, lockKey);
+                return syncLocked(request, triggerSource, createdBy, lockKey);
+            } finally {
+                scopeLock(connection, "SELECT RELEASE_LOCK(SHA2(?, 256))", lockKey);
+            }
+        } catch (SQLException ex) {
+            throw new IllegalStateException("Không kiểm tra được khóa đồng bộ điểm danh.", ex);
         }
+    }
 
+    Connection openLockConnection() throws SQLException {
+        // A named lock needs a session for the entire job. Do not borrow a pooled work connection.
+        HikariDataSource pool = dataSource.unwrap(HikariDataSource.class);
+        Properties properties = new Properties();
+        properties.putAll(pool.getDataSourceProperties());
+        if (pool.getUsername() != null) properties.setProperty("user", pool.getUsername());
+        if (pool.getPassword() != null) properties.setProperty("password", pool.getPassword());
+        properties.putIfAbsent("connectTimeout", "10000");
+        properties.putIfAbsent("socketTimeout", "15000");
+        return DriverManager.getConnection(pool.getJdbcUrl(), properties);
+    }
+
+    private boolean scopeLock(Connection connection, String sql, String scope) throws SQLException {
+        try (var statement = connection.prepareStatement(sql)) {
+            statement.setString(1, scope);
+            try (var result = statement.executeQuery()) {
+                return result.next() && result.getInt(1) == 1;
+            }
+        }
+    }
+
+    private AttendanceSyncResult syncLocked(AttendanceSyncRequest request, String triggerSource,
+                                            String createdBy, String lockKey) {
         List<LarkEmployee> employees = resolveEmployees(request.getEmployeeIds(), request.getDepartmentIds());
         List<String> employeeIds = employees.stream()
                 .map(LarkEmployee::getId)
@@ -74,44 +164,68 @@ public class LarkAttendanceSyncService {
         String jobId = UUID.randomUUID().toString();
         createJob(jobId, request, triggerSource, createdBy, lockKey, employeeIds.size());
 
-        AtomicInteger totalSuccess = new AtomicInteger(0);
+        Set<String> successfulEmployees = ConcurrentHashMap.newKeySet();
         AtomicInteger totalFailed = new AtomicInteger(0);
         AtomicInteger totalRequests = new AtomicInteger(0);
-        Set<String> invalidUsers = Collections.synchronizedSet(new HashSet<>());
-        int invalidEmployeeCount = 0;
+        Set<String> invalidUsers = ConcurrentHashMap.newKeySet();
 
         List<int[]> dateRanges = splitDateRange(request.getStartDate(), request.getEndDate());
         List<List<String>> userChunks = splitUserChunks(employeeIds);
 
-        for (int[] dateRange : dateRanges) {
-            LocalDate rangeStart = LocalDate.ofEpochDay(dateRange[0]);
-            LocalDate rangeEnd = LocalDate.ofEpochDay(dateRange[1]);
-            int startDateInt = Integer.parseInt(rangeStart.format(DATE_FORMAT));
-            int endDateInt = Integer.parseInt(rangeEnd.format(DATE_FORMAT));
+        int plannedRequests = dateRanges.size() * userChunks.size();
+        AtomicInteger committedDays = new AtomicInteger();
+        List<CompletableFuture<Void>> tasks = new ArrayList<>();
+        for (List<String> userChunk : userChunks) {
+            Runnable syncChunk = () -> {
+                for (int[] dateRange : dateRanges) {
+                    LocalDate rangeStart = LocalDate.ofEpochDay(dateRange[0]);
+                    LocalDate rangeEnd = LocalDate.ofEpochDay(dateRange[1]);
+                    int startDateInt = Integer.parseInt(rangeStart.format(DATE_FORMAT));
+                    int endDateInt = Integer.parseInt(rangeEnd.format(DATE_FORMAT));
+                    int chunk = totalRequests.incrementAndGet();
+                    log.info("[lark-attendance] Job {} chunk {}/{}: {} to {}, {} employees",
+                            jobId, chunk, plannedRequests, rangeStart, rangeEnd, userChunk.size());
+                    try {
+                        AttendanceStatsResponse data = attendanceClient.queryUserStatsData(
+                                userChunk, startDateInt, endDateInt, getTenantToken());
 
-            for (List<String> userChunk : userChunks) {
-                totalRequests.incrementAndGet();
-                try {
-                    AttendanceStatsResponse data = attendanceClient.queryUserStatsData(
-                            userChunk, startDateInt, endDateInt, getTenantToken());
-
-                    invalidEmployeeCount += processResponse(data, rangeStart, invalidUsers);
-
-                    int successCount = userChunk.size() - invalidUsers.size();
-                    totalSuccess.addAndGet(Math.max(0, successCount));
-
-                } catch (Exception e) {
-                    totalFailed.incrementAndGet();
-                    log.error("[lark-attendance] Chunk failed: {}", e.getMessage());
+                        Set<String> invalidInChunk = new HashSet<>();
+                        processResponse(data, rangeStart, invalidInChunk, jobId, committedDays);
+                        invalidUsers.addAll(invalidInChunk);
+                        for (String employee : userChunk) {
+                            if (!invalidInChunk.contains(employee)) successfulEmployees.add(employee);
+                        }
+                        log.info("[lark-attendance] Job {} chunk {}/{} committed", jobId, chunk, plannedRequests);
+                    } catch (Exception e) {
+                        totalFailed.incrementAndGet();
+                        log.error("[lark-attendance] Job {} chunk {}/{} failed: {}",
+                                jobId, chunk, plannedRequests, e.getMessage());
+                    }
+                    synchronized (committedDays) {
+                        jdbc.update("""
+                                UPDATE lark_sync_jobs SET total_requests=?, total_failed_requests=?,
+                                  total_success_employees=?, total_invalid_employees=?, updated_at=CURRENT_TIMESTAMP
+                                WHERE id=?
+                                """, totalRequests.get(), totalFailed.get(), successfulEmployees.size(),
+                                invalidUsers.size(), jobId);
+                    }
                 }
+            };
+            if ("manual".equals(triggerSource)) {
+                tasks.add(CompletableFuture.runAsync(syncChunk, manualExecutor));
+            } else {
+                syncChunk.run();
             }
         }
+        CompletableFuture.allOf(tasks.toArray(CompletableFuture[]::new)).join();
 
+        int totalSuccess = successfulEmployees.size();
+        int invalidEmployeeCount = invalidUsers.size();
         String finalStatus = determineJobStatus(totalFailed.get(), totalRequests.get());
-        finishJob(jobId, finalStatus, totalSuccess.get(), invalidEmployeeCount, totalFailed.get(), totalRequests.get());
+        finishJob(jobId, finalStatus, totalSuccess, invalidEmployeeCount, totalFailed.get(), totalRequests.get());
 
         log.info("[lark-attendance] Job {} finished: status={}, success={}, failed={}",
-                jobId, finalStatus, totalSuccess.get(), totalFailed.get());
+                jobId, finalStatus, totalSuccess, totalFailed.get());
 
         return AttendanceSyncResult.builder()
                 .success(true)
@@ -119,7 +233,7 @@ public class LarkAttendanceSyncService {
                 .status(finalStatus)
                 .totalEmployees(employeeIds.size())
                 .totalRequests(totalRequests.get())
-                .totalSuccessEmployees(totalSuccess.get())
+                .totalSuccessEmployees(totalSuccess)
                 .totalInvalidEmployees(invalidEmployeeCount)
                 .totalFailedRequests(totalFailed.get())
                 .message("Attendance sync completed with status: " + finalStatus)
@@ -157,9 +271,6 @@ public class LarkAttendanceSyncService {
                 request.getStartDate(), request.getEndDate(), scope);
     }
 
-    private boolean isJobRunning(String lockKey) {
-        return syncJobRepository.findFirstByLockedKeyAndStatusOrderByCreatedAtDesc(lockKey, "running").isPresent();
-    }
 
     private List<LarkEmployee> resolveEmployees(List<String> employeeIds, List<Long> departmentIds) {
         if (employeeIds != null && !employeeIds.isEmpty()) {
@@ -219,38 +330,33 @@ public class LarkAttendanceSyncService {
         return chunks;
     }
 
-    @Transactional
-    public int processResponse(AttendanceStatsResponse data, LocalDate fallbackDate, Set<String> invalidUsers) {
-        int invalidCount = 0;
-
-        List<String> invalidUserList = data.getInvalidUserList();
-        if (invalidUserList != null) {
-            for (String userId : invalidUserList) {
-                if (userId != null) {
-                    invalidUsers.add(userId);
-                    invalidCount++;
-                }
+    private void processResponse(AttendanceStatsResponse data, LocalDate fallbackDate, Set<String> invalidUsers,
+                                 String jobId, AtomicInteger committedDays) {
+        if (data.getInvalidUserList() != null) {
+            for (String userId : data.getInvalidUserList()) {
+                if (userId != null) invalidUsers.add(userId);
             }
         }
-
-        List<UserAttendanceData> userDatas = data.getUserDatas();
-        if (userDatas != null) {
-            for (UserAttendanceData userData : userDatas) {
+        if (data.getUserDatas() != null) {
+            for (UserAttendanceData userData : data.getUserDatas()) {
                 if (userData == null) continue;
+                // Keep writes serialized but release the DB transaction and the lock after each day.
+                attendanceWriteLock.lock();
                 try {
-                    processUserData(userData, fallbackDate);
-                } catch (Exception e) {
-                    log.error("[lark-attendance] Error processing user {}: {}", 
-                            userData != null ? userData.getUserId() : "null", e.getMessage(), e);
+                    transaction.executeWithoutResult(tx -> processUserData(userData, fallbackDate));
+                    int savedDays = committedDays.incrementAndGet();
+                    if (savedDays % 50 == 0) {
+                        jdbc.update("UPDATE lark_sync_jobs SET updated_at=CURRENT_TIMESTAMP WHERE id=?", jobId);
+                        log.info("[lark-attendance] Job {} committed {} employee-day records", jobId, savedDays);
+                    }
+                } finally {
+                    attendanceWriteLock.unlock();
                 }
             }
         }
-
-        return invalidCount;
     }
 
-    @Transactional
-    public void processUserData(UserAttendanceData userData, LocalDate fallbackDate) {
+    private void processUserData(UserAttendanceData userData, LocalDate fallbackDate) {
         String userId = userData.getUserId();
         List<AttendanceDataItem> datas = userData.getDatas();
         if (datas == null || datas.isEmpty()) {

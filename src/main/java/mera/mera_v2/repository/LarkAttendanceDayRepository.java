@@ -8,6 +8,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -15,6 +16,9 @@ public interface LarkAttendanceDayRepository extends JpaRepository<LarkAttendanc
     
     Optional<LarkAttendanceDay> findByEmployeeIdAndAttendanceDate(String employeeId, LocalDate attendanceDate);
     
+    List<LarkAttendanceDay> findByAttendanceDateBetweenAndRequiredHoursGreaterThan(
+            LocalDate start, LocalDate end, java.math.BigDecimal minimumHours);
+
     @Modifying
     @Query(value = """
         UPDATE lark_attendance_days

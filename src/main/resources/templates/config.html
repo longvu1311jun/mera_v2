@@ -255,27 +255,11 @@
         </div>
 
         <div class="config-grid">
-            <!-- Status 1 -->
             <div class="mr-card config-card">
-                <div class="card-header">
-                    <div class="card-title">
-                        <div class="card-icon">📦</div>
-                        Status = 1 (Đã xác nhận)
-                    </div>
-                    <span id="badge-1" class="status-badge" 
-                          th:classappend="${status1Enabled ? 'enabled' : 'disabled'}"
-                          th:text="${status1Enabled ? 'Enabled' : 'Disabled'}"></span>
-                </div>
-                <p class="card-desc">
-                    Tự động tạo bản ghi mới tại Lark Bitable và gửi thông báo Telegram/Lark khi có đơn hàng Pancake được chuyển sang trạng thái "Đã xác nhận".
-                </p>
-                <div class="action-area">
-                    <label class="switch">
-                        <input type="checkbox" id="toggle-1" th:checked="${status1Enabled}" onchange="updateConfig(1, this.checked)">
-                        <span class="slider"></span>
-                    </label>
-                    <span class="toggle-label" id="label-1" th:text="${status1Enabled ? 'Đang hoạt động' : 'Tạm dừng'}"></span>
-                </div>
+                <h2>Tạo bản ghi theo tag Đồng bộ DATA</h2>
+                <p>Đơn có tag Đồng bộ DATA (ID 32) được xử lý tạo bản ghi một lần, không phụ thuộc status hiện tại. Ngày tạo lấy từ lịch sử chuyển status = 1 trong webhook.</p>
+                <p>Công tắc status 1 trước đây không còn áp dụng cho chức năng này.</p>
+                <a href="/webhook-lark-logs" class="mr-btn mr-btn--primary">Xem log tạo khách Lark</a>
             </div>
 
             <!-- Status 6 -->

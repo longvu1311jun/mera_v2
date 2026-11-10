@@ -55,6 +55,9 @@
             <a href="/dongbo" class="mr-nav-item" th:classappend="${active == 'dongbo'} ? 'active'">
                 <span class="mr-nav-ico">🔄</span> Đồng Bộ
             </a>
+            <a href="/lark-approvals" class="mr-nav-item" th:classappend="${active == 'lark-approvals'} ? 'active'">
+                <span>📋</span> Đơn phê duyệt Lark
+            </a>
             <a href="/attendance-punch" class="mr-nav-item" th:classappend="${active == 'attendance'} ? 'active'">
                 <span class="mr-nav-ico">⏰</span> Chấm Công
             </a>
@@ -82,9 +85,6 @@
             <a href="/dt-ads" class="mr-nav-item" th:classappend="${active == 'dtAds'} ? 'active'">
                 <span class="mr-nav-ico">📣</span> DT ADS
             </a>
-            <a href="/khach-hang-canh-bao" class="mr-nav-item" th:classappend="${active == 'problemCustomers'} ? 'active'">
-                <span class="mr-nav-ico">⚠️</span> Số Thả Nổi
-            </a>
             <a href="/khach-hang-da-toi-uu" class="mr-nav-item" th:classappend="${active == 'optimizedCustomers'} ? 'active'">
                 <span class="mr-nav-ico">✅</span> Khách Đã Tối Ưu
             </a>
@@ -110,6 +110,9 @@
             </a>
             <a href="/logs" class="mr-nav-item" th:classappend="${active == 'logs'} ? 'active'">
                 <span class="mr-nav-ico">📝</span> Logs Realtime
+            </a>
+            <a href="/webhook-lark-logs" class="mr-nav-item" th:classappend="${active == 'webhookLarkLogs'} ? 'active'">
+                <span class="mr-nav-ico">📋</span> Log tạo khách Lark
             </a>
             <a href="/test-api.html" class="mr-nav-item">
                 <span class="mr-nav-ico">🧪</span> Công cụ Sync

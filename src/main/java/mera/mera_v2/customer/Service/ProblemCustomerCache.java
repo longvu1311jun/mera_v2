@@ -13,8 +13,6 @@ import jakarta.annotation.PreDestroy;
 import mera.mera_v2.customer.DTO.ProblemCustomerResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.boot.context.event.ApplicationReadyEvent;
-import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -29,8 +27,7 @@ import org.springframework.stereotype.Component;
  * vì treo vô hạn. Query cũng có timeout 90s ở tầng repository.</p>
  *
  * <p>Áp dụng <b>stale-while-revalidate</b>: khi hết hạn TTL, trả kết quả cũ ngay và làm mới
- * ở luồng nền → người dùng không phải chờ (trừ lần đầu cho mỗi bộ lọc). Bộ lọc mặc định được
- * hâm nóng sẵn lúc khởi động.</p>
+ * ở luồng nền → người dùng không phải chờ (trừ lần đầu cho mỗi bộ lọc).</p>
  */
 @Component
 public class ProblemCustomerCache {
@@ -136,22 +133,6 @@ public class ProblemCustomerCache {
             });
         }
         return e.result;
-    }
-
-    /** Hâm nóng bộ lọc mặc định lúc khởi động để user đầu tiên không phải chờ cold start. */
-    @EventListener(ApplicationReadyEvent.class)
-    public void warmUpDefault() {
-        refreshPool.submit(() -> {
-            try {
-                log.info("Hâm nóng cache số thả nổi (bộ lọc mặc định)...");
-                get(ProblemCustomerService.DEFAULT_MIN_NOTES, ProblemCustomerService.DEFAULT_HOURS,
-                        ProblemCustomerService.DEFAULT_MAX_DAYS, ProblemCustomerService.DEFAULT_STALE_MONTHS,
-                        null, null);
-                log.info("Hâm nóng cache số thả nổi xong.");
-            } catch (Exception ex) {
-                log.warn("Hâm nóng cache số thả nổi lỗi: {}", ex.getMessage());
-            }
-        });
     }
 
     /** Dọn entry lâu không dùng + chặn map phình quá lớn (nhiều khoảng ngày khác nhau). */

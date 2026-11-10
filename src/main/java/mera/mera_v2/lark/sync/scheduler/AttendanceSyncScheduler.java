@@ -13,6 +13,8 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.time.Clock;
+import java.time.ZoneId;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -33,9 +35,10 @@ public class AttendanceSyncScheduler {
     private static final LocalTime SCHEDULE_START = LocalTime.of(7, 59);
     private static final LocalTime SCHEDULE_END = LocalTime.of(17, 0);
 
-    private static LocalDate lastFullSyncDate = null;
-    private static final Set<String> syncedTodayEmployeeIds = Collections.synchronizedSet(new HashSet<>());
-    private static final Object syncLock = new Object();
+    private volatile LocalDate lastFullSyncDate;
+    private Clock clock = Clock.system(ZoneId.of("Asia/Ho_Chi_Minh"));
+    private final Set<String> syncedTodayEmployeeIds = Collections.synchronizedSet(new HashSet<>());
+    private final Object syncLock = new Object();
 
     /** Chỉ một instance chạy job nền — xem ProblemCustomerFactsService#jobsEnabled. */
     @Value("${mera.jobs.enabled:true}")
@@ -55,10 +58,10 @@ public class AttendanceSyncScheduler {
             return;
         }
 
-        LocalDate today = LocalDate.now();
+        LocalDate today = LocalDate.now(clock);
         log.info("[scheduler] Starting daily full attendance sync for date: {}", today);
 
-        performFullSync(today);
+        ensureFullSyncDone(today);
     }
 
     @Scheduled(fixedRate = 60000)
@@ -70,7 +73,7 @@ public class AttendanceSyncScheduler {
             log.debug("[scheduler] Skipping incremental sync - feature DISABLED via toggle");
             return;
         }
-        LocalTime now = LocalTime.now();
+        LocalTime now = LocalTime.now(clock);
         log.info("[scheduler] Incremental sync triggered at {}", now);
 
         if (!shouldRun()) {
@@ -83,9 +86,14 @@ public class AttendanceSyncScheduler {
             return;
         }
 
-        LocalDate today = LocalDate.now();
+        LocalDate today = LocalDate.now(clock);
 
         try {
+            // Catch up after a missed cron, restart, or enabling auto-sync during the day.
+            if (!today.equals(lastFullSyncDate)) {
+                ensureFullSyncDone(today);
+                return;
+            }
             // Get employees who have punch records but missing check-in time
             List<String> employeesMissingCheckin = attendancePunchRepository.findEmployeeIdsMissingCheckin(today);
 
@@ -119,32 +127,17 @@ public class AttendanceSyncScheduler {
      * If not, perform full sync for all employees.
      */
     private void ensureFullSyncDone(LocalDate today) {
-        if (lastFullSyncDate != null && lastFullSyncDate.equals(today)) {
-            // Full sync already done today
-            return;
-        }
-
-        log.info("[scheduler] Full sync not done yet today, performing now...");
-
-        // Check if we have any punch records for today
-        Set<String> employeesWithPunch = getEmployeesWithAnyPunchToday(today);
-
-        if (employeesWithPunch.isEmpty()) {
-            // No punch records, do full sync
+        synchronized (syncLock) {
+            if (today.equals(lastFullSyncDate)) return;
+            log.info("[scheduler] Full sync not completed for {}; starting catch-up", today);
             performFullSync(today);
-        } else {
-            // We have some punch records, mark them as synced
-            log.info("[scheduler] Found {} employees with existing punch records, marking as synced",
-                    employeesWithPunch.size());
-            syncedTodayEmployeeIds.addAll(employeesWithPunch);
-            lastFullSyncDate = today;
         }
     }
 
     private void performFullSync(LocalDate today) {
         synchronized (syncLock) {
             // Reset synced list for new day
-            lastFullSyncDate = today;
+            lastFullSyncDate = null;
             syncedTodayEmployeeIds.clear();
 
             try {
@@ -158,8 +151,12 @@ public class AttendanceSyncScheduler {
                 log.info("[scheduler] Daily sync completed: success={}, employees={}, message={}",
                         result.isSuccess(), result.getTotalEmployees(), result.getMessage());
 
-                // Mark all employees as synced after full sync
-                markAllEmployeesAsSynced();
+                if (result.isSuccess() && "success".equals(result.getStatus())) {
+                    markAllEmployeesAsSynced();
+                    lastFullSyncDate = today;
+                } else {
+                    log.warn("[scheduler] Full sync for {} remains incomplete; next tick will retry", today);
+                }
 
             } catch (Exception e) {
                 log.error("[scheduler] Daily attendance sync failed: {}", e.getMessage(), e);
@@ -182,23 +179,24 @@ public class AttendanceSyncScheduler {
     }
 
     private boolean shouldRun() {
-        LocalTime now = LocalTime.now();
+        LocalTime now = LocalTime.now(clock);
         return !now.isBefore(SCHEDULE_START) && !now.isAfter(SCHEDULE_END);
     }
 
     public void triggerManualFullSync() {
-        LocalDate today = LocalDate.now();
+        LocalDate today = LocalDate.now(clock);
         log.info("[manual] Triggering full attendance sync for date: {}", today);
 
         performFullSync(today);
     }
 
     public void triggerIncrementalSync() {
-        LocalDate today = LocalDate.now();
+        LocalDate today = LocalDate.now(clock);
         log.info("[manual] Triggering incremental attendance sync");
 
         // Ensure full sync done first
         ensureFullSyncDone(today);
+        if (!today.equals(lastFullSyncDate)) return;
 
         Set<String> employeesWithPunch = getEmployeesWithAnyPunchToday(today);
         Set<String> knownSynced = new HashSet<>(syncedTodayEmployeeIds);

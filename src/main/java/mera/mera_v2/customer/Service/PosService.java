@@ -11,6 +11,7 @@ import org.springframework.web.client.RestTemplate;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.stream.Collectors;
 
 @Service
@@ -27,7 +28,7 @@ public class PosService {
   }
   
   /**
-   * Get list of users from POS API, filtered by department name equals "CSKH" or "NV CSKH" (case-insensitive)
+   * Get users from the supported Sale 2 departments, including numbered subgroups.
    */
   public List<PosUser> getUsers() {
     String url = String.format(
@@ -62,12 +63,13 @@ public class PosService {
                   if (u.getDepartment() == null || u.getDepartment().getName() == null) {
                       return false; // Skip users without a clear department
                   }
-                  String deptName = u.getDepartment().getName().trim();
-                  // Check against allowed department list (Case-insensitive)
-                  return deptName.equalsIgnoreCase("NV sale 2 NT") ||
-                         deptName.equalsIgnoreCase("SALE 2 Nguyễn Trãi") ||
-                         deptName.equalsIgnoreCase("SALE 2 OCP") ||
-                         deptName.equalsIgnoreCase("NV SALE 2 OCP");
+                  String deptName = u.getDepartment().getName().strip()
+                      .replaceAll("(?U)\\s+", " ").toLowerCase(Locale.ROOT);
+                  // Match the whole name so unrelated/off departments are not
+                  // admitted merely because they start with "Sale 2 OCP".
+                  return deptName.matches(
+                      "(?:nv sale 2 nt|sale 2 nguyễn trãi|sale 2 ocp|nv sale 2 ocp)"
+                          + "(?: (?:nhóm|nhom) [0-9]+)?");
               })
               .collect(Collectors.toList());
 

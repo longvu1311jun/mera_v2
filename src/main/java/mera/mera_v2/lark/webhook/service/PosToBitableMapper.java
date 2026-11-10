@@ -249,7 +249,8 @@ public class PosToBitableMapper {
         PosOrderWebhook.AssigningSeller assigningCare = webhookData.getAssigningCare();
         if (assigningCare != null) {
             String careName = assigningCare.getName();
-            if (careName != null && !careName.isBlank()) {
+            if ((careName != null && !careName.isBlank())
+                    || (assigningCare.getPhoneNumber() != null && !assigningCare.getPhoneNumber().isBlank())) {
                 log.info("✅ Found assigning_care at ROOT level: {}", careName);
                 return assigningCare;
             } else {
@@ -261,7 +262,8 @@ public class PosToBitableMapper {
         if (webhookData.getData() != null && webhookData.getData().getAssigningCare() != null) {
             PosOrderWebhook.AssigningSeller dataCare = webhookData.getData().getAssigningCare();
             String dataCareName = dataCare.getName();
-            if (dataCareName != null && !dataCareName.isBlank()) {
+            if ((dataCareName != null && !dataCareName.isBlank())
+                    || (dataCare.getPhoneNumber() != null && !dataCare.getPhoneNumber().isBlank())) {
                 return dataCare;
             }
         }

@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đơn phê duyệt Lark - Mera</title>
+    <script th:replace="~{fragments/mera-layout :: themeInit}"></script>
+    <link rel="stylesheet" th:href="@{/css/mera-ui.css}">
+    <style>
+        .approval-tabs, .approval-pages { display: flex; flex-wrap: wrap; gap: 8px; }
+        .approval-tabs, .approval-filter, .approval-pages { margin-bottom: 16px; }
+        .approval-pages { align-items: center; margin-top: 16px; }
+        .approval-date-form { display: flex; flex-wrap: wrap; align-items: end; gap: 12px; }
+        .approval-date-form label { display: grid; gap: 4px; }
+        .approval-details summary { cursor: pointer; white-space: nowrap; }
+        .approval-details dl { margin: 8px 0 0; min-width: 220px; }
+        .approval-details dt { font-weight: 600; }
+        .approval-details dd { margin: 0 0 8px; white-space: pre-wrap; overflow-wrap: anywhere; }
+    </style>
+</head>
+<body class="mera-page">
+<div class="mr-shell">
+    <th:block th:replace="~{fragments/mera-layout :: sidebar('lark-approvals')}"></th:block>
+    <div class="mr-shell-main">
+        <th:block th:replace="~{fragments/mera-layout :: topbar('Đơn phê duyệt Lark')}"></th:block>
+        <main class="mr-shell-content">
+            <div class="mr-page-header">
+                <div>
+                    <h1 class="mr-page-title">Đơn phê duyệt Lark</h1>
+                    <p class="mr-page-subtitle">Đơn đã đồng bộ về hệ thống. Ngày tạo hiển thị theo giờ Việt Nam.</p>
+                </div>
+                <a class="mr-btn mr-btn--ghost" th:href="@{/dongbo}">Đến trang đồng bộ</a>
+            </div>
+
+            <nav class="approval-tabs" aria-label="Loại đơn">
+                <a class="mr-btn" th:classappend="${templateId == null ? 'mr-btn--primary' : 'mr-btn--ghost'}"
+                   th:attr="aria-current=${templateId == null ? 'page' : null}"
+                   th:href="@{/lark-approvals(from=${from},to=${to})}">Tất cả</a>
+                <a class="mr-btn" th:each="template : ${templates}"
+                   th:classappend="${template.id() == templateId ? 'mr-btn--primary' : 'mr-btn--ghost'}"
+                   th:attr="aria-current=${template.id() == templateId ? 'page' : null}"
+                   th:href="@{/lark-approvals(templateId=${template.id()},from=${from},to=${to})}"
+                   th:text="${template.name()}"></a>
+            </nav>
+
+            <div class="mr-card approval-filter">
+                <form class="approval-date-form" method="get" th:action="@{/lark-approvals}">
+                    <input th:if="${templateId != null}" type="hidden" name="templateId" th:value="${templateId}">
+                    <label>Tạo từ ngày <input class="mr-input" type="date" name="from" th:value="${from}"></label>
+                    <label>Đến ngày <input class="mr-input" type="date" name="to" th:value="${to}"></label>
+                    <button class="mr-btn mr-btn--primary" type="submit">Lọc</button>
+                    <a class="mr-btn mr-btn--ghost" th:href="@{/lark-approvals(templateId=${templateId})}">Xóa lọc ngày</a>
+                </form>
+            </div>
+
+            <p th:text="|${count} đơn|">0 đơn</p>
+            <div class="mr-card" th:if="${rows.isEmpty()}">Không có đơn phù hợp.</div>
+            <div class="mr-card mr-card--flush" th:unless="${rows.isEmpty()}">
+                <div class="mr-table-scroll">
+                    <table class="mr-table">
+                        <thead><tr><th>Số đơn</th><th>Loại đơn</th><th>Ngày tạo</th><th>Nhân viên</th><th>Người gửi</th><th>Ngày / giờ nghỉ</th>
+                            <th>Trạng thái</th><th>Chi tiết</th></tr></thead>
+                        <tbody>
+                        <tr th:each="row : ${rows}">
+                            <td><a style="text-decoration: underline;" target="_blank" rel="noopener noreferrer" th:href="${row.url()}" th:text="${row.number()}"></a></td>
+                            <td th:text="${row.template()}"></td>
+                            <td th:text="${row.createdAt() ?: '—'}"></td>
+                            <td th:text="${#strings.isEmpty(row.employee()) ? '—' : row.employee()}"></td>
+                            <td th:text="${#strings.isEmpty(row.requester()) ? '—' : row.requester()}"></td>
+                            <td th:text="${#strings.isEmpty(row.leavePeriod()) ? '—' : row.leavePeriod()}"></td>
+                            <td th:switch="${row.status()}">
+                                <span th:case="'APPROVED'">Đã duyệt</span>
+                                <span th:case="'PENDING'">Đang chờ</span>
+                                <span th:case="'REJECTED'">Từ chối</span>
+                                <span th:case="'CANCELED'">Đã hủy</span>
+                                <span th:case="'DELETED'">Đã xóa</span>
+                                <span th:case="*" th:text="${row.status()}"></span>
+                            </td>
+                            <td>
+                                <details class="approval-details" th:unless="${row.fields().isEmpty()}">
+                                    <summary>Xem biểu mẫu</summary>
+                                    <dl>
+                                        <th:block th:each="field : ${row.fields()}">
+                                            <dt th:text="${field.label()}"></dt>
+                                            <dd th:text="${field.value()}"></dd>
+                                        </th:block>
+                                    </dl>
+                                </details>
+                                <span th:if="${row.fields().isEmpty()}">—</span>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <nav class="approval-pages" aria-label="Phân trang" th:if="${totalPages > 1}">
+                <a class="mr-btn mr-btn--ghost" th:if="${page > 1}"
+                   th:href="@{/lark-approvals(templateId=${templateId},from=${from},to=${to},page=${page - 1})}">Trước</a>
+                <span th:text="|Trang ${page}/${totalPages}|"></span>
+                <a class="mr-btn mr-btn--ghost" th:if="${page < totalPages}"
+                   th:href="@{/lark-approvals(templateId=${templateId},from=${from},to=${to},page=${page + 1})}">Sau</a>
+            </nav>
+        </main>
+    </div>
+</div>
+<th:block th:replace="~{fragments/mera-layout :: shellScript}"></th:block>
+</body>
+</html>

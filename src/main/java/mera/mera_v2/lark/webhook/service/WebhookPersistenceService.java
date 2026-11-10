@@ -18,6 +18,7 @@ import mera.mera_v2.repository.OrderPaymentRepository;
 import mera.mera_v2.repository.OrderRepository;
 import mera.mera_v2.repository.OrderStatusHistoryRepository;
 import mera.mera_v2.repository.PosUserRepository;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -51,6 +52,7 @@ public class WebhookPersistenceService {
     private final PosUserRepository posUserRepository;
     private final ObjectMapper objectMapper;
     private final PlatformTransactionManager transactionManager;
+    private final JdbcTemplate jdbcTemplate;
 
     /** Giay toi da cho mot buoc ghi cua webhook. */
     private static final int WRITE_TIMEOUT_SECONDS = 10;
@@ -545,7 +547,7 @@ public class WebhookPersistenceService {
                     // product_id / variation_id BẮT BUỘC phải lưu — LtCalculationService
                     // match combo theo 2 cột này; thiếu chúng thì mọi đơn qua webhook đều LT=false
                     item.setProductId(getTextField(itemNode, "product_id"));
-                    item.setVariationId(getTextField(itemNode, "variation_id"));
+                    item.setVariationId(ensureVariation(webhook, itemNode));
                     item.setProductName(getTextField(itemNode, "product_name"));
                     item.setVariationName(getTextField(itemNode, "variation_name"));
                     item.setQuantity(getIntField(itemNode, "quantity", 1));
@@ -565,6 +567,57 @@ public class WebhookPersistenceService {
             rethrowIfRetryable(e, "order items");
         }
         return savedCount;
+    }
+
+    /**
+     * San pham moi tao tren POS chua co trong product_variations -> insert order_items vi pham
+     * fk_item_variation va ca don bi rollback. Tao ban ghi toi thieu cho product + variation tu
+     * chinh payload (INSERT IGNORE: an toan khi 2 webhook cung luc, khong ghi de du lieu da co).
+     * Khong tao duoc (thieu product_id) -> tra null de don van luu, giong OrderSyncService.
+     */
+    private String ensureVariation(PosOrderWebhook webhook, JsonNode itemNode) {
+        String variationId = getTextField(itemNode, "variation_id");
+        if (variationId == null || variationId.isBlank()) return null;
+        if (variationExists(variationId)) return variationId;
+
+        String productId = getTextField(itemNode, "product_id");
+        if (productId == null || productId.isBlank()) {
+            log.warn("   OrderItems: variation {} chua co trong DB va thieu product_id -> bo variation_id", variationId);
+            return null;
+        }
+        JsonNode info = itemNode.get("variation_info");
+        String name = firstNonNull(getTextField(info, "name"), getTextField(itemNode, "variation_name"),
+                getTextField(itemNode, "product_name"));
+        Double price = firstNonNull(getDoubleField(info, "retail_price"), getDoubleField(itemNode, "retail_price"));
+        Long shopId = webhook.getShopId() != null ? webhook.getShopId() : 1546758L;
+        LocalDateTime now = LocalDateTime.now();
+        try {
+            jdbcTemplate.update("INSERT IGNORE INTO products (id, shop_id, display_id, name, created_at, updated_at) "
+                    + "VALUES (?, ?, ?, ?, ?, ?)",
+                    productId, shopId, getTextField(info, "product_display_id"),
+                    firstNonNull(getTextField(itemNode, "product_name"), name), now, now);
+            jdbcTemplate.update("INSERT IGNORE INTO product_variations (id, product_id, shop_id, name, display_id, "
+                    + "barcode, retail_price, avg_price, last_imported_price, tax_rate, created_at, updated_at) "
+                    + "VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0, 0, ?, ?)",
+                    variationId, productId, shopId, name, getTextField(info, "display_id"),
+                    getTextField(info, "barcode"), BigDecimal.valueOf(price != null ? price : 0d), now, now);
+            log.info("   OrderItems: tao moi san pham tu webhook: product={}, variation={} ({})", productId, variationId, name);
+        } catch (Exception e) {
+            log.warn("   OrderItems: khong tao duoc variation {}: {}", variationId, e.getMessage());
+            rethrowIfRetryable(e, "product variation");
+        }
+        return variationExists(variationId) ? variationId : null;
+    }
+
+    private boolean variationExists(String variationId) {
+        return !jdbcTemplate.queryForList("SELECT 1 FROM product_variations WHERE id = ? LIMIT 1",
+                variationId).isEmpty();
+    }
+
+    @SafeVarargs
+    private static <T> T firstNonNull(T... values) {
+        for (T v : values) if (v != null) return v;
+        return null;
     }
 
     /**

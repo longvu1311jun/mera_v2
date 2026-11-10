@@ -4,8 +4,10 @@ import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import lombok.extern.slf4j.Slf4j;
-import mera.mera_v2.config.SyncFeatureToggleService;
 import mera.mera_v2.entity.LarkAttendancePunch;
+import mera.mera_v2.lark.approval.AttendanceApprovalLookup;
+import mera.mera_v2.lark.approval.AttendanceApprovalLookup.Day;
+import mera.mera_v2.repository.LarkAttendanceDayRepository;
 import mera.mera_v2.lark.sync.scheduler.AttendanceSyncScheduler;
 import mera.mera_v2.lark.sync.service.AttendanceSyncResult;
 import mera.mera_v2.repository.LarkAttendancePunchRepository;
@@ -26,8 +28,10 @@ public class AttendancePunchController {
   private static final Logger log = LoggerFactory.getLogger(AttendancePunchController.class);
 
     private final LarkAttendancePunchRepository attendancePunchRepository;
+    private final LarkAttendanceDayRepository attendanceDayRepository;
+    private final AttendanceApprovalLookup approvalLookup;
     private final AttendanceSyncScheduler attendanceSyncScheduler;
-    private final SyncFeatureToggleService featureToggle;
+
 
     @GetMapping("/attendance-punch")
     public String attendancePunchPage(
@@ -76,14 +80,14 @@ public class AttendancePunchController {
 
             String checkIn = dayPunches.stream()
                     .filter(p -> p.getPunchType() != null && p.getPunchType() == 1)
-                    .filter(p -> p.getPunchTime() != null && !p.getPunchTime().isEmpty())
+                    .filter(p -> p.getPunchTime() != null && !p.getPunchTime().isBlank())
                     .min(Comparator.comparing(LarkAttendancePunch::getPunchTime))
                     .map(LarkAttendancePunch::getPunchTime)
                     .orElse("-");
 
             String checkOut = dayPunches.stream()
                     .filter(p -> p.getPunchType() != null && p.getPunchType() == 2)
-                    .filter(p -> p.getPunchTime() != null && !p.getPunchTime().isEmpty())
+                    .filter(p -> p.getPunchTime() != null && !p.getPunchTime().isBlank())
                     .max(Comparator.comparing(LarkAttendancePunch::getPunchTime))
                     .map(LarkAttendancePunch::getPunchTime)
                     .orElse("-");
@@ -101,6 +105,47 @@ public class AttendancePunchController {
 
             attendanceRows.add(row);
         }
+
+        for (var day : attendanceDayRepository.findByAttendanceDateBetweenAndRequiredHoursGreaterThan(
+                effectiveStartDate, effectiveEndDate, java.math.BigDecimal.ZERO)) {
+            String id = day.getEmployeeId();
+            String name = Objects.toString(day.getEmployeeName(), "");
+            if (groupedByEmployeeDate.containsKey(id + "###" + day.getAttendanceDate())
+                    || (employeeId != null && !employeeId.isBlank() && !id.contains(employeeId))
+                    || (employeeName != null && !employeeName.isBlank()
+                    && !name.toLowerCase(Locale.ROOT).contains(employeeName.toLowerCase(Locale.ROOT)))) {
+                continue;
+            }
+            Map<String, Object> row = new HashMap<>();
+            row.put("employeeName", name);
+            row.put("employeeId", id);
+            row.put("department", Objects.toString(day.getAttendanceGroupName(), "-"));
+            row.put("checkIn", "-");
+            row.put("checkOut", "-");
+            row.put("date", day.getAttendanceDate());
+            row.put("punchCount", 0);
+            attendanceRows.add(row);
+        }
+
+        var missingDays = new HashSet<Day>();
+        for (var row : attendanceRows) {
+            if ("-".equals(row.get("checkIn")) || "-".equals(row.get("checkOut"))) {
+                missingDays.add(new Day((String) row.get("employeeId"), (LocalDate) row.get("date")));
+            }
+        }
+        var approvals = approvalLookup.find(missingDays);
+        for (var row : attendanceRows) {
+            boolean missingIn = "-".equals(row.get("checkIn"));
+            boolean missingOut = "-".equals(row.get("checkOut"));
+            row.put("approvalNeeded", missingIn || missingOut);
+            if (approvals != null) {
+                var day = new Day((String) row.get("employeeId"), (LocalDate) row.get("date"));
+                row.put("approvalMatches", approvals.getOrDefault(day, List.of()).stream()
+                        .filter(match -> (missingIn && match.checkIn()) || (missingOut && match.checkOut()))
+                        .toList());
+            }
+        }
+        model.addAttribute("approvalLookupAvailable", approvals != null);
 
         attendanceRows.sort(Comparator.comparing(
                 (Map<String, Object> r) -> (LocalDate) r.get("date"),
@@ -163,13 +208,6 @@ public class AttendancePunchController {
     public ResponseEntity<Map<String, Object>> triggerFullSync() {
         log.info("[API] Manual full attendance sync triggered");
 
-        if (!featureToggle.isAttendanceSyncEnabled()) {
-            Map<String, Object> response = new HashMap<>();
-            response.put("success", false);
-            response.put("message", "Tính năng đồng bộ điểm danh đang bị tắt");
-            return ResponseEntity.status(403).body(response);
-        }
-
         try {
             attendanceSyncScheduler.triggerManualFullSync();
 
@@ -194,13 +232,6 @@ public class AttendancePunchController {
     @ResponseBody
     public ResponseEntity<Map<String, Object>> triggerIncrementalSync() {
         log.info("[API] Manual incremental attendance sync triggered");
-
-        if (!featureToggle.isAttendanceSyncEnabled()) {
-            Map<String, Object> response = new HashMap<>();
-            response.put("success", false);
-            response.put("message", "Tính năng đồng bộ điểm danh đang bị tắt");
-            return ResponseEntity.status(403).body(response);
-        }
 
         try {
             attendanceSyncScheduler.triggerIncrementalSync();

@@ -37,3 +37,4 @@ dump-pos_db-202607060916.sql
 /lockmon.out
 /CLAUDE.md
 /dbprobe.jsh
+/logs/lark-webhook/

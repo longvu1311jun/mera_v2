@@ -133,6 +133,15 @@ public class LarkWebhookController {
         larkExecutor.shutdown();
     }
 
+    @Autowired(required = false)
+    private mera.mera_v2.lark.webhook.service.WebhookCreationLogService creationLogs;
+
+    @Value("${lark.bitable.status-one-date-field:Ngày tạo}")
+    private String statusOneDateField = "Ngày tạo";
+
+    @Value("${pancake.webhook.history-zone:Asia/Ho_Chi_Minh}")
+    private String historyZone = "Asia/Ho_Chi_Minh";
+
     @Value("${pancake.webhook.secret:}")
     private String expectedSecret;
 
@@ -168,8 +177,16 @@ public class LarkWebhookController {
             // Hai nhanh nay KHONG phu thuoc nhau (nhanh Lark chi doc payload + search_config),
             // nen chay song song tren 2 pool rieng: DB ket khoa cung khong chan viec tao ban ghi Lark,
             // va Lark API cham cung khong giu thread HTTP.
+            var attempt = mera.mera_v2.lark.webhook.service.WebhookCreationLogService.Entry.of(root);
+            if (creationLogs != null) {
+                try { creationLogs.append(attempt); }
+                catch (java.io.IOException logFailure) {
+                    log.error("Cannot persist webhook receipt");
+                    return ResponseEntity.status(503).body("webhook audit unavailable");
+                }
+            }
             dbExecutor.execute(() -> persistToDatabase(root));
-            larkExecutor.execute(() -> processLarkFlow(root, orderWebhook));
+            larkExecutor.execute(() -> processLarkFlow(root, orderWebhook, attempt));
 
             // Tra 200 ngay de Pancake khong timeout roi ban lai webhook lam nang them he thong.
             return ResponseEntity.ok("ok");
@@ -207,7 +224,8 @@ public class LarkWebhookController {
     }
 
     /** Nhanh 2: thong bao doi nguon + tao ban ghi Lark Bitable. */
-    private void processLarkFlow(JsonNode root, PosOrderWebhook orderWebhook) {
+    private void processLarkFlow(JsonNode root, PosOrderWebhook orderWebhook,
+            mera.mera_v2.lark.webhook.service.WebhookCreationLogService.Entry attempt) {
         // ============ CHUC NANG 1: CHECK LICH SU ACCOUNT ============
         try {
             logLatestAccountHistory(orderWebhook);
@@ -223,47 +241,35 @@ public class LarkWebhookController {
             log.error("Loi khi check lich su account: {}", e.getMessage(), e);
         }
 
-        // ============ CHUC NANG 2: CHECK STATUS ============
-        // stopAfterStatus giu nguyen hanh vi cu: don khong phai Facebook hoac don huy thi
-        // dung han, KHONG chay tiep chuc nang 3 (tranh tao ban ghi thua).
-        boolean stopAfterStatus = false;
         try {
-            Integer status = extractStatus(root);
-
-            if (status == null) {
-                // Status khong tim thay
-            } else if (!webhookConfigService.shouldProcess(status)) {
-                log.info("Status {} khong duoc bat trong config, bo qua", status);
-            } else if (!isFacebookSource(orderWebhook)) {
-                log.info("Bo qua: don hang khong phai nguon Facebook");
-                stopAfterStatus = true;
-            } else if (isCancelledStatus(status)) {
-                log.info("Bo qua: don hang co trang thai huy (status={})", status);
-                stopAfterStatus = true;
-            } else if (status == 1 || hasStatusInHistory(orderWebhook, 1)) {
-                // Chi xu ly khi status = 1 HOAC co trong lich su status = 1
-                processStatusLogic(status, root, orderWebhook);
-            } else {
-                log.info("Bo qua: status hien tai = {} va khong co lich su status = 1", status);
+            if (!hasDongBoDataTag(root)) {
+                attempt.finish("SKIPPED", "Không có tag Đồng bộ DATA (ID 32)");
+                return;
             }
+            if (!autoCreateRecord) {
+                attempt.finish("SKIPPED", "Đang tắt tự động tạo bản ghi");
+                return;
+            }
+            attempt.finish("PROCESSING", "Đang xử lý");
+            if (creationLogs != null) creationLogs.append(attempt);
+            // Tag is the only business trigger. Status is used solely to resolve the date.
+            createBitableRecord(root, attempt);
         } catch (Exception e) {
-            log.error("Loi khi xu ly status: {}", e.getMessage(), e);
-        }
-
-        if (stopAfterStatus) {
-            return;
-        }
-
-        // ============ CHUC NANG 3: CHECK TAGS ============
-        try {
-            boolean hasDongBoDataTag = hasDongBoDataTag(root);
-            if (hasDongBoDataTag) {
-                if (autoCreateRecord) {
-                    createBitableRecord(root);
+            String detail = e.getClass().getSimpleName();
+            if (e instanceof org.springframework.web.client.RestClientResponseException responseError) {
+                detail = "HTTP " + responseError.getStatusCode().value();
+            }
+            attempt.finish("FAILED", attempt.getStage() + " thất bại (" + detail
+                    + "). Kiểm tra log máy chủ; nếu lỗi lúc tạo, đối soát Lark trước khi gửi lại.");
+            log.error("Webhook attempt={} order={} stage={} failed: {}", attempt.getAttemptId(),
+                    attempt.getOrderId(), attempt.getStage(), detail);
+        } finally {
+            if (creationLogs != null) {
+                try { creationLogs.append(attempt); }
+                catch (java.io.IOException e) {
+                    log.error("Cannot persist webhook result attempt={} outcome={}", attempt.getAttemptId(), attempt.getStatus());
                 }
             }
-        } catch (Exception e) {
-            log.error("Loi khi xu ly tags: {}", e.getMessage(), e);
         }
     }
 
@@ -336,17 +342,6 @@ public class LarkWebhookController {
                         return false;
                     }
                 });
-    }
-
-    private void processStatusLogic(Integer status, JsonNode webhookData, PosOrderWebhook orderWebhook) throws Exception {
-        if (status == 1) {
-            // Giu nguyen assigning_care tu webhook, tao ban ghi truc tiep (da bo chuc nang phan chia CSKH)
-            log.info("Status = 1: Tao ban ghi truc tiep, giu nguyen assigning_care tu webhook");
-            if (autoCreateRecord) {
-                createBitableRecord(webhookData);
-            }
-        }
-        // Status = 6 giữ nguyên xử lý delete/update
     }
 
     private void logLatestAccountHistory(PosOrderWebhook orderWebhook) {
@@ -550,17 +545,20 @@ public class LarkWebhookController {
         }
     }
     
-    private void createBitableRecord(JsonNode webhookData) throws Exception {
+    private void createBitableRecord(JsonNode webhookData,
+            mera.mera_v2.lark.webhook.service.WebhookCreationLogService.Entry attempt) throws Exception {
         log.info("Creating Bitable record from webhook data...");
         
         PosOrderWebhook orderWebhook = mapper.treeToValue(webhookData, PosOrderWebhook.class);
         
         log.info("Order ID: {}, Status: {}", orderWebhook.getId(), orderWebhook.getStatus());
 
+        attempt.setStage("Tìm mapping CSKH");
         // Lay ten CSKH tu webhook
         PosOrderWebhook.AssigningSeller cskh = posToBitableMapper.getAssigningCare(orderWebhook);
         String cskhName = (cskh != null && cskh.getName() != null) ? cskh.getName().trim() : null;
         
+        attempt.setCskh(cskhName == null ? "" : cskhName);
         log.info("CSKH Name: {}", cskhName != null ? cskhName : "(null)");
 
         // Lay Base ID va Table ID tu mapping CSKH (tu /admin/cskh-mapping)
@@ -568,53 +566,65 @@ public class LarkWebhookController {
         String targetTableId = null;
         String viewId = null;
 
-        if (cskhName != null && !cskhName.isBlank() && searchConfigService != null) {
-            // Trich xuat phone tu ten CSKH (vi du: "Hà Quang Vượng Sale 2 NT 0968420624" -> "0968420624")
-            String cskhPhone = extractPhoneFromName(cskhName);
-            log.info("Extracted phone from CSKH name '{}': {}", cskhName, cskhPhone);
+        // Prefer the explicit phone on the assigned care employee. Names may no
+        // longer contain a phone, or may still contain an outdated phone.
+        String cskhPhone = posToBitableMapper.getCskhPhoneNumber(orderWebhook);
+        if (cskhPhone == null || cskhPhone.isBlank()) {
+            cskhPhone = extractPhoneFromName(cskhName);
+        }
+
+        if (cskhPhone != null && !cskhPhone.isBlank() && searchConfigService != null) {
 
             SearchConfigService.CskhMappingResult result = null;
             if (cskhPhone != null) {
                 result = searchConfigService.findMappingResultByPhone(cskhPhone);
             }
 
-            if (result != null && result.getBaseId() != null) {
+            if (result != null && result.getBaseId() != null && !result.getBaseId().isBlank()) {
                 appToken = result.getBaseId();
                 targetTableId = result.getKhachHangTableId();
                 viewId = result.getViewId();
+                attempt.setBaseId(appToken);
+                attempt.setTableId(targetTableId);
                 log.info("✅ Found mapping for CSKH '{}' (phone={}): Base ID={}, Table ID={}, View ID={}, Base Name={}",
                         cskhName, cskhPhone, appToken, targetTableId, viewId, result.getBaseName());
             } else {
                 log.error("❌ No mapping found for CSKH '{}' (phone={}) in search_config. Cannot create record without table ID.", cskhName, cskhPhone);
+                attempt.finish("WAITING_MAPPING", "Chưa có mapping SĐT CSKH trong search_config");
                 return;
             }
         } else {
-            log.error("❌ CSKH name is null or SearchConfigService is not available. Cannot create record.");
+            log.error("Cannot resolve CSKH mapping: no care phone in payload/name, or SearchConfigService unavailable. Order ID={}", orderWebhook.getId());
+            attempt.finish("WAITING_MAPPING", "Thiếu SĐT CSKH hoặc dịch vụ mapping");
             return;
         }
 
         // Kiem tra table ID hop le
         if (targetTableId == null || targetTableId.isBlank()) {
             log.error("❌ Table ID is null or blank for CSKH '{}'. Cannot create record.", cskhName);
+            attempt.finish("WAITING_MAPPING", "Mapping chưa có Table KH");
             return;
         }
 
         // Map sang Bitable fields
         Map<String, Object> fields = posToBitableMapper.mapToBitableFields(orderWebhook);
         
+        attempt.setStage("Lấy token Lark");
         // Lay token
         String userAccessToken = getUserAccessToken();
         if (userAccessToken == null || userAccessToken.isBlank()) {
-            throw new IllegalStateException("User access token is not available. Please login at /token first.");
+            attempt.finish("WAITING_TOKEN", "Chưa có token truy cập Lark, kiểm tra trang Token & Base");
+            return;
         }
         
+        attempt.setStage("Kiểm tra trùng SĐT");
         // Kiem tra so dien thoai trung lap bang filter API
-        String phoneNumber = posToBitableMapper.getDienThoai(orderWebhook);
+        String phoneNumber = (String) fields.get("Điện thoại");
         if (phoneNumber != null && !phoneNumber.isBlank()) {
             log.info("Checking if phone number already exists in Lark Bitable: {}", phoneNumber);
             
             try {
-                String searchViewId = viewId != null ? viewId : "vew5Ou4Kee";
+                String searchViewId = null; // Check the whole destination table, not a filtered view.
                 // Su dung filter API de kiem tra chinh xac hon
                 boolean phoneExists = bitableService.checkPhoneExistsWithFilter(
                         appToken, 
@@ -626,17 +636,41 @@ public class LarkWebhookController {
                 
                 if (phoneExists) {
                     log.warn("Phone number '{}' already exists in Lark Bitable table. Skipping record creation.", phoneNumber);
+                    attempt.finish("DUPLICATE", "SĐT khách đã tồn tại trong bảng đích");
                     return;
                 } else {
                     log.info("Phone number '{}' does not exist in Lark Bitable. Proceeding with record creation.", phoneNumber);
                 }
             } catch (Exception e) {
-                log.error("Error checking phone existence in Lark: {}. Proceeding with record creation as fallback.", e.getMessage());
+                throw e;
             }
         } else {
-            log.warn("Phone number is null or blank. Cannot check for duplicates in Lark. Proceeding with record creation.");
+            attempt.finish("WAITING_PHONE", "Thiếu SĐT khách để kiểm tra trùng");
+            return;
         }
         
+        attempt.setStage("Lấy ngày chuyển status = 1");
+        java.time.Instant statusTime;
+        try {
+            statusTime = mera.mera_v2.lark.webhook.service.WebhookStatusDate.latestStatusOne(
+                    webhookData, java.time.ZoneId.of(historyZone));
+        } catch (java.time.DateTimeException | NumberFormatException invalidDate) {
+            attempt.finish("WAITING_DATE", "Lịch sử chuyển status = 1 có updated_at không hợp lệ");
+            return;
+        }
+        if (statusTime == null) {
+            attempt.finish("WAITING_DATE", "Webhook chưa có lịch sử chuyển status = 1; chưa tạo để tránh sai ngày");
+            return;
+        }
+        attempt.setStatusOneAt(statusTime.atZone(java.time.ZoneId.of("Asia/Ho_Chi_Minh")).toOffsetDateTime().toString());
+        attempt.setStage("Kiểm tra cột ngày Lark");
+        String dateIssue = bitableService.checkWritableDateField(appToken, targetTableId, userAccessToken, statusOneDateField);
+        if (dateIssue != null) {
+            attempt.finish("WAITING_FIELD", dateIssue);
+            return;
+        }
+        fields.put(statusOneDateField, statusTime.toEpochMilli());
+        attempt.setStage("Tạo bản ghi Lark");
         // Tao record
         BitableRecordResponse response = bitableService.createRecord(appToken, targetTableId, userAccessToken, fields);
         
@@ -644,6 +678,12 @@ public class LarkWebhookController {
             String recordId = response.getData().getRecord() != null
                     ? response.getData().getRecord().getRecordId()
                     : "unknown";
+            if ("unknown".equals(recordId) || recordId == null || recordId.isBlank()) {
+                attempt.finish("UNKNOWN", "API chưa trả record_id; kiểm tra Lark trước khi gửi lại webhook");
+                return;
+            }
+            attempt.setRecordId(recordId);
+            attempt.finish("CREATED", "Đã tạo bản ghi, ngày lấy từ lần chuyển status = 1 gần nhất");
             log.info("Created Bitable record successfully: recordId={}", recordId);
 
             // BUOC 2 (ghi pending_followup_notifications) DA BO.

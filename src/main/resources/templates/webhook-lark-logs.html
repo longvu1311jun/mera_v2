@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/jpeg" href="/meraicon.ico">
+    <title>Log tạo khách Lark - Mera</title>
+    <script th:replace="~{fragments/mera-layout :: themeInit}"></script>
+    <link rel="stylesheet" href="/css/mera-ui.css">
+    <style>
+        .log-filter {display:flex;flex-wrap:wrap;gap:12px;align-items:end;margin-bottom:20px}
+        .log-filter label {display:grid;gap:6px}
+        .log-filter input,.log-filter select {padding:9px;border:1px solid var(--mr-border,#ddd);border-radius:8px;background:var(--mr-card,#fff);color:inherit;max-width:100%}
+        .log-note {margin:12px 0;color:var(--mr-muted,#737373)}
+        .log-table td {vertical-align:top;min-width:130px}
+        .log-table .reason {min-width:260px;white-space:normal}
+        .log-table code {font-size:11px;overflow-wrap:anywhere}
+        .log-table small {display:block;margin-top:5px}
+        .log-error {padding:12px;border:1px solid #d33;border-radius:8px}
+    </style>
+</head>
+<body class="mera-page">
+<div class="mr-shell">
+    <th:block th:replace="~{fragments/mera-layout :: sidebar('webhookLarkLogs')}"></th:block>
+    <div class="mr-shell-main">
+        <th:block th:replace="~{fragments/mera-layout :: topbar('Log tạo khách Lark')}"></th:block>
+        <main class="mr-shell-content">
+            <div class="mr-page-header">
+                <div><h1 class="mr-page-title">Log tạo khách Lark</h1>
+                    <p class="mr-page-subtitle">Theo dõi tạo bản ghi từ webhook có tag Đồng bộ DATA. Thời gian hiển thị theo giờ Việt Nam.</p></div>
+                <button type="button" class="mr-btn mr-btn--ghost" onclick="location.reload()">Làm mới</button>
+            </div>
+            <form method="get" action="/webhook-lark-logs" class="mr-card log-filter">
+                <label>Từ ngày<input type="date" name="from" th:value="${from}" required></label>
+                <label>Đến ngày<input type="date" name="to" th:value="${to}" required></label>
+                <label>Mã đơn<input type="search" name="order" th:value="${order}" placeholder="Nhập mã đơn"></label>
+                <label>Kết quả<select name="status">
+                    <option value="">Tất cả</option>
+                    <option th:each="s : ${ {'CREATED','DUPLICATE','SKIPPED','WAITING_MAPPING','WAITING_DATE','WAITING_FIELD','WAITING_TOKEN','WAITING_PHONE','FAILED','UNKNOWN','QUEUED','PROCESSING'} }"
+                            th:value="${s}" th:text="${s}" th:selected="${s == status}"></option>
+                </select></label>
+                <button class="mr-btn mr-btn--primary" type="submit">Lọc log</button>
+            </form>
+            <p th:if="${error}" th:text="${error}" class="log-error"></p>
+            <p class="log-note">Hiển thị tối đa 200 lượt gần nhất trong cửa sổ 10.000 lượt khớp mã đơn. Lọc theo ngày ghi log, tối đa 31 ngày.</p>
+            <p class="log-note">WAITING: chưa tạo, cần xử lý lý do rồi gửi lại webhook. UNKNOWN hoặc PROCESSING kéo dài: đối soát bảng Lark trước khi gửi lại. Màn này không tự retry.</p>
+            <div class="mr-card mr-card--flush">
+                <div class="mr-table-scroll">
+                    <table class="mr-table log-table">
+                        <thead><tr><th>Thời gian / lượt xử lý</th><th>Đơn / Shop</th><th>CSKH</th><th>Kết quả</th><th>Ngày chuyển status = 1</th><th>Bảng đích / Bản ghi</th><th>Lý do</th></tr></thead>
+                        <tbody>
+                        <tr th:each="entry : ${entries}">
+                            <td><span th:text="${entry.timestamp}"></span><small><code th:text="${entry.attemptId}"></code></small></td>
+                            <td><strong th:text="${entry.orderId}"></strong><small th:text="${entry.shopId}"></small></td>
+                            <td th:text="${entry.cskh}"></td>
+                            <td><span class="mr-badge" th:classappend="${entry.status == 'CREATED' ? 'mr-badge--success' : 'mr-badge--accent'}" th:text="${entry.status}"></span></td>
+                            <td th:text="${entry.statusOneAt}"></td>
+                            <td><code th:text="${entry.baseId}"></code><small><code th:text="${entry.tableId}"></code></small><small><code th:text="${entry.recordId}"></code></small></td>
+                            <td class="reason" th:text="${entry.reason}"></td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(entries)}"><td colspan="7">Chưa có log phù hợp. Log bắt đầu được ghi từ khi chạy phiên bản này.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+<th:block th:replace="~{fragments/mera-layout :: shellScript}"></th:block>
+</body>
+</html>

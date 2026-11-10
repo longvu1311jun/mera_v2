@@ -25,6 +25,7 @@ import org.apache.poi.ss.usermodel.WorkbookFactory;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -73,8 +74,12 @@ public class RefusedCareService {
         this.cache = cache;
     }
 
+    @Value("${mera.customer.background.enabled:false}")
+    private boolean backgroundEnabled;
+
     @EventListener(ApplicationReadyEvent.class)
     public void ensureSchema() {
+        if (!backgroundEnabled) return;
         try {
             jdbcTemplate.execute(DDL);
             log.info("Bảng refused_care (Từ chối chăm) đã sẵn sàng.");

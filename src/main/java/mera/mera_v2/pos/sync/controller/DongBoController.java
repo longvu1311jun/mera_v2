@@ -5,7 +5,6 @@ import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import lombok.extern.slf4j.Slf4j;
-import mera.mera_v2.config.SyncFeatureToggleService;
 import mera.mera_v2.lark.sync.service.*;
 import mera.mera_v2.lark.token.LarkTokenService;
 import mera.mera_v2.pos.sync.service.EmployeeSyncResult;
@@ -29,7 +28,7 @@ public class DongBoController {
     private final LarkSyncOrchestratorService larkSyncOrchestratorService;
     private final LarkAttendanceSyncService larkAttendanceSyncService;
     private final LarkTokenService larkTokenService;
-    private final SyncFeatureToggleService featureToggle;
+
 
     @GetMapping("/dongbo")
     public String dongBoPage() {
@@ -139,15 +138,6 @@ public class DongBoController {
 
         log.info("[API] Sync Lark attendance: {} to {}", startDate, endDate);
         try {
-            if (!featureToggle.isAttendanceSyncEnabled()) {
-                log.warn("[API] Sync Lark attendance blocked - feature DISABLED via toggle");
-                Map<String, Object> errorResponse = new HashMap<>();
-                errorResponse.put("success", false);
-                errorResponse.put("error", "Tính năng đồng bộ điểm danh đang bị tắt");
-                errorResponse.put("enabled", false);
-                return ResponseEntity.status(403).body(errorResponse);
-            }
-
             mera.mera_v2.lark.sync.dto.AttendanceSyncRequest request =
                 new mera.mera_v2.lark.sync.dto.AttendanceSyncRequest();
             request.setStartDate(startDate);
