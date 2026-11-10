@@ -575,9 +575,12 @@ public class LarkWebhookController {
 
         if (cskhPhone != null && !cskhPhone.isBlank() && searchConfigService != null) {
 
-            SearchConfigService.CskhMappingResult result = null;
-            if (cskhPhone != null) {
-                result = searchConfigService.findMappingResultByPhone(cskhPhone);
+            SearchConfigService.CskhMappingResult result = searchConfigService.findMappingResultByPhone(cskhPhone);
+            // SĐT tài khoản POS có thể khác SĐT trong tên (mapping lưu theo SĐT trong tên) -> thử thêm số trong tên
+            String namePhone = extractPhoneFromName(cskhName);
+            if (result == null && namePhone != null && !namePhone.equals(cskhPhone)) {
+                result = searchConfigService.findMappingResultByPhone(namePhone);
+                if (result != null) cskhPhone = namePhone;
             }
 
             if (result != null && result.getBaseId() != null && !result.getBaseId().isBlank()) {
