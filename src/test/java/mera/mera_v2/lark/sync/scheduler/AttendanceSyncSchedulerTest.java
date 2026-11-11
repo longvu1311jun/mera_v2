@@ -47,8 +47,8 @@ class AttendanceSyncSchedulerTest {
         scheduler.incrementalSyncMissingEmployees();
         var request = ArgumentCaptor.forClass(AttendanceSyncRequest.class);
         verify(sync).syncAttendance(request.capture(), eq("scheduler_daily"), eq("system"));
-        assertEquals(LocalDate.of(2026, 11, 10), request.getValue().getStartDate());
-        assertEquals(request.getValue().getStartDate(), request.getValue().getEndDate());
+        assertEquals(LocalDate.of(2026, 11, 9), request.getValue().getStartDate()); // keo ca check-out hom truoc
+        assertEquals(LocalDate.of(2026, 11, 10), request.getValue().getEndDate());
         verifyNoInteractions(punches);
         scheduler.incrementalSyncMissingEmployees();
         verify(sync, times(1)).syncAttendance(any(), anyString(), anyString());
@@ -86,7 +86,8 @@ class AttendanceSyncSchedulerTest {
         scheduler.incrementalSyncMissingEmployees();
         var request = ArgumentCaptor.forClass(AttendanceSyncRequest.class);
         verify(sync, times(2)).syncAttendance(request.capture(), eq("scheduler_daily"), eq("system"));
-        assertEquals(LocalDate.of(2026, 11, 11), request.getValue().getStartDate());
+        assertEquals(LocalDate.of(2026, 11, 10), request.getValue().getStartDate());
+        assertEquals(LocalDate.of(2026, 11, 11), request.getValue().getEndDate());
     }
 
     @Test

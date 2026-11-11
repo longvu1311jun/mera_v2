@@ -142,7 +142,8 @@ public class AttendanceSyncScheduler {
 
             try {
                 AttendanceSyncRequest request = new AttendanceSyncRequest();
-                request.setStartDate(today);
+                // Lay ca hom qua: job chi chay 7:59-17:00 nen check-out sau 17h hom truoc chua bao gio duoc keo ve
+                request.setStartDate(today.minusDays(1));
                 request.setEndDate(today);
                 request.setForce(true);
 

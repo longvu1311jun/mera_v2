@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <link rel="icon" type="image/jpeg" href="/meraicon.ico">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tìm Khách Hàng - MeraGroup</title>
+    <script th:replace="~{fragments/mera-layout :: themeInit}"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/mera-ui.css">
+    <style>
+        /* Trang search-info nhúng full khung bên phải; trang gốc /search-info không đổi */
+        .mr-shell-main { height: 100dvh; }
+        .search-frame { flex: 1; width: 100%; border: 0; display: block; }
+    </style>
+</head>
+<body class="mera-page">
+<div class="mr-shell">
+    <th:block th:replace="~{fragments/mera-layout :: sidebar('searchInfo')}"></th:block>
+    <div class="mr-shell-main">
+        <th:block th:replace="~{fragments/mera-layout :: topbar('Tìm Khách Hàng')}"></th:block>
+        <iframe class="search-frame" th:src="${phone == null} ? @{/search-info} : @{/search-info(phone=${phone})}" title="Tìm Khách Hàng"></iframe>
+    </div>
+</div>
+<th:block th:replace="~{fragments/mera-layout :: shellScript}"></th:block>
+</body>
+</html>
